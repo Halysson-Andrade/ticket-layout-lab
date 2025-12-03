@@ -48,10 +48,12 @@ export const Canvas: React.FC<CanvasProps> = ({
   const [isPanning, setIsPanning] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isBoxSelecting, setIsBoxSelecting] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [drawStart, setDrawStart] = useState({ x: 0, y: 0 });
   const [drawCurrent, setDrawCurrent] = useState({ x: 0, y: 0 });
-  const [lassoPoints, setLassoPoints] = useState<{ x: number; y: number }[]>([]);
+  const [boxSelectStart, setBoxSelectStart] = useState({ x: 0, y: 0 });
+  const [boxSelectCurrent, setBoxSelectCurrent] = useState({ x: 0, y: 0 });
   const bgImageRef = useRef<HTMLImageElement | null>(null);
 
   // Carrega imagem de fundo
@@ -143,6 +145,17 @@ export const Canvas: React.FC<CanvasProps> = ({
     sectors.forEach(sector => {
       if (!sector.visible) return;
 
+      ctx.save();
+      
+      // Aplicar rotação do setor
+      if (sector.rotation) {
+        const centerX = sector.bounds.x + sector.bounds.width / 2;
+        const centerY = sector.bounds.y + sector.bounds.height / 2;
+        ctx.translate(centerX, centerY);
+        ctx.rotate((sector.rotation * Math.PI) / 180);
+        ctx.translate(-centerX, -centerY);
+      }
+
       // Borda do setor
       const isSelected = selectedSectorIds.includes(sector.id);
       ctx.strokeStyle = isSelected ? '#3b82f6' : sector.color;
@@ -187,9 +200,11 @@ export const Canvas: React.FC<CanvasProps> = ({
           ctx.fillText(seat.number, seat.x + seatSize / 2, seat.y + seatSize / 2);
         }
       });
+
+      ctx.restore();
     });
 
-    // Retângulo de seleção/criação
+    // Retângulo de seleção/criação de setor
     if (isDrawing && activeTool === 'sector') {
       const x = Math.min(drawStart.x, drawCurrent.x);
       const y = Math.min(drawStart.y, drawCurrent.y);
@@ -205,23 +220,24 @@ export const Canvas: React.FC<CanvasProps> = ({
       ctx.fillRect(x, y, w, h);
     }
 
-    // Lasso selection
-    if (lassoPoints.length > 1) {
-      ctx.strokeStyle = '#3b82f6';
+    // Box selection para assentos
+    if (isBoxSelecting) {
+      const x = Math.min(boxSelectStart.x, boxSelectCurrent.x);
+      const y = Math.min(boxSelectStart.y, boxSelectCurrent.y);
+      const w = Math.abs(boxSelectCurrent.x - boxSelectStart.x);
+      const h = Math.abs(boxSelectCurrent.y - boxSelectStart.y);
+      
+      ctx.strokeStyle = '#22c55e';
       ctx.lineWidth = 1 / zoom;
       ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.moveTo(lassoPoints[0].x, lassoPoints[0].y);
-      lassoPoints.forEach(p => ctx.lineTo(p.x, p.y));
-      ctx.closePath();
-      ctx.stroke();
+      ctx.strokeRect(x, y, w, h);
       ctx.setLineDash([]);
-      ctx.fillStyle = 'rgba(59, 130, 246, 0.1)';
-      ctx.fill();
+      ctx.fillStyle = 'rgba(34, 197, 94, 0.15)';
+      ctx.fillRect(x, y, w, h);
     }
 
     ctx.restore();
-  }, [sectors, elements, selectedSectorIds, selectedSeatIds, zoom, pan, width, height, isDrawing, drawStart, drawCurrent, lassoPoints, activeTool]);
+  }, [sectors, elements, selectedSectorIds, selectedSeatIds, zoom, pan, width, height, isDrawing, drawStart, drawCurrent, activeTool, isBoxSelecting, boxSelectStart, boxSelectCurrent]);
 
   // Atualiza canvas
   useEffect(() => {
@@ -293,12 +309,10 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
       }
 
-      // Click no vazio - inicia lasso ou limpa seleção
-      if (activeTool === 'lasso') {
-        setLassoPoints([pos]);
-      } else {
-        onSelectSeats([], false);
-      }
+      // Click no vazio - inicia box selection
+      setIsBoxSelecting(true);
+      setBoxSelectStart(pos);
+      setBoxSelectCurrent(pos);
     }
   }, [activeTool, screenToCanvas, pan, sectors, onSelectSeats, onSelectSector, onApplySeatType, activeSeatType]);
 
@@ -325,13 +339,13 @@ export const Canvas: React.FC<CanvasProps> = ({
       setDragStart(pos);
     }
 
-    if (lassoPoints.length > 0) {
-      setLassoPoints([...lassoPoints, pos]);
+    if (isBoxSelecting) {
+      setBoxSelectCurrent(pos);
     }
-  }, [isPanning, isDrawing, isDragging, activeTool, dragStart, screenToCanvas, selectedSectorIds, onPanChange, onMoveSector, lassoPoints]);
+  }, [isPanning, isDrawing, isDragging, isBoxSelecting, activeTool, dragStart, screenToCanvas, selectedSectorIds, onPanChange, onMoveSector]);
 
   // Mouse up
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = useCallback((e: React.MouseEvent) => {
     if (isDrawing && activeTool === 'sector') {
       const x = Math.min(drawStart.x, drawCurrent.x);
       const y = Math.min(drawStart.y, drawCurrent.y);
@@ -343,46 +357,54 @@ export const Canvas: React.FC<CanvasProps> = ({
       }
     }
 
-    if (lassoPoints.length > 2) {
-      // Seleciona assentos dentro do lasso
-      const selectedIds: string[] = [];
-      sectors.forEach(sector => {
-        if (!sector.visible) return;
-        sector.seats.forEach(seat => {
-          if (isPointInPolygon({ x: seat.x + 7, y: seat.y + 7 }, lassoPoints)) {
-            selectedIds.push(seat.id);
-          }
+    // Box selection finalizada
+    if (isBoxSelecting) {
+      const minX = Math.min(boxSelectStart.x, boxSelectCurrent.x);
+      const maxX = Math.max(boxSelectStart.x, boxSelectCurrent.x);
+      const minY = Math.min(boxSelectStart.y, boxSelectCurrent.y);
+      const maxY = Math.max(boxSelectStart.y, boxSelectCurrent.y);
+      
+      // Só seleciona se a box tiver tamanho mínimo
+      if (maxX - minX > 5 && maxY - minY > 5) {
+        const selectedIds: string[] = [];
+        sectors.forEach(sector => {
+          if (!sector.visible) return;
+          sector.seats.forEach(seat => {
+            const seatCenterX = seat.x + 7;
+            const seatCenterY = seat.y + 7;
+            if (seatCenterX >= minX && seatCenterX <= maxX && 
+                seatCenterY >= minY && seatCenterY <= maxY) {
+              selectedIds.push(seat.id);
+            }
+          });
         });
-      });
-      if (selectedIds.length > 0) {
-        onSelectSeats(selectedIds, false);
+        if (selectedIds.length > 0) {
+          onSelectSeats(selectedIds, e.shiftKey);
+          
+          // Aplica tipo se não for normal
+          if (activeSeatType !== 'normal') {
+            onApplySeatType(selectedIds, activeSeatType);
+          }
+        }
+      } else {
+        // Click simples no vazio - limpa seleção
+        if (!e.shiftKey) {
+          onSelectSeats([], false);
+        }
       }
     }
 
     setIsPanning(false);
     setIsDrawing(false);
     setIsDragging(false);
-    setLassoPoints([]);
-  }, [isDrawing, activeTool, drawStart, drawCurrent, onCreateSector, lassoPoints, sectors, onSelectSeats]);
-
-  // Point in polygon test (raycasting)
-  const isPointInPolygon = (point: { x: number; y: number }, polygon: { x: number; y: number }[]) => {
-    let inside = false;
-    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-      const xi = polygon[i].x, yi = polygon[i].y;
-      const xj = polygon[j].x, yj = polygon[j].y;
-      const intersect = ((yi > point.y) !== (yj > point.y)) &&
-        (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
-      if (intersect) inside = !inside;
-    }
-    return inside;
-  };
+    setIsBoxSelecting(false);
+  }, [isDrawing, activeTool, drawStart, drawCurrent, onCreateSector, isBoxSelecting, boxSelectStart, boxSelectCurrent, sectors, onSelectSeats, activeSeatType, onApplySeatType]);
 
   return (
     <div 
       ref={containerRef}
       className="absolute inset-0 overflow-hidden bg-canvas-bg cursor-crosshair"
-      style={{ cursor: activeTool === 'pan' ? 'grab' : isPanning ? 'grabbing' : 'crosshair' }}
+      style={{ cursor: activeTool === 'pan' ? 'grab' : isPanning ? 'grabbing' : isBoxSelecting ? 'crosshair' : 'default' }}
     >
       <canvas
         ref={canvasRef}
@@ -394,6 +416,20 @@ export const Canvas: React.FC<CanvasProps> = ({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       />
+      
+      {/* Hint overlay */}
+      {selectedSeatIds.length === 0 && sectors.length > 0 && !isBoxSelecting && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-background/90 backdrop-blur-sm px-4 py-2 rounded-lg text-sm text-muted-foreground pointer-events-none">
+          Arraste para selecionar múltiplos assentos • Shift+click para adicionar à seleção
+        </div>
+      )}
+      
+      {/* Selection count */}
+      {selectedSeatIds.length > 0 && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm font-medium shadow-lg">
+          {selectedSeatIds.length} assento{selectedSeatIds.length > 1 ? 's' : ''} selecionado{selectedSeatIds.length > 1 ? 's' : ''}
+        </div>
+      )}
     </div>
   );
 };
