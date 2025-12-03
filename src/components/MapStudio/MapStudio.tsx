@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { LayoutGrid, FileJson } from 'lucide-react';
+import { LayoutGrid, FileJson, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toolbar } from './Toolbar';
 import { LeftSidebar } from './LeftSidebar';
@@ -8,7 +8,7 @@ import { Canvas } from './Canvas';
 import { Minimap } from './Minimap';
 import { StatusBar } from './StatusBar';
 import { GridGeneratorModal } from './GridGeneratorModal';
-import { TemplatesPanel } from './TemplatesPanel';
+import { OnboardingWizard } from './OnboardingWizard';
 import { ExportModal } from './ExportModal';
 import { 
   VenueMap, 
@@ -55,7 +55,7 @@ export const MapStudio: React.FC = () => {
 
   // Modals
   const [showGridGenerator, setShowGridGenerator] = useState(false);
-  const [showTemplates, setShowTemplates] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(true);
   const [showExport, setShowExport] = useState(false);
 
   // History for undo/redo
@@ -452,10 +452,10 @@ export const MapStudio: React.FC = () => {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => setShowTemplates(true)}
+            onClick={() => setShowOnboarding(true)}
           >
-            <LayoutGrid className="h-4 w-4 mr-2" />
-            Templates
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Mapa
           </Button>
           <Button 
             variant="default" 
@@ -568,10 +568,13 @@ export const MapStudio: React.FC = () => {
         sectorId={selectedSectorIds[0] || ''}
       />
 
-      <TemplatesPanel
-        open={showTemplates}
-        onClose={() => setShowTemplates(false)}
-        onSelectTemplate={handleSelectTemplate}
+      <OnboardingWizard
+        open={showOnboarding}
+        onClose={() => setShowOnboarding(false)}
+        onComplete={(template, customParams) => {
+          handleSelectTemplate(template);
+          setShowOnboarding(false);
+        }}
       />
 
       <ExportModal

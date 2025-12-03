@@ -1,9 +1,10 @@
-import React from 'react';
-import { Settings, Palette, Type, Move, RotateCw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Settings, Palette, Type, Move, RotateCw, Minus, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sector, Seat, SeatType, SEAT_COLORS, SECTOR_COLORS } from '@/types/mapStudio';
 
@@ -20,6 +21,22 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   onUpdateSector,
   onUpdateSeats,
 }) => {
+  // Local state para edição em tempo real
+  const [localRotation, setLocalRotation] = useState(0);
+
+  useEffect(() => {
+    if (selectedSector) {
+      setLocalRotation(selectedSector.rotation);
+    }
+  }, [selectedSector?.id, selectedSector?.rotation]);
+
+  const handleRotationChange = (value: number) => {
+    setLocalRotation(value);
+    if (selectedSector) {
+      onUpdateSector(selectedSector.id, { rotation: value });
+    }
+  };
+
   if (!selectedSector && selectedSeats.length === 0) {
     return (
       <div className="absolute right-4 top-20 bottom-4 w-72 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg z-10 flex flex-col overflow-hidden">
@@ -144,19 +161,63 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                 </div>
               </div>
 
-              <div className="space-y-2">
+              {/* Rotação com slider para feedback em tempo real */}
+              <div className="space-y-3">
                 <Label className="text-xs flex items-center gap-2">
                   <RotateCw className="h-3 w-3" />
                   Rotação
                 </Label>
-                <Input
-                  type="number"
-                  value={selectedSector.rotation}
-                  onChange={(e) => onUpdateSector(selectedSector.id, { rotation: parseInt(e.target.value) || 0 })}
-                  className="h-8 text-sm"
-                  min={0}
-                  max={360}
-                />
+                <div className="space-y-2">
+                  <Slider
+                    value={[localRotation]}
+                    onValueChange={([value]) => handleRotationChange(value)}
+                    min={0}
+                    max={360}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => handleRotationChange(Math.max(0, localRotation - 15))}
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <Input
+                      type="number"
+                      value={localRotation}
+                      onChange={(e) => handleRotationChange(parseInt(e.target.value) || 0)}
+                      className="h-7 text-xs text-center"
+                      min={0}
+                      max={360}
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => handleRotationChange(Math.min(360, localRotation + 15))}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                    <span className="text-xs text-muted-foreground">°</span>
+                  </div>
+                  {/* Atalhos de rotação */}
+                  <div className="flex gap-1">
+                    {[0, 45, 90, 180, 270].map(deg => (
+                      <Button
+                        key={deg}
+                        variant={localRotation === deg ? "default" : "outline"}
+                        size="sm"
+                        className="flex-1 h-6 text-[10px] px-1"
+                        onClick={() => handleRotationChange(deg)}
+                      >
+                        {deg}°
+                      </Button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="pt-2 border-t border-border">
@@ -172,54 +233,28 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
             <>
               <div className="space-y-2">
                 <Label className="text-xs">Tipo do Assento</Label>
-                <Select
-                  value={selectedSeats[0]?.type || 'normal'}
-                  onValueChange={(value: SeatType) => {
-                    onUpdateSeats(selectedSeats.map(s => s.id), { type: value });
-                  }}
-                >
-                  <SelectTrigger className="h-8 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="normal">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: SEAT_COLORS.normal }} />
-                        Normal
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="pcd">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: SEAT_COLORS.pcd }} />
-                        PCD
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="companion">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: SEAT_COLORS.companion }} />
-                        Acompanhante
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="obeso">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: SEAT_COLORS.obeso }} />
-                        Obeso
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="vip">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: SEAT_COLORS.vip }} />
-                        VIP
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="blocked">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: SEAT_COLORS.blocked }} />
-                        Bloqueado
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['normal', 'pcd', 'companion', 'obeso', 'vip', 'blocked'] as SeatType[]).map(type => (
+                    <Button
+                      key={type}
+                      variant={selectedSeats[0]?.type === type ? "default" : "outline"}
+                      size="sm"
+                      className="h-9 text-xs justify-start gap-2"
+                      onClick={() => onUpdateSeats(selectedSeats.map(s => s.id), { type })}
+                    >
+                      <div 
+                        className="w-3 h-3 rounded-full" 
+                        style={{ backgroundColor: SEAT_COLORS[type] }} 
+                      />
+                      {type === 'normal' && 'Normal'}
+                      {type === 'pcd' && 'PCD'}
+                      {type === 'companion' && 'Acomp.'}
+                      {type === 'obeso' && 'Obeso'}
+                      {type === 'vip' && 'VIP'}
+                      {type === 'blocked' && 'Bloq.'}
+                    </Button>
+                  ))}
+                </div>
               </div>
 
               {selectedSeats.length === 1 && (
@@ -248,7 +283,16 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                 </>
               )}
 
-              <div className="pt-2">
+              {selectedSeats.length > 1 && (
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <p className="text-xs text-muted-foreground">
+                    <strong>{selectedSeats.length}</strong> assentos selecionados.
+                    Alterações serão aplicadas a todos.
+                  </p>
+                </div>
+              )}
+
+              <div className="pt-2 space-y-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -256,6 +300,14 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                   onClick={() => onUpdateSeats(selectedSeats.map(s => s.id), { type: 'blocked' })}
                 >
                   Bloquear Selecionados
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => onUpdateSeats(selectedSeats.map(s => s.id), { type: 'normal' })}
+                >
+                  Restaurar para Normal
                 </Button>
               </div>
             </>
