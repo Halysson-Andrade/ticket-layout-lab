@@ -18,10 +18,12 @@ import {
   ToolType, 
   SeatType, 
   Template,
+  SectorShape,
+  Vertex,
   SECTOR_COLORS,
   GridGeneratorParams 
 } from '@/types/mapStudio';
-import { generateSeatsGrid, generateId } from '@/lib/mapUtils';
+import { generateSeatsGrid, generateId, generateVerticesForShape, getBoundsFromVertices } from '@/lib/mapUtils';
 import { toast } from 'sonner';
 
 const CANVAS_WIDTH = 2000;
@@ -90,11 +92,14 @@ export const MapStudio: React.FC = () => {
 
   // Cria setor
   const handleCreateSector = useCallback((bounds: { x: number; y: number; width: number; height: number }) => {
+    const shape: SectorShape = 'rectangle';
     const newSector: Sector = {
       id: generateId(),
       name: `Setor ${sectors.length + 1}`,
       color: SECTOR_COLORS[sectors.length % SECTOR_COLORS.length],
       bounds,
+      vertices: generateVerticesForShape(shape, bounds),
+      shape,
       rotation: 0,
       seats: [],
       visible: true,
@@ -148,12 +153,25 @@ export const MapStudio: React.FC = () => {
           x: s.bounds.x + dx,
           y: s.bounds.y + dy,
         },
+        vertices: s.vertices.map(v => ({
+          x: v.x + dx,
+          y: v.y + dy,
+        })),
         seats: s.seats.map(seat => ({
           ...seat,
           x: seat.x + dx,
           y: seat.y + dy,
         })),
       };
+    }));
+  }, []);
+
+  // Atualiza vértices do setor
+  const handleUpdateSectorVertices = useCallback((id: string, vertices: Vertex[]) => {
+    setSectors(prev => prev.map(s => {
+      if (s.id !== id) return s;
+      const bounds = getBoundsFromVertices(vertices);
+      return { ...s, vertices, bounds };
     }));
   }, []);
 
@@ -263,11 +281,15 @@ export const MapStudio: React.FC = () => {
       const x = 100 + col * 450;
       const y = 200 + row * 300;
 
+      const bounds = { x, y, width: 400, height: 250 };
+      const shape: SectorShape = 'rectangle';
       const sector: Sector = {
         id: generateId(),
         name: `${template.name} - Setor ${i + 1}`,
         color: SECTOR_COLORS[i % SECTOR_COLORS.length],
-        bounds: { x, y, width: 400, height: 250 },
+        bounds,
+        vertices: generateVerticesForShape(shape, bounds),
+        shape,
         rotation: 0,
         seats: [],
         visible: true,
@@ -489,6 +511,7 @@ export const MapStudio: React.FC = () => {
           onSelectSeats={handleSelectSeats}
           onCreateSector={handleCreateSector}
           onMoveSector={handleMoveSector}
+          onUpdateSectorVertices={handleUpdateSectorVertices}
           onApplySeatType={handleApplySeatType}
         />
 
@@ -571,9 +594,47 @@ export const MapStudio: React.FC = () => {
       <OnboardingWizard
         open={showOnboarding}
         onClose={() => setShowOnboarding(false)}
-        onComplete={(template, customParams) => {
-          handleSelectTemplate(template);
+        onComplete={(shapeConfig) => {
+          // Cria setores baseado na forma selecionada
+          const newSectors: Sector[] = [];
+          for (let i = 0; i < shapeConfig.sectors; i++) {
+            const row = Math.floor(i / 2);
+            const col = i % 2;
+            const x = 100 + col * 450;
+            const y = 200 + row * 300;
+            const bounds = { x, y, width: 400, height: 250 };
+            
+            const sector: Sector = {
+              id: generateId(),
+              name: `Setor ${sectors.length + i + 1}`,
+              color: SECTOR_COLORS[(sectors.length + i) % SECTOR_COLORS.length],
+              bounds,
+              vertices: generateVerticesForShape(shapeConfig.shape, bounds),
+              shape: shapeConfig.shape,
+              rotation: 0,
+              seats: generateSeatsGrid({
+                rows: shapeConfig.rows,
+                cols: shapeConfig.cols,
+                rowSpacing: shapeConfig.rowSpacing,
+                colSpacing: shapeConfig.colSpacing,
+                seatSize: shapeConfig.seatSize,
+                rowLabelType: 'alpha',
+                seatLabelType: 'numeric',
+                rowLabelStart: 'A',
+                seatLabelStart: 1,
+                rotation: 0,
+                sectorId: '',
+                prefix: `S${sectors.length + i + 1}-`,
+              }, x + 20, y + 30),
+              visible: true,
+              locked: false,
+            };
+            newSectors.push(sector);
+          }
+          setSectors(prev => [...prev, ...newSectors]);
+          pushHistory([...sectors, ...newSectors]);
           setShowOnboarding(false);
+          toast.success(`${shapeConfig.sectors} setor(es) criado(s)!`);
         }}
       />
 
