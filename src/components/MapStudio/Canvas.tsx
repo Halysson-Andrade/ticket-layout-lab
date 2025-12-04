@@ -2,6 +2,14 @@ import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { Sector, Seat, VenueElement, ToolType, SeatType, SEAT_COLORS, ELEMENT_ICONS, Vertex, TableConfig } from '@/types/mapStudio';
 import { isPointInBounds, isPointInPolygon, getBoundsFromVertices } from '@/lib/mapUtils';
 
+interface BackgroundImageConfig {
+  url: string;
+  opacity: number;
+  scale: number;
+  x: number;
+  y: number;
+}
+
 interface CanvasProps {
   width: number;
   height: number;
@@ -15,6 +23,7 @@ interface CanvasProps {
   zoom: number;
   pan: { x: number; y: number };
   backgroundImage: string | null;
+  bgConfig: BackgroundImageConfig | null;
   onZoomChange: (zoom: number) => void;
   onPanChange: (pan: { x: number; y: number }) => void;
   onSelectSector: (id: string, additive: boolean) => void;
@@ -42,6 +51,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   zoom,
   pan,
   backgroundImage,
+  bgConfig,
   onZoomChange,
   onPanChange,
   onSelectSector,
@@ -194,8 +204,24 @@ export const Canvas: React.FC<CanvasProps> = ({
       ctx.stroke();
     }
 
-    // Imagem de fundo
-    if (bgImageRef.current) {
+    // Imagem de fundo com configurações
+    if (bgImageRef.current && bgConfig) {
+      ctx.save();
+      ctx.globalAlpha = bgConfig.opacity / 100;
+      
+      const scale = bgConfig.scale / 100;
+      const imgWidth = width * scale;
+      const imgHeight = height * scale;
+      
+      ctx.drawImage(
+        bgImageRef.current, 
+        bgConfig.x, 
+        bgConfig.y, 
+        imgWidth, 
+        imgHeight
+      );
+      ctx.restore();
+    } else if (bgImageRef.current) {
       ctx.globalAlpha = 0.5;
       ctx.drawImage(bgImageRef.current, 0, 0, width, height);
       ctx.globalAlpha = 1;
@@ -294,38 +320,71 @@ export const Canvas: React.FC<CanvasProps> = ({
       ctx.textBaseline = 'top';
       ctx.fillText(sector.name, bounds.x + 4, bounds.y + 4);
 
-      // Assentos (cadeiras simples ou mesas com cadeiras)
-      sector.seats.forEach(seat => {
-        const isSeatSelected = selectedSeatIds.includes(seat.id);
-        
-        // Se for mesa ou bistrô, renderiza com cadeiras ao redor
-        if (seat.furnitureType === 'table' || seat.furnitureType === 'bistro') {
-          renderTableWithChairs(ctx, seat, isSeatSelected);
-        } else {
-          // Cadeira simples
-          const seatSize = 14;
-          
-          ctx.fillStyle = isSeatSelected ? '#3b82f6' : SEAT_COLORS[seat.type];
-          
+      // Zoom dinâmico: se zoom < 0.5, mostra setor preenchido; se >= 0.5 mostra assentos
+      const showSeatsThreshold = 0.5;
+      
+      if (zoom < showSeatsThreshold && sector.seats.length > 0) {
+        // Zoom distante: mostra setor como cor sólida com contagem
+        const bounds = getBoundsFromVertices(sector.vertices);
+        ctx.fillStyle = sector.color + '80'; // 50% opacidade
+        if (sector.vertices && sector.vertices.length > 2) {
           ctx.beginPath();
-          ctx.arc(seat.x + seatSize / 2, seat.y + seatSize / 2, seatSize / 2, 0, Math.PI * 2);
+          ctx.moveTo(sector.vertices[0].x, sector.vertices[0].y);
+          for (let i = 1; i < sector.vertices.length; i++) {
+            ctx.lineTo(sector.vertices[i].x, sector.vertices[i].y);
+          }
+          ctx.closePath();
           ctx.fill();
-
-          if (isSeatSelected) {
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 2 / zoom;
-            ctx.stroke();
-          }
-
-          if (zoom > 0.8) {
-            ctx.fillStyle = '#fff';
-            ctx.font = `${8}px sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(seat.number, seat.x + seatSize / 2, seat.y + seatSize / 2);
-          }
         }
-      });
+        
+        // Mostra contagem de assentos no centro
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${16 / zoom}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(
+          `${sector.seats.length}`,
+          bounds.x + bounds.width / 2,
+          bounds.y + bounds.height / 2
+        );
+        ctx.font = `${10 / zoom}px sans-serif`;
+        ctx.fillText(
+          'assentos',
+          bounds.x + bounds.width / 2,
+          bounds.y + bounds.height / 2 + 18 / zoom
+        );
+      } else {
+        // Zoom próximo: mostra assentos individuais
+        sector.seats.forEach(seat => {
+          const isSeatSelected = selectedSeatIds.includes(seat.id);
+          
+          if (seat.furnitureType === 'table' || seat.furnitureType === 'bistro') {
+            renderTableWithChairs(ctx, seat, isSeatSelected);
+          } else {
+            const seatSize = 14;
+            
+            ctx.fillStyle = isSeatSelected ? '#3b82f6' : SEAT_COLORS[seat.type];
+            
+            ctx.beginPath();
+            ctx.arc(seat.x + seatSize / 2, seat.y + seatSize / 2, seatSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (isSeatSelected) {
+              ctx.strokeStyle = '#fff';
+              ctx.lineWidth = 2 / zoom;
+              ctx.stroke();
+            }
+
+            if (zoom > 0.8) {
+              ctx.fillStyle = '#fff';
+              ctx.font = `${8}px sans-serif`;
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(seat.number, seat.x + seatSize / 2, seat.y + seatSize / 2);
+            }
+          }
+        });
+      }
 
       ctx.restore();
     });
@@ -363,7 +422,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     }
 
     ctx.restore();
-  }, [sectors, elements, selectedSectorIds, selectedSeatIds, selectedElementIds, zoom, pan, width, height, isDrawing, drawStart, drawCurrent, activeTool, isBoxSelecting, boxSelectStart, boxSelectCurrent, renderTableWithChairs]);
+  }, [sectors, elements, selectedSectorIds, selectedSeatIds, selectedElementIds, zoom, pan, width, height, isDrawing, drawStart, drawCurrent, activeTool, isBoxSelecting, boxSelectStart, boxSelectCurrent, renderTableWithChairs, bgConfig]);
 
   // Atualiza canvas
   useEffect(() => {
