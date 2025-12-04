@@ -279,11 +279,14 @@ export const Canvas: React.FC<CanvasProps> = ({
       }
       
       // Desenha polígono do setor (com curvatura aplicada)
+      // Formas com muitos vértices (>8) já são naturalmente curvas, não aplica curvatura extra
       if (sector.vertices && sector.vertices.length > 2) {
         const curvature = sector.curvature || 0;
+        const isNaturallyCurved = sector.vertices.length > 8; // arc, circle, wave já têm muitos vértices
+        const shouldApplyCurvature = curvature > 0 && !isNaturallyCurved;
         
         ctx.beginPath();
-        if (curvature > 0) {
+        if (shouldApplyCurvature) {
           // Desenha com curvas de Bezier para curvatura
           const verts = sector.vertices;
           ctx.moveTo(verts[0].x, verts[0].y);
@@ -310,6 +313,7 @@ export const Canvas: React.FC<CanvasProps> = ({
             ctx.quadraticCurveTo(cpX, cpY, next.x, next.y);
           }
         } else {
+          // Desenha linhas retas entre vértices (formas naturalmente curvas já têm muitos vértices)
           ctx.moveTo(sector.vertices[0].x, sector.vertices[0].y);
           for (let i = 1; i < sector.vertices.length; i++) {
             ctx.lineTo(sector.vertices[i].x, sector.vertices[i].y);
@@ -364,14 +368,46 @@ export const Canvas: React.FC<CanvasProps> = ({
       
       if (zoom < showSeatsThreshold && sector.seats.length > 0) {
         // Zoom distante: mostra setor como cor sólida com contagem
+        // Usa a mesma lógica de desenho do contorno (com ou sem curvatura)
+        const curvatureZoom = sector.curvature || 0;
+        const isNaturallyCurvedZoom = sector.vertices.length > 8;
+        const shouldApplyCurvatureZoom = curvatureZoom > 0 && !isNaturallyCurvedZoom;
+        
         ctx.fillStyle = sector.color + '80'; // 50% opacidade
         if (sector.vertices && sector.vertices.length > 2) {
           ctx.beginPath();
-          ctx.moveTo(sector.vertices[0].x, sector.vertices[0].y);
-          for (let i = 1; i < sector.vertices.length; i++) {
-            ctx.lineTo(sector.vertices[i].x, sector.vertices[i].y);
+          
+          if (shouldApplyCurvatureZoom) {
+            // Desenha com curvas para manter consistência visual
+            const verts = sector.vertices;
+            ctx.moveTo(verts[0].x, verts[0].y);
+            
+            for (let i = 0; i < verts.length; i++) {
+              const current = verts[i];
+              const next = verts[(i + 1) % verts.length];
+              const midX = (current.x + next.x) / 2;
+              const midY = (current.y + next.y) / 2;
+              
+              const dx = next.x - current.x;
+              const dy = next.y - current.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              const curveAmount = (curvatureZoom / 100) * dist * 0.3;
+              
+              const nx = -dy / dist;
+              const ny = dx / dist;
+              
+              const cpX = midX + nx * curveAmount;
+              const cpY = midY + ny * curveAmount;
+              
+              ctx.quadraticCurveTo(cpX, cpY, next.x, next.y);
+            }
+          } else {
+            ctx.moveTo(sector.vertices[0].x, sector.vertices[0].y);
+            for (let i = 1; i < sector.vertices.length; i++) {
+              ctx.lineTo(sector.vertices[i].x, sector.vertices[i].y);
+            }
+            ctx.closePath();
           }
-          ctx.closePath();
           ctx.fill();
         }
         
