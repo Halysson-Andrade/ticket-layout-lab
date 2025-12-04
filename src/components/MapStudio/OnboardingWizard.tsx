@@ -282,6 +282,11 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     return seats;
   }, [selectedShape, previewDimensions, config.curvature]);
 
+  // Capacidade real da forma (assentos que cabem)
+  const realCapacity = useMemo(() => {
+    return seatsInShape.filter(s => s.inside).length;
+  }, [seatsInShape]);
+
   // Early return DEPOIS de todos os hooks
   if (!open) return null;
 
@@ -383,7 +388,38 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     const bounds = { x: 0, y: 0, width: previewWidth, height: previewHeight };
     const vertices = generateVerticesForShape(selectedShape.id, bounds);
     
-    const pathData = vertices.map((v, i) => `${i === 0 ? 'M' : 'L'} ${v.x} ${v.y}`).join(' ') + ' Z';
+    // Gera path com ou sem curvatura
+    let pathData: string;
+    const curvature = config.curvature || 0;
+    const isNaturallyCurved = vertices.length > 8; // arc, circle, wave já têm muitos vértices
+    
+    if (curvature > 0 && !isNaturallyCurved) {
+      // Path com curvas de Bezier
+      const parts: string[] = [`M ${vertices[0].x} ${vertices[0].y}`];
+      for (let i = 0; i < vertices.length; i++) {
+        const current = vertices[i];
+        const next = vertices[(i + 1) % vertices.length];
+        const midX = (current.x + next.x) / 2;
+        const midY = (current.y + next.y) / 2;
+        
+        const dx = next.x - current.x;
+        const dy = next.y - current.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const curveAmount = (curvature / 100) * dist * 0.3;
+        
+        const nx = -dy / dist;
+        const ny = dx / dist;
+        
+        const cpX = midX + nx * curveAmount;
+        const cpY = midY + ny * curveAmount;
+        
+        parts.push(`Q ${cpX} ${cpY} ${next.x} ${next.y}`);
+      }
+      pathData = parts.join(' ');
+    } else {
+      pathData = vertices.map((v, i) => `${i === 0 ? 'M' : 'L'} ${v.x} ${v.y}`).join(' ') + ' Z';
+    }
+    
     const insideSeats = seatsInShape.filter(s => s.inside);
 
     // Renderiza mesa ou cadeira baseado no tipo de mobília
@@ -435,6 +471,11 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       );
     };
 
+    // Calcula capacidade real da forma
+    const capacidadeReal = insideSeats.length;
+    const capacidadeSolicitada = config.rows * config.cols;
+    const taxaAproveitamento = capacidadeSolicitada > 0 ? Math.round((capacidadeReal / capacidadeSolicitada) * 100) : 0;
+
     return (
       <div className="flex flex-col items-center gap-2">
         <svg width={previewWidth} height={previewHeight} className="border border-border rounded-lg bg-muted/20">
@@ -449,8 +490,13 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           {seatsInShape.map(renderSeat)}
         </svg>
         
-        <div className="text-xs text-muted-foreground mt-2 text-center">
-          <strong>{insideSeats.length}</strong> {config.furnitureType === 'chair' ? 'assentos' : 'mesas'} de ~{config.rows * config.cols}
+        <div className="text-xs text-muted-foreground mt-2 text-center space-y-1">
+          <div>
+            <strong className="text-primary">{capacidadeReal}</strong> {config.furnitureType === 'chair' ? 'assentos' : 'mesas'} cabem na forma
+          </div>
+          <div className="text-[10px]">
+            ({taxaAproveitamento}% de aproveitamento do grid {config.rows}x{config.cols})
+          </div>
         </div>
       </div>
     );
@@ -764,12 +810,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   <div className="mt-6 p-4 bg-background rounded-lg w-full max-w-xs">
                     <div className="text-sm space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Total por setor:</span>
-                        <span className="font-medium">{(config.rows * config.cols).toLocaleString()} assentos</span>
+                        <span className="text-muted-foreground">Capacidade por setor:</span>
+                        <span className="font-medium text-primary">{realCapacity.toLocaleString()} {config.furnitureType === 'chair' ? 'assentos' : 'mesas'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Total geral:</span>
-                        <span className="font-medium">{(config.rows * config.cols * config.sectors).toLocaleString()} assentos</span>
+                        <span className="font-bold text-primary">{(realCapacity * config.sectors).toLocaleString()} {config.furnitureType === 'chair' ? 'assentos' : 'mesas'}</span>
                       </div>
                     </div>
                   </div>
@@ -816,8 +862,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                           <dd className="font-medium">{config.cols}</dd>
                         </div>
                         <div className="flex justify-between border-t border-border pt-2 mt-2">
-                          <dt className="text-muted-foreground">Total de assentos:</dt>
-                          <dd className="font-bold text-primary">{(config.rows * config.cols * config.sectors).toLocaleString()}</dd>
+                          <dt className="text-muted-foreground">Capacidade por setor:</dt>
+                          <dd className="font-bold text-primary">{realCapacity.toLocaleString()}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-muted-foreground">Total de {config.furnitureType === 'chair' ? 'assentos' : 'mesas'}:</dt>
+                          <dd className="font-bold text-primary">{(realCapacity * config.sectors).toLocaleString()}</dd>
                         </div>
                       </dl>
                     </div>
