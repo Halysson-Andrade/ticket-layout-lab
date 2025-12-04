@@ -191,6 +191,32 @@ export function generateVerticesForShape(shape: SectorShape, bounds: Bounds): Ve
       return vertices;
       
     case 'arc':
+      // Arco com raio interno e externo (meia-lua)
+      const arcOuter = Math.min(width, height) / 2;
+      const arcInner = arcOuter * 0.4; // 40% do raio externo
+      const arcPoints = 12;
+      const arcVertices: Vertex[] = [];
+      
+      // Arco externo (de esquerda para direita, semicírculo superior)
+      for (let i = 0; i <= arcPoints; i++) {
+        const angle = Math.PI + (i * Math.PI / arcPoints); // 180° to 360°
+        arcVertices.push({
+          x: cx + arcOuter * Math.cos(angle),
+          y: cy + arcOuter * Math.sin(angle) * (height / width) // Ajusta para proporção
+        });
+      }
+      
+      // Arco interno (de direita para esquerda)
+      for (let i = arcPoints; i >= 0; i--) {
+        const angle = Math.PI + (i * Math.PI / arcPoints);
+        arcVertices.push({
+          x: cx + arcInner * Math.cos(angle),
+          y: cy + arcInner * Math.sin(angle) * (height / width)
+        });
+      }
+      
+      return arcVertices;
+      
     case 'circle':
       const rx = width / 2;
       const ry = height / 2;
