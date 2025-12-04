@@ -201,24 +201,40 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   // Hook useMemo ANTES do early return
   // Calcula dimensões do preview baseado na quantidade de assentos
   const previewDimensions = useMemo(() => {
-    // Escala o preview baseado na quantidade de assentos
-    const baseSeatSize = 6;
-    const baseSpacing = 2;
+    // Mesas precisam de muito mais espaço que cadeiras
+    const isTable = config.furnitureType === 'table' || config.furnitureType === 'bistro';
     
-    // Ajusta tamanho do assento proporcionalmente ao config
-    const scaledSeatSize = Math.max(4, Math.min(8, baseSeatSize * (config.seatSize / 14)));
-    const scaledRowSpacing = Math.max(1, config.rowSpacing / 3);
-    const scaledColSpacing = Math.max(1, config.colSpacing / 2);
+    // Tamanho base: mesas são ~4x maiores que cadeiras
+    const baseSeatSize = isTable ? 20 : 6;
+    const baseSpacing = isTable ? 12 : 2;
     
-    const cols = Math.min(config.cols, 40);
-    const rows = Math.min(config.rows, 30);
+    // Ajusta tamanho proporcionalmente ao config
+    const scaledSeatSize = isTable 
+      ? Math.max(16, Math.min(30, baseSeatSize * (config.seatSize / 14)))
+      : Math.max(4, Math.min(8, baseSeatSize * (config.seatSize / 14)));
+    
+    const scaledRowSpacing = isTable 
+      ? Math.max(8, config.rowSpacing * 2)
+      : Math.max(1, config.rowSpacing / 3);
+    
+    const scaledColSpacing = isTable 
+      ? Math.max(8, config.colSpacing * 2)
+      : Math.max(1, config.colSpacing / 2);
+    
+    // Para mesas, reduz a quantidade máxima de colunas/linhas
+    const cols = isTable ? Math.min(config.cols, 10) : Math.min(config.cols, 40);
+    const rows = isTable ? Math.min(config.rows, 8) : Math.min(config.rows, 30);
     
     const gridWidth = cols * (scaledSeatSize + scaledColSpacing);
     const gridHeight = rows * (scaledSeatSize + scaledRowSpacing);
     
-    // Tamanho mínimo e máximo do preview
-    const width = Math.max(150, Math.min(350, gridWidth + 40));
-    const height = Math.max(100, Math.min(250, gridHeight + 40));
+    // Tamanho mínimo e máximo do preview (maior para mesas)
+    const width = isTable 
+      ? Math.max(200, Math.min(400, gridWidth + 60))
+      : Math.max(150, Math.min(350, gridWidth + 40));
+    const height = isTable 
+      ? Math.max(150, Math.min(300, gridHeight + 60))
+      : Math.max(100, Math.min(250, gridHeight + 40));
     
     return { 
       width, 
@@ -227,9 +243,10 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       rowSpacing: scaledRowSpacing, 
       colSpacing: scaledColSpacing,
       cols,
-      rows
+      rows,
+      isTable
     };
-  }, [config.cols, config.rows, config.seatSize, config.rowSpacing, config.colSpacing]);
+  }, [config.cols, config.rows, config.seatSize, config.rowSpacing, config.colSpacing, config.furnitureType]);
 
   const seatsInShape = useMemo(() => {
     if (!selectedShape) return [];
@@ -426,13 +443,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     const renderSeat = (seat: { x: number; y: number; inside: boolean }, i: number) => {
       if (!seat.inside) return null;
       
-      const seatRadius = Math.max(2, seatSize / 2);
-      
       if (config.furnitureType === 'table' || config.furnitureType === 'bistro') {
-        // Renderiza mesa com cadeiras ao redor
-        const tableSize = seatRadius * 3;
-        const chairSize = seatRadius * 0.8;
+        // Renderiza mesa com cadeiras ao redor - tamanhos proporcionais ao seatSize
+        const tableSize = seatSize * 0.4; // Mesa ocupa 40% do espaço
+        const chairSize = seatSize * 0.12; // Cadeiras menores
         const chairCount = config.chairsPerTable;
+        const chairDist = tableSize + chairSize + 2; // Distância das cadeiras à mesa
         
         return (
           <g key={i}>
@@ -447,7 +463,6 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
             {/* Cadeiras ao redor */}
             {Array.from({ length: chairCount }).map((_, ci) => {
               const angle = (ci * 2 * Math.PI / chairCount) - Math.PI / 2;
-              const chairDist = tableSize + chairSize + 2;
               const cx = seat.x + chairDist * Math.cos(angle);
               const cy = seat.y + chairDist * Math.sin(angle);
               return (
@@ -459,6 +474,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       }
       
       // Cadeira simples
+      const seatRadius = Math.max(2, seatSize / 2);
       return (
         <circle
           key={i}
