@@ -267,15 +267,55 @@ export const Canvas: React.FC<CanvasProps> = ({
       ctx.save();
       
       const isSelected = selectedSectorIds.includes(sector.id);
+      const bounds = getBoundsFromVertices(sector.vertices);
+      const centerX = bounds.x + bounds.width / 2;
+      const centerY = bounds.y + bounds.height / 2;
       
-      // Desenha polígono do setor
+      // Aplica rotação se existir
+      if (sector.rotation && sector.rotation !== 0) {
+        ctx.translate(centerX, centerY);
+        ctx.rotate((sector.rotation * Math.PI) / 180);
+        ctx.translate(-centerX, -centerY);
+      }
+      
+      // Desenha polígono do setor (com curvatura aplicada)
       if (sector.vertices && sector.vertices.length > 2) {
+        const curvature = sector.curvature || 0;
+        
         ctx.beginPath();
-        ctx.moveTo(sector.vertices[0].x, sector.vertices[0].y);
-        for (let i = 1; i < sector.vertices.length; i++) {
-          ctx.lineTo(sector.vertices[i].x, sector.vertices[i].y);
+        if (curvature > 0) {
+          // Desenha com curvas de Bezier para curvatura
+          const verts = sector.vertices;
+          ctx.moveTo(verts[0].x, verts[0].y);
+          
+          for (let i = 0; i < verts.length; i++) {
+            const current = verts[i];
+            const next = verts[(i + 1) % verts.length];
+            const midX = (current.x + next.x) / 2;
+            const midY = (current.y + next.y) / 2;
+            
+            // Calcula ponto de controle baseado na curvatura
+            const dx = next.x - current.x;
+            const dy = next.y - current.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const curveAmount = (curvature / 100) * dist * 0.3;
+            
+            // Normal perpendicular
+            const nx = -dy / dist;
+            const ny = dx / dist;
+            
+            const cpX = midX + nx * curveAmount;
+            const cpY = midY + ny * curveAmount;
+            
+            ctx.quadraticCurveTo(cpX, cpY, next.x, next.y);
+          }
+        } else {
+          ctx.moveTo(sector.vertices[0].x, sector.vertices[0].y);
+          for (let i = 1; i < sector.vertices.length; i++) {
+            ctx.lineTo(sector.vertices[i].x, sector.vertices[i].y);
+          }
+          ctx.closePath();
         }
-        ctx.closePath();
         
         // Fill com cor do setor
         ctx.fillStyle = sector.color + '20';
@@ -313,7 +353,6 @@ export const Canvas: React.FC<CanvasProps> = ({
       }
 
       // Nome do setor
-      const bounds = getBoundsFromVertices(sector.vertices);
       ctx.fillStyle = '#fff';
       ctx.font = '12px sans-serif';
       ctx.textAlign = 'left';
@@ -325,7 +364,6 @@ export const Canvas: React.FC<CanvasProps> = ({
       
       if (zoom < showSeatsThreshold && sector.seats.length > 0) {
         // Zoom distante: mostra setor como cor sólida com contagem
-        const bounds = getBoundsFromVertices(sector.vertices);
         ctx.fillStyle = sector.color + '80'; // 50% opacidade
         if (sector.vertices && sector.vertices.length > 2) {
           ctx.beginPath();

@@ -408,16 +408,23 @@ export function generateSeatsInsidePolygon(
   spacing: number = 4,
   rowLabelType: RowLabelType = 'alpha',
   seatLabelType: SeatLabelType = 'numeric',
-  prefix: string = ''
+  prefix: string = '',
+  furnitureType: FurnitureType = 'chair',
+  tableConfig?: TableConfig
 ): Seat[] {
   if (vertices.length < 3) return [];
 
   const seats: Seat[] = [];
   const bounds = getBoundsFromVertices(vertices);
-  const step = seatSize + spacing;
+  
+  // Ajusta tamanho baseado no tipo de mobília
+  const itemSize = (furnitureType === 'table' || furnitureType === 'bistro') 
+    ? (tableConfig?.tableWidth || 60) + 20 // Mesa + espaço para cadeiras
+    : seatSize;
+  const step = itemSize + spacing;
   
   // Padding interno para não encostar nas bordas
-  const padding = seatSize;
+  const padding = itemSize;
   
   let rowIndex = 0;
   
@@ -428,12 +435,12 @@ export function generateSeatsInsidePolygon(
     
     for (let x = bounds.x + padding; x < bounds.x + bounds.width - padding; x += step) {
       // Verifica se o centro do assento está dentro do polígono
-      const seatCenter = { x: x + seatSize / 2, y: y + seatSize / 2 };
+      const seatCenter = { x: x + itemSize / 2, y: y + itemSize / 2 };
       
       if (isPointInPolygon(seatCenter, vertices)) {
         const seatLabel = getSeatLabel(colIndex, 100, seatLabelType, 1);
         
-        seats.push({
+        const seat: Seat = {
           id: generateId(),
           sectorId,
           row: prefix + rowLabel,
@@ -443,7 +450,15 @@ export function generateSeatsInsidePolygon(
           x,
           y,
           rotation: 0,
-        });
+          furnitureType,
+        };
+        
+        // Adiciona config de mesa se for mesa/bistro
+        if ((furnitureType === 'table' || furnitureType === 'bistro') && tableConfig) {
+          seat.tableConfig = { ...tableConfig };
+        }
+        
+        seats.push(seat);
         
         colIndex++;
         hasSeatsInRow = true;
