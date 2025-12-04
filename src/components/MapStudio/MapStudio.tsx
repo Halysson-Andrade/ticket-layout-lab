@@ -23,7 +23,7 @@ import {
   SECTOR_COLORS,
   GridGeneratorParams 
 } from '@/types/mapStudio';
-import { generateSeatsGrid, generateId, generateVerticesForShape, getBoundsFromVertices } from '@/lib/mapUtils';
+import { generateSeatsGrid, generateId, generateVerticesForShape, getBoundsFromVertices, generateSeatsInsidePolygon, repositionSeatsInsidePolygon } from '@/lib/mapUtils';
 import { toast } from 'sonner';
 
 const CANVAS_WIDTH = 2000;
@@ -166,12 +166,22 @@ export const MapStudio: React.FC = () => {
     }));
   }, []);
 
-  // Atualiza vértices do setor
+  // Atualiza vértices do setor e reposiciona assentos
   const handleUpdateSectorVertices = useCallback((id: string, vertices: Vertex[]) => {
     setSectors(prev => prev.map(s => {
       if (s.id !== id) return s;
       const bounds = getBoundsFromVertices(vertices);
-      return { ...s, vertices, bounds };
+      
+      // Reposiciona assentos para caber no novo polígono
+      const repositionedSeats = repositionSeatsInsidePolygon(
+        s.seats,
+        s.vertices,
+        vertices,
+        s.id,
+        12 // seatSize
+      );
+      
+      return { ...s, vertices, bounds, seats: repositionedSeats };
     }));
   }, []);
 
@@ -227,29 +237,58 @@ export const MapStudio: React.FC = () => {
     toast.success('Setor excluído');
   }, [sectors, pushHistory]);
 
-  // Gera assentos em grade
+  // Gera assentos em grade (dentro do polígono)
   const handleGenerateGrid = useCallback((params: GridGeneratorParams) => {
     const sector = sectors.find(s => s.id === params.sectorId);
     if (!sector) return;
 
-    const newSeats = generateSeatsGrid(
-      params,
-      sector.bounds.x + 20,
-      sector.bounds.y + 30
+    // Gera assentos dentro do polígono
+    const newSeats = generateSeatsInsidePolygon(
+      sector.vertices,
+      sector.id,
+      params.seatSize,
+      params.colSpacing,
+      params.rowLabelType,
+      params.seatLabelType,
+      params.prefix
     );
 
     setSectors(prev => {
       const newSectors = prev.map(s => 
         s.id === params.sectorId 
-          ? { ...s, seats: [...s.seats, ...newSeats] }
+          ? { ...s, seats: newSeats } // Substitui assentos ao invés de adicionar
           : s
       );
       pushHistory(newSectors);
       return newSectors;
     });
 
-    toast.success(`${newSeats.length} assentos gerados!`);
+    toast.success(`${newSeats.length} assentos gerados dentro do setor!`);
   }, [sectors, pushHistory]);
+
+  // Regenera assentos do setor selecionado
+  const handleRegenerateSeats = useCallback((sectorId: string) => {
+    setSectors(prev => {
+      const newSectors = prev.map(s => {
+        if (s.id !== sectorId) return s;
+        
+        const newSeats = generateSeatsInsidePolygon(
+          s.vertices,
+          s.id,
+          12, // seatSize
+          4,  // spacing
+          'alpha',
+          'numeric',
+          ''
+        );
+        
+        return { ...s, seats: newSeats };
+      });
+      pushHistory(newSectors);
+      return newSectors;
+    });
+    toast.success('Assentos regenerados!');
+  }, [pushHistory]);
 
   // Importa imagem de fundo
   const handleImportImage = useCallback(() => {
@@ -552,6 +591,7 @@ export const MapStudio: React.FC = () => {
           selectedSeats={selectedSeats}
           onUpdateSector={handleUpdateSector}
           onUpdateSeats={handleUpdateSeats}
+          onRegenerateSeats={handleRegenerateSeats}
         />
 
         {/* Minimap */}
@@ -600,32 +640,33 @@ export const MapStudio: React.FC = () => {
           for (let i = 0; i < shapeConfig.sectors; i++) {
             const row = Math.floor(i / 2);
             const col = i % 2;
-            const x = 100 + col * 450;
-            const y = 200 + row * 300;
-            const bounds = { x, y, width: 400, height: 250 };
+            const x = 100 + col * 500;
+            const y = 200 + row * 350;
+            const bounds = { x, y, width: 450, height: 280 };
+            
+            const vertices = generateVerticesForShape(shapeConfig.shape, bounds);
+            const sectorId = generateId();
+            
+            // Gera assentos DENTRO do polígono
+            const seats = generateSeatsInsidePolygon(
+              vertices,
+              sectorId,
+              shapeConfig.seatSize,
+              shapeConfig.colSpacing,
+              'alpha',
+              'numeric',
+              `S${sectors.length + i + 1}-`
+            );
             
             const sector: Sector = {
-              id: generateId(),
+              id: sectorId,
               name: `Setor ${sectors.length + i + 1}`,
               color: SECTOR_COLORS[(sectors.length + i) % SECTOR_COLORS.length],
               bounds,
-              vertices: generateVerticesForShape(shapeConfig.shape, bounds),
+              vertices,
               shape: shapeConfig.shape,
               rotation: 0,
-              seats: generateSeatsGrid({
-                rows: shapeConfig.rows,
-                cols: shapeConfig.cols,
-                rowSpacing: shapeConfig.rowSpacing,
-                colSpacing: shapeConfig.colSpacing,
-                seatSize: shapeConfig.seatSize,
-                rowLabelType: 'alpha',
-                seatLabelType: 'numeric',
-                rowLabelStart: 'A',
-                seatLabelStart: 1,
-                rotation: 0,
-                sectorId: '',
-                prefix: `S${sectors.length + i + 1}-`,
-              }, x + 20, y + 30),
+              seats,
               visible: true,
               locked: false,
             };
@@ -634,7 +675,7 @@ export const MapStudio: React.FC = () => {
           setSectors(prev => [...prev, ...newSectors]);
           pushHistory([...sectors, ...newSectors]);
           setShowOnboarding(false);
-          toast.success(`${shapeConfig.sectors} setor(es) criado(s)!`);
+          toast.success(`${shapeConfig.sectors} setor(es) criado(s) com ${newSectors.reduce((acc, s) => acc + s.seats.length, 0)} assentos!`);
         }}
       />
 
