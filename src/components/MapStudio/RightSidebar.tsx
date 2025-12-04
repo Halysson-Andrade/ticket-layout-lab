@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Palette, Type, Move, RotateCw, Minus, Plus } from 'lucide-react';
+import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ interface RightSidebarProps {
   selectedSeats: Seat[];
   onUpdateSector: (id: string, updates: Partial<Sector>) => void;
   onUpdateSeats: (ids: string[], updates: Partial<Seat>) => void;
+  onRegenerateSeats?: (sectorId: string) => void;
 }
 
 export const RightSidebar: React.FC<RightSidebarProps> = ({
@@ -20,6 +21,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   selectedSeats,
   onUpdateSector,
   onUpdateSeats,
+  onRegenerateSeats,
 }) => {
   // Local state para edição em tempo real
   const [localRotation, setLocalRotation] = useState(0);
@@ -220,10 +222,30 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-border">
+              {/* Info e ações do setor */}
+              <div className="pt-2 border-t border-border space-y-3">
                 <p className="text-xs text-muted-foreground">
                   <strong>{selectedSector.seats.length}</strong> assentos neste setor
                 </p>
+                
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Grid3X3 className="h-3 w-3" />
+                    Dica: Arraste os vértices para remodelar o setor
+                  </p>
+                  
+                  {onRegenerateSeats && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-xs"
+                      onClick={() => onRegenerateSeats(selectedSector.id)}
+                    >
+                      <RefreshCw className="h-3 w-3 mr-2" />
+                      Regenerar Assentos
+                    </Button>
+                  )}
+                </div>
               </div>
             </>
           )}

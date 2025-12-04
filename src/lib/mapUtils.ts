@@ -241,6 +241,157 @@ export function generateSeatsGrid(
   return seats;
 }
 
+// Gera assentos DENTRO de um polígono
+export function generateSeatsInsidePolygon(
+  vertices: Vertex[],
+  sectorId: string,
+  seatSize: number = 12,
+  spacing: number = 4,
+  rowLabelType: RowLabelType = 'alpha',
+  seatLabelType: SeatLabelType = 'numeric',
+  prefix: string = ''
+): Seat[] {
+  if (vertices.length < 3) return [];
+
+  const seats: Seat[] = [];
+  const bounds = getBoundsFromVertices(vertices);
+  const step = seatSize + spacing;
+  
+  // Padding interno para não encostar nas bordas
+  const padding = seatSize;
+  
+  let rowIndex = 0;
+  
+  for (let y = bounds.y + padding; y < bounds.y + bounds.height - padding; y += step) {
+    let colIndex = 0;
+    const rowLabel = getRowLabel(rowIndex, rowLabelType, 'A');
+    let hasSeatsInRow = false;
+    
+    for (let x = bounds.x + padding; x < bounds.x + bounds.width - padding; x += step) {
+      // Verifica se o centro do assento está dentro do polígono
+      const seatCenter = { x: x + seatSize / 2, y: y + seatSize / 2 };
+      
+      if (isPointInPolygon(seatCenter, vertices)) {
+        const seatLabel = getSeatLabel(colIndex, 100, seatLabelType, 1);
+        
+        seats.push({
+          id: generateId(),
+          sectorId,
+          row: prefix + rowLabel,
+          number: seatLabel,
+          type: 'normal',
+          status: 'available',
+          x,
+          y,
+          rotation: 0,
+        });
+        
+        colIndex++;
+        hasSeatsInRow = true;
+      }
+    }
+    
+    if (hasSeatsInRow) {
+      rowIndex++;
+    }
+  }
+
+  return seats;
+}
+
+// Reposiciona assentos existentes para caber dentro de novos vértices
+export function repositionSeatsInsidePolygon(
+  existingSeats: Seat[],
+  oldVertices: Vertex[],
+  newVertices: Vertex[],
+  sectorId: string,
+  seatSize: number = 12
+): Seat[] {
+  if (newVertices.length < 3 || existingSeats.length === 0) return existingSeats;
+
+  const oldBounds = getBoundsFromVertices(oldVertices);
+  const newBounds = getBoundsFromVertices(newVertices);
+  
+  // Calcula fatores de escala
+  const scaleX = oldBounds.width > 0 ? newBounds.width / oldBounds.width : 1;
+  const scaleY = oldBounds.height > 0 ? newBounds.height / oldBounds.height : 1;
+  
+  // Reposiciona cada assento proporcionalmente
+  const repositionedSeats: Seat[] = [];
+  
+  for (const seat of existingSeats) {
+    if (seat.sectorId !== sectorId) {
+      repositionedSeats.push(seat);
+      continue;
+    }
+    
+    // Calcula posição relativa ao bounds antigo (0-1)
+    const relX = oldBounds.width > 0 ? (seat.x - oldBounds.x) / oldBounds.width : 0.5;
+    const relY = oldBounds.height > 0 ? (seat.y - oldBounds.y) / oldBounds.height : 0.5;
+    
+    // Aplica na nova posição
+    const newX = newBounds.x + relX * newBounds.width;
+    const newY = newBounds.y + relY * newBounds.height;
+    
+    // Verifica se ainda está dentro do polígono
+    const seatCenter = { x: newX + seatSize / 2, y: newY + seatSize / 2 };
+    
+    if (isPointInPolygon(seatCenter, newVertices)) {
+      repositionedSeats.push({
+        ...seat,
+        x: newX,
+        y: newY,
+      });
+    }
+  }
+  
+  return repositionedSeats;
+}
+
+// Regenera todos os assentos dentro do polígono mantendo configurações
+export function regenerateSeatsForPolygon(
+  vertices: Vertex[],
+  sectorId: string,
+  totalSeats: number,
+  seatSize: number = 12,
+  rowLabelType: RowLabelType = 'alpha',
+  seatLabelType: SeatLabelType = 'numeric',
+  prefix: string = ''
+): Seat[] {
+  if (vertices.length < 3) return [];
+
+  const bounds = getBoundsFromVertices(vertices);
+  const area = calculatePolygonArea(vertices);
+  
+  // Estima espaçamento baseado na área e número de assentos
+  const areaPerSeat = area / totalSeats;
+  const estimatedSpacing = Math.max(2, Math.sqrt(areaPerSeat) - seatSize);
+  
+  return generateSeatsInsidePolygon(
+    vertices,
+    sectorId,
+    seatSize,
+    estimatedSpacing,
+    rowLabelType,
+    seatLabelType,
+    prefix
+  );
+}
+
+// Calcula área de um polígono (Shoelace formula)
+export function calculatePolygonArea(vertices: Vertex[]): number {
+  let area = 0;
+  const n = vertices.length;
+  
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    area += vertices[i].x * vertices[j].y;
+    area -= vertices[j].x * vertices[i].y;
+  }
+  
+  return Math.abs(area / 2);
+}
+
 // Verifica se ponto está dentro de bounds
 export function isPointInBounds(point: { x: number; y: number }, bounds: { x: number; y: number; width: number; height: number }): boolean {
   return (
