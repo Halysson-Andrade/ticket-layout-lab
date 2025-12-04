@@ -199,7 +199,30 @@ export const MapStudio: React.FC = () => {
   // Atualiza setor
   const handleUpdateSector = useCallback((id: string, updates: Partial<Sector>) => {
     setSectors(prev => {
-      const newSectors = prev.map(s => s.id === id ? { ...s, ...updates } : s);
+      const newSectors = prev.map(s => {
+        if (s.id !== id) return s;
+        
+        let updatedSector = { ...s, ...updates };
+        
+        // Se bounds foi alterado, recalcula vértices
+        if (updates.bounds) {
+          const newVertices = generateVerticesForShape(s.shape, updates.bounds);
+          updatedSector.vertices = newVertices;
+          
+          // Reposiciona assentos
+          if (s.seats.length > 0) {
+            updatedSector.seats = repositionSeatsInsidePolygon(
+              s.seats,
+              s.vertices,
+              newVertices,
+              s.id,
+              12
+            );
+          }
+        }
+        
+        return updatedSector;
+      });
       pushHistory(newSectors);
       return newSectors;
     });
