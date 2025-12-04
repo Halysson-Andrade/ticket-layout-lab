@@ -21,6 +21,15 @@ export interface Bounds {
   height: number;
 }
 
+// Vértice para polígonos editáveis
+export interface Vertex {
+  x: number;
+  y: number;
+}
+
+// Forma base do setor
+export type SectorShape = 'rectangle' | 'parallelogram' | 'trapezoid' | 'pentagon' | 'hexagon' | 'triangle' | 'circle' | 'arc';
+
 export interface Seat {
   id: string;
   sectorId: string;
@@ -40,6 +49,8 @@ export interface Sector {
   name: string;
   color: string;
   bounds: Bounds;
+  vertices: Vertex[]; // Polígono editável
+  shape: SectorShape;
   rotation: number;
   seats: Seat[];
   categoryId?: string;

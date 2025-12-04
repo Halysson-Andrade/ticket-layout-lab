@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
-import { Sector, Seat, VenueElement, ToolType, SeatType, SEAT_COLORS, ELEMENT_ICONS } from '@/types/mapStudio';
-import { isPointInBounds } from '@/lib/mapUtils';
+import { Sector, Seat, VenueElement, ToolType, SeatType, SEAT_COLORS, ELEMENT_ICONS, Vertex } from '@/types/mapStudio';
+import { isPointInBounds, isPointInPolygon, getBoundsFromVertices } from '@/lib/mapUtils';
 
 interface CanvasProps {
   width: number;
@@ -20,8 +20,11 @@ interface CanvasProps {
   onSelectSeats: (ids: string[], additive: boolean) => void;
   onCreateSector: (bounds: { x: number; y: number; width: number; height: number }) => void;
   onMoveSector: (id: string, dx: number, dy: number) => void;
+  onUpdateSectorVertices: (id: string, vertices: Vertex[]) => void;
   onApplySeatType: (ids: string[], type: SeatType) => void;
 }
+
+const HANDLE_SIZE = 10;
 
 export const Canvas: React.FC<CanvasProps> = ({
   width,
@@ -41,6 +44,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   onSelectSeats,
   onCreateSector,
   onMoveSector,
+  onUpdateSectorVertices,
   onApplySeatType,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -49,6 +53,8 @@ export const Canvas: React.FC<CanvasProps> = ({
   const [isDrawing, setIsDrawing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isBoxSelecting, setIsBoxSelecting] = useState(false);
+  const [isDraggingVertex, setIsDraggingVertex] = useState(false);
+  const [activeVertexIndex, setActiveVertexIndex] = useState<number | null>(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [drawStart, setDrawStart] = useState({ x: 0, y: 0 });
   const [drawCurrent, setDrawCurrent] = useState({ x: 0, y: 0 });
@@ -78,6 +84,19 @@ export const Canvas: React.FC<CanvasProps> = ({
       y: (clientY - rect.top - pan.y) / zoom,
     };
   }, [pan, zoom]);
+
+  // Verifica se o ponto está próximo de um vértice
+  const getVertexAtPoint = useCallback((pos: { x: number; y: number }, sector: Sector): number | null => {
+    const handleRadius = HANDLE_SIZE / zoom;
+    for (let i = 0; i < sector.vertices.length; i++) {
+      const v = sector.vertices[i];
+      const dist = Math.sqrt(Math.pow(pos.x - v.x, 2) + Math.pow(pos.y - v.y, 2));
+      if (dist <= handleRadius) {
+        return i;
+      }
+    }
+    return null;
+  }, [zoom]);
 
   // Renderização do canvas
   const render = useCallback(() => {
@@ -147,29 +166,59 @@ export const Canvas: React.FC<CanvasProps> = ({
 
       ctx.save();
       
-      // Aplicar rotação do setor
-      if (sector.rotation) {
-        const centerX = sector.bounds.x + sector.bounds.width / 2;
-        const centerY = sector.bounds.y + sector.bounds.height / 2;
-        ctx.translate(centerX, centerY);
-        ctx.rotate((sector.rotation * Math.PI) / 180);
-        ctx.translate(-centerX, -centerY);
+      const isSelected = selectedSectorIds.includes(sector.id);
+      
+      // Desenha polígono do setor
+      if (sector.vertices && sector.vertices.length > 2) {
+        ctx.beginPath();
+        ctx.moveTo(sector.vertices[0].x, sector.vertices[0].y);
+        for (let i = 1; i < sector.vertices.length; i++) {
+          ctx.lineTo(sector.vertices[i].x, sector.vertices[i].y);
+        }
+        ctx.closePath();
+        
+        // Fill com cor do setor
+        ctx.fillStyle = sector.color + '20';
+        ctx.fill();
+        
+        // Stroke
+        ctx.strokeStyle = isSelected ? '#3b82f6' : sector.color;
+        ctx.lineWidth = isSelected ? 2 / zoom : 1 / zoom;
+        ctx.stroke();
+
+        // Desenha handles dos vértices se selecionado
+        if (isSelected && activeTool === 'select') {
+          sector.vertices.forEach((vertex, i) => {
+            const handleSize = HANDLE_SIZE / zoom;
+            
+            // Handle background
+            ctx.fillStyle = '#1e2330';
+            ctx.fillRect(vertex.x - handleSize / 2, vertex.y - handleSize / 2, handleSize, handleSize);
+            
+            // Handle border
+            ctx.strokeStyle = '#3b82f6';
+            ctx.lineWidth = 2 / zoom;
+            ctx.strokeRect(vertex.x - handleSize / 2, vertex.y - handleSize / 2, handleSize, handleSize);
+            
+            // Número do vértice
+            if (zoom > 0.6) {
+              ctx.fillStyle = '#3b82f6';
+              ctx.font = `${10 / zoom}px sans-serif`;
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(String(i + 1), vertex.x, vertex.y);
+            }
+          });
+        }
       }
 
-      // Borda do setor
-      const isSelected = selectedSectorIds.includes(sector.id);
-      ctx.strokeStyle = isSelected ? '#3b82f6' : sector.color;
-      ctx.lineWidth = isSelected ? 2 / zoom : 1 / zoom;
-      ctx.setLineDash(isSelected ? [] : [4, 4]);
-      ctx.strokeRect(sector.bounds.x, sector.bounds.y, sector.bounds.width, sector.bounds.height);
-      ctx.setLineDash([]);
-
       // Nome do setor
+      const bounds = getBoundsFromVertices(sector.vertices);
       ctx.fillStyle = '#fff';
       ctx.font = '12px sans-serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
-      ctx.fillText(sector.name, sector.bounds.x + 4, sector.bounds.y + 4);
+      ctx.fillText(sector.name, bounds.x + 4, bounds.y + 4);
 
       // Assentos
       sector.seats.forEach(seat => {
@@ -283,6 +332,20 @@ export const Canvas: React.FC<CanvasProps> = ({
     }
 
     if (activeTool === 'select' || activeTool === 'lasso') {
+      // Verifica click em vértice de setor selecionado
+      for (const sectorId of selectedSectorIds) {
+        const sector = sectors.find(s => s.id === sectorId);
+        if (sector && sector.vertices) {
+          const vertexIndex = getVertexAtPoint(pos, sector);
+          if (vertexIndex !== null) {
+            setIsDraggingVertex(true);
+            setActiveVertexIndex(vertexIndex);
+            setDragStart(pos);
+            return;
+          }
+        }
+      }
+
       // Verifica click em assento
       for (const sector of sectors) {
         if (!sector.visible) continue;
@@ -298,10 +361,17 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
       }
 
-      // Verifica click em setor
+      // Verifica click em setor (usando polígono)
       for (const sector of sectors) {
         if (!sector.visible || sector.locked) continue;
-        if (isPointInBounds(pos, sector.bounds)) {
+        if (sector.vertices && sector.vertices.length > 2) {
+          if (isPointInPolygon(pos, sector.vertices)) {
+            onSelectSector(sector.id, e.shiftKey);
+            setIsDragging(true);
+            setDragStart(pos);
+            return;
+          }
+        } else if (isPointInBounds(pos, sector.bounds)) {
           onSelectSector(sector.id, e.shiftKey);
           setIsDragging(true);
           setDragStart(pos);
@@ -314,7 +384,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       setBoxSelectStart(pos);
       setBoxSelectCurrent(pos);
     }
-  }, [activeTool, screenToCanvas, pan, sectors, onSelectSeats, onSelectSector, onApplySeatType, activeSeatType]);
+  }, [activeTool, screenToCanvas, pan, sectors, selectedSectorIds, onSelectSeats, onSelectSector, onApplySeatType, activeSeatType, getVertexAtPoint]);
 
   // Mouse move
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -332,6 +402,16 @@ export const Canvas: React.FC<CanvasProps> = ({
       setDrawCurrent(pos);
     }
 
+    if (isDraggingVertex && activeVertexIndex !== null && selectedSectorIds.length === 1) {
+      const sector = sectors.find(s => s.id === selectedSectorIds[0]);
+      if (sector && sector.vertices) {
+        const newVertices = [...sector.vertices];
+        newVertices[activeVertexIndex] = { x: pos.x, y: pos.y };
+        onUpdateSectorVertices(sector.id, newVertices);
+      }
+      return;
+    }
+
     if (isDragging && selectedSectorIds.length > 0) {
       const dx = pos.x - dragStart.x;
       const dy = pos.y - dragStart.y;
@@ -342,7 +422,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     if (isBoxSelecting) {
       setBoxSelectCurrent(pos);
     }
-  }, [isPanning, isDrawing, isDragging, isBoxSelecting, activeTool, dragStart, screenToCanvas, selectedSectorIds, onPanChange, onMoveSector]);
+  }, [isPanning, isDrawing, isDragging, isDraggingVertex, activeVertexIndex, isBoxSelecting, activeTool, dragStart, screenToCanvas, selectedSectorIds, sectors, onPanChange, onMoveSector, onUpdateSectorVertices]);
 
   // Mouse up
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
@@ -398,13 +478,15 @@ export const Canvas: React.FC<CanvasProps> = ({
     setIsDrawing(false);
     setIsDragging(false);
     setIsBoxSelecting(false);
+    setIsDraggingVertex(false);
+    setActiveVertexIndex(null);
   }, [isDrawing, activeTool, drawStart, drawCurrent, onCreateSector, isBoxSelecting, boxSelectStart, boxSelectCurrent, sectors, onSelectSeats, activeSeatType, onApplySeatType]);
 
   return (
     <div 
       ref={containerRef}
       className="absolute inset-0 overflow-hidden bg-canvas-bg cursor-crosshair"
-      style={{ cursor: activeTool === 'pan' ? 'grab' : isPanning ? 'grabbing' : isBoxSelecting ? 'crosshair' : 'default' }}
+      style={{ cursor: activeTool === 'pan' ? 'grab' : isPanning ? 'grabbing' : isDraggingVertex ? 'move' : isBoxSelecting ? 'crosshair' : 'default' }}
     >
       <canvas
         ref={canvasRef}
@@ -418,9 +500,16 @@ export const Canvas: React.FC<CanvasProps> = ({
       />
       
       {/* Hint overlay */}
-      {selectedSeatIds.length === 0 && sectors.length > 0 && !isBoxSelecting && (
+      {selectedSeatIds.length === 0 && sectors.length > 0 && !isBoxSelecting && !selectedSectorIds.length && (
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-background/90 backdrop-blur-sm px-4 py-2 rounded-lg text-sm text-muted-foreground pointer-events-none">
           Arraste para selecionar múltiplos assentos • Shift+click para adicionar à seleção
+        </div>
+      )}
+      
+      {/* Vertex editing hint */}
+      {selectedSectorIds.length === 1 && activeTool === 'select' && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-primary/90 backdrop-blur-sm px-4 py-2 rounded-lg text-sm text-primary-foreground pointer-events-none">
+          Arraste os quadrados azuis para ajustar a forma do setor
         </div>
       )}
       

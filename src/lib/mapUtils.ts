@@ -1,8 +1,113 @@
-import { Seat, GridGeneratorParams, RowLabelType, SeatLabelType, SEAT_COLORS } from '@/types/mapStudio';
+import { Seat, GridGeneratorParams, RowLabelType, SeatLabelType, SEAT_COLORS, Vertex, SectorShape, Bounds } from '@/types/mapStudio';
 
 // Gera ID único
 export function generateId(): string {
   return Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+}
+
+// Gera vértices baseado na forma
+export function generateVerticesForShape(shape: SectorShape, bounds: Bounds): Vertex[] {
+  const { x, y, width, height } = bounds;
+  
+  switch (shape) {
+    case 'rectangle':
+      return [
+        { x, y },
+        { x: x + width, y },
+        { x: x + width, y: y + height },
+        { x, y: y + height },
+      ];
+    case 'parallelogram':
+      const skew = width * 0.2;
+      return [
+        { x: x + skew, y },
+        { x: x + width, y },
+        { x: x + width - skew, y: y + height },
+        { x, y: y + height },
+      ];
+    case 'trapezoid':
+      const inset = width * 0.15;
+      return [
+        { x: x + inset, y },
+        { x: x + width - inset, y },
+        { x: x + width, y: y + height },
+        { x, y: y + height },
+      ];
+    case 'pentagon':
+      const cx = x + width / 2;
+      const cy = y + height / 2;
+      const r = Math.min(width, height) / 2;
+      return Array.from({ length: 5 }, (_, i) => {
+        const angle = (i * 2 * Math.PI / 5) - Math.PI / 2;
+        return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+      });
+    case 'hexagon':
+      const hcx = x + width / 2;
+      const hcy = y + height / 2;
+      const hr = Math.min(width, height) / 2;
+      return Array.from({ length: 6 }, (_, i) => {
+        const angle = (i * Math.PI / 3) - Math.PI / 2;
+        return { x: hcx + hr * Math.cos(angle), y: hcy + hr * Math.sin(angle) };
+      });
+    case 'triangle':
+      return [
+        { x: x + width / 2, y },
+        { x: x + width, y: y + height },
+        { x, y: y + height },
+      ];
+    case 'arc':
+    case 'circle':
+      // Aproximação de círculo com 12 pontos
+      const acx = x + width / 2;
+      const acy = y + height / 2;
+      const rx = width / 2;
+      const ry = height / 2;
+      return Array.from({ length: 12 }, (_, i) => {
+        const angle = (i * 2 * Math.PI / 12);
+        return { x: acx + rx * Math.cos(angle), y: acy + ry * Math.sin(angle) };
+      });
+    default:
+      return [
+        { x, y },
+        { x: x + width, y },
+        { x: x + width, y: y + height },
+        { x, y: y + height },
+      ];
+  }
+}
+
+// Calcula bounds a partir de vértices
+export function getBoundsFromVertices(vertices: Vertex[]): Bounds {
+  if (vertices.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
+  
+  const xs = vertices.map(v => v.x);
+  const ys = vertices.map(v => v.y);
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  const maxX = Math.max(...xs);
+  const maxY = Math.max(...ys);
+  
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY,
+  };
+}
+
+// Verifica se ponto está dentro de polígono
+export function isPointInPolygon(point: { x: number; y: number }, vertices: Vertex[]): boolean {
+  let inside = false;
+  for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
+    const xi = vertices[i].x, yi = vertices[i].y;
+    const xj = vertices[j].x, yj = vertices[j].y;
+    
+    if (((yi > point.y) !== (yj > point.y)) &&
+        (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
 }
 
 // Converte número para letra (A, B, C... Z, AA, AB...)

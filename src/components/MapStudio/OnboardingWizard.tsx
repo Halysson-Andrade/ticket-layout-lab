@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
-import { Film, Building2, Tent, Music, Theater, ChevronRight, ChevronLeft, Check, Armchair, LayoutGrid, Settings } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Check, Armchair, LayoutGrid, Settings, Square, Triangle, Pentagon, Hexagon, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Template } from '@/types/mapStudio';
+import { SectorShape } from '@/types/mapStudio';
 import { cn } from '@/lib/utils';
 
 interface OnboardingWizardProps {
   open: boolean;
   onClose: () => void;
-  onComplete: (template: Template, customParams: CustomParams) => void;
+  onComplete: (shapeConfig: ShapeConfig) => void;
 }
 
-interface CustomParams {
+export interface ShapeConfig {
+  shape: SectorShape;
   totalSeats: number;
   sectors: number;
   rows: number;
@@ -24,119 +25,98 @@ interface CustomParams {
   colSpacing: number;
 }
 
-const templates: Template[] = [
+interface ShapeTemplate {
+  id: SectorShape;
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+  defaultParams: Partial<ShapeConfig>;
+}
+
+const shapeTemplates: ShapeTemplate[] = [
   {
-    id: 'cinema',
-    name: 'Cinema',
-    description: 'Layout clássico de cinema com fileiras retas e corredor central',
-    thumbnail: '🎬',
-    category: 'cinema',
-    defaultParams: {
-      rows: 12,
-      cols: 24,
-      rowSpacing: 8,
-      colSpacing: 2,
-      seatSize: 16,
-      rowLabelType: 'alpha',
-      seatLabelType: 'numeric',
-    },
-    sectors: 2,
-    totalSeats: 288,
+    id: 'rectangle',
+    name: 'Retângulo',
+    description: 'Formato clássico para cinemas, teatros e auditórios',
+    icon: <Square className="h-8 w-8" />,
+    defaultParams: { rows: 12, cols: 24, seatSize: 14, rowSpacing: 6, colSpacing: 2 },
   },
   {
-    id: 'stadium',
-    name: 'Estádio',
-    description: 'Arquibancadas em formato de arena com múltiplos setores',
-    thumbnail: '🏟️',
-    category: 'stadium',
-    defaultParams: {
-      rows: 30,
-      cols: 50,
-      rowSpacing: 4,
-      colSpacing: 2,
-      seatSize: 12,
-      rowLabelType: 'numeric',
-      seatLabelType: 'numeric',
-    },
-    sectors: 8,
-    totalSeats: 12000,
+    id: 'parallelogram',
+    name: 'Paralelogramo',
+    description: 'Ideal para setores laterais com ângulo de visão',
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M6 4h14l-4 16H2L6 4z" />
+      </svg>
+    ),
+    defaultParams: { rows: 10, cols: 20, seatSize: 14, rowSpacing: 6, colSpacing: 2 },
   },
   {
-    id: 'circus',
-    name: 'Circo',
-    description: 'Disposição circular com visão 360° do picadeiro',
-    thumbnail: '🎪',
-    category: 'circus',
-    defaultParams: {
-      rows: 8,
-      cols: 40,
-      rowSpacing: 6,
-      colSpacing: 4,
-      seatSize: 18,
-      rowLabelType: 'alpha',
-      seatLabelType: 'numeric',
-    },
-    sectors: 4,
-    totalSeats: 1280,
+    id: 'trapezoid',
+    name: 'Trapézio',
+    description: 'Perfeito para arquibancadas e setores frontais',
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M4 20h16l-3-16H7L4 20z" />
+      </svg>
+    ),
+    defaultParams: { rows: 15, cols: 30, seatSize: 12, rowSpacing: 4, colSpacing: 2 },
   },
   {
-    id: 'show',
-    name: 'Show/Evento',
-    description: 'Palco frontal com pista e arquibancadas',
-    thumbnail: '🎸',
-    category: 'show',
-    defaultParams: {
-      rows: 20,
-      cols: 40,
-      rowSpacing: 4,
-      colSpacing: 2,
-      seatSize: 14,
-      rowLabelType: 'numeric',
-      seatLabelType: 'numeric',
-    },
-    sectors: 5,
-    totalSeats: 4000,
+    id: 'triangle',
+    name: 'Triângulo',
+    description: 'Para cantos e setores angulares',
+    icon: <Triangle className="h-8 w-8" />,
+    defaultParams: { rows: 8, cols: 16, seatSize: 14, rowSpacing: 6, colSpacing: 3 },
   },
   {
-    id: 'theater',
-    name: 'Teatro',
-    description: 'Palco italiano com plateia, mezanino e camarotes',
-    thumbnail: '🎭',
-    category: 'theater',
-    defaultParams: {
-      rows: 15,
-      cols: 30,
-      rowSpacing: 6,
-      colSpacing: 3,
-      seatSize: 18,
-      rowLabelType: 'alpha',
-      seatLabelType: 'numeric',
-    },
-    sectors: 3,
-    totalSeats: 800,
+    id: 'pentagon',
+    name: 'Pentágono',
+    description: 'Forma versátil para espaços irregulares',
+    icon: <Pentagon className="h-8 w-8" />,
+    defaultParams: { rows: 10, cols: 20, seatSize: 14, rowSpacing: 5, colSpacing: 3 },
+  },
+  {
+    id: 'hexagon',
+    name: 'Hexágono',
+    description: 'Layout orgânico para eventos ao redor',
+    icon: <Hexagon className="h-8 w-8" />,
+    defaultParams: { rows: 8, cols: 24, seatSize: 16, rowSpacing: 6, colSpacing: 2 },
+  },
+  {
+    id: 'circle',
+    name: 'Círculo/Oval',
+    description: 'Para circos, arenas e eventos 360°',
+    icon: <Circle className="h-8 w-8" />,
+    defaultParams: { rows: 10, cols: 40, seatSize: 14, rowSpacing: 4, colSpacing: 2 },
+  },
+  {
+    id: 'arc',
+    name: 'Arco',
+    description: 'Curvatura suave para palcos e shows',
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M4 18 A 8 8 0 0 1 20 18" />
+      </svg>
+    ),
+    defaultParams: { rows: 12, cols: 30, seatSize: 14, rowSpacing: 5, colSpacing: 2 },
   },
 ];
 
-const categoryIcons: Record<string, React.ReactNode> = {
-  cinema: <Film className="h-5 w-5" />,
-  stadium: <Building2 className="h-5 w-5" />,
-  circus: <Tent className="h-5 w-5" />,
-  show: <Music className="h-5 w-5" />,
-  theater: <Theater className="h-5 w-5" />,
-};
-
-type Step = 'template' | 'config' | 'preview';
+type Step = 'shape' | 'config' | 'preview';
 
 export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   open,
   onClose,
   onComplete,
 }) => {
-  const [step, setStep] = useState<Step>('template');
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
-  const [customParams, setCustomParams] = useState<CustomParams>({
+  const [step, setStep] = useState<Step>('shape');
+  const [selectedShape, setSelectedShape] = useState<ShapeTemplate | null>(null);
+  const [config, setConfig] = useState<ShapeConfig>({
+    shape: 'rectangle',
     totalSeats: 500,
-    sectors: 2,
+    sectors: 1,
     rows: 10,
     cols: 25,
     seatSize: 14,
@@ -146,63 +126,74 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
 
   if (!open) return null;
 
-  const handleSelectTemplate = (template: Template) => {
-    setSelectedTemplate(template);
-    setCustomParams({
-      totalSeats: template.totalSeats,
-      sectors: template.sectors,
-      rows: template.defaultParams?.rows || 10,
-      cols: template.defaultParams?.cols || 25,
-      seatSize: template.defaultParams?.seatSize || 14,
-      rowSpacing: template.defaultParams?.rowSpacing || 6,
-      colSpacing: template.defaultParams?.colSpacing || 2,
+  const handleSelectShape = (shape: ShapeTemplate) => {
+    setSelectedShape(shape);
+    setConfig({
+      ...config,
+      shape: shape.id,
+      rows: shape.defaultParams.rows || 10,
+      cols: shape.defaultParams.cols || 25,
+      seatSize: shape.defaultParams.seatSize || 14,
+      rowSpacing: shape.defaultParams.rowSpacing || 6,
+      colSpacing: shape.defaultParams.colSpacing || 2,
     });
     setStep('config');
   };
 
   const handleComplete = () => {
-    if (selectedTemplate) {
-      const updatedTemplate: Template = {
-        ...selectedTemplate,
-        totalSeats: customParams.totalSeats,
-        sectors: customParams.sectors,
-        defaultParams: {
-          ...selectedTemplate.defaultParams,
-          rows: customParams.rows,
-          cols: customParams.cols,
-          seatSize: customParams.seatSize,
-          rowSpacing: customParams.rowSpacing,
-          colSpacing: customParams.colSpacing,
-        },
-      };
-      onComplete(updatedTemplate, customParams);
-    }
+    onComplete(config);
   };
 
   const steps = [
-    { id: 'template', label: 'Template', icon: LayoutGrid },
+    { id: 'shape', label: 'Forma', icon: LayoutGrid },
     { id: 'config', label: 'Configurar', icon: Settings },
     { id: 'preview', label: 'Preview', icon: Armchair },
   ];
 
+  const renderShapePreview = (shapeId: SectorShape) => {
+    const size = 80;
+    switch (shapeId) {
+      case 'rectangle':
+        return <rect x="10" y="20" width="60" height="40" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
+      case 'parallelogram':
+        return <polygon points="20,20 70,20 60,60 10,60" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
+      case 'trapezoid':
+        return <polygon points="20,20 60,20 70,60 10,60" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
+      case 'triangle':
+        return <polygon points="40,15 70,65 10,65" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
+      case 'pentagon':
+        const cx = 40, cy = 40, r = 28;
+        const pentPoints = Array.from({ length: 5 }, (_, i) => {
+          const angle = (i * 2 * Math.PI / 5) - Math.PI / 2;
+          return `${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`;
+        }).join(' ');
+        return <polygon points={pentPoints} fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
+      case 'hexagon':
+        const hcx = 40, hcy = 40, hr = 28;
+        const hexPoints = Array.from({ length: 6 }, (_, i) => {
+          const angle = (i * Math.PI / 3) - Math.PI / 2;
+          return `${hcx + hr * Math.cos(angle)},${hcy + hr * Math.sin(angle)}`;
+        }).join(' ');
+        return <polygon points={hexPoints} fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
+      case 'circle':
+        return <ellipse cx="40" cy="40" rx="30" ry="20" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
+      case 'arc':
+        return <path d="M 10 50 Q 40 10 70 50" fill="none" stroke="currentColor" strokeWidth="2" />;
+      default:
+        return null;
+    }
+  };
+
   const renderMiniPreview = () => {
-    if (!selectedTemplate) return null;
+    if (!selectedShape) return null;
     
-    const previewRows = Math.min(customParams.rows, 8);
-    const previewCols = Math.min(customParams.cols, 12);
-    const seatSize = 10;
+    const previewRows = Math.min(config.rows, 8);
+    const previewCols = Math.min(config.cols, 12);
+    const seatSize = 8;
     const spacing = 2;
 
     return (
       <div className="flex flex-col items-center gap-2">
-        {/* Stage representation for theater/show/cinema */}
-        {['theater', 'show', 'cinema'].includes(selectedTemplate.category) && (
-          <div className="w-full max-w-[200px] h-6 bg-muted rounded-sm flex items-center justify-center text-xs text-muted-foreground mb-2">
-            Palco
-          </div>
-        )}
-        
-        {/* Seats grid preview */}
         <div 
           className="grid gap-px"
           style={{
@@ -219,9 +210,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           ))}
         </div>
         
-        {/* Info */}
         <div className="text-xs text-muted-foreground mt-2 text-center">
-          Mostrando {previewRows}x{previewCols} de {customParams.rows}x{customParams.cols}
+          {previewRows}x{previewCols} de {config.rows}x{config.cols}
         </div>
       </div>
     );
@@ -232,7 +222,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header with steps */}
         <div className="px-8 py-6 border-b border-border bg-muted/30">
-          <h1 className="text-2xl font-bold mb-4">Criar Novo Mapa</h1>
+          <h1 className="text-2xl font-bold mb-4">Criar Novo Setor</h1>
           
           {/* Step indicator */}
           <div className="flex items-center gap-2">
@@ -240,9 +230,9 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               <React.Fragment key={s.id}>
                 <button
                   onClick={() => {
-                    if (s.id === 'template') setStep('template');
-                    else if (s.id === 'config' && selectedTemplate) setStep('config');
-                    else if (s.id === 'preview' && selectedTemplate) setStep('preview');
+                    if (s.id === 'shape') setStep('shape');
+                    else if (s.id === 'config' && selectedShape) setStep('config');
+                    else if (s.id === 'preview' && selectedShape) setStep('preview');
                   }}
                   className={cn(
                     "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
@@ -267,44 +257,40 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
         {/* Content */}
         <ScrollArea className="flex-1">
           <div className="p-8">
-            {/* Step 1: Template Selection */}
-            {step === 'template' && (
+            {/* Step 1: Shape Selection */}
+            {step === 'shape' && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-lg font-semibold mb-2">Escolha um tipo de venue</h2>
+                  <h2 className="text-lg font-semibold mb-2">Escolha a forma do setor</h2>
                   <p className="text-sm text-muted-foreground">
-                    Selecione o template que mais se aproxima do seu espaço
+                    Selecione a geometria que melhor se adapta ao seu espaço
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {templates.map((template) => (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {shapeTemplates.map((shape) => (
                     <button
-                      key={template.id}
-                      onClick={() => handleSelectTemplate(template)}
+                      key={shape.id}
+                      onClick={() => handleSelectShape(shape)}
                       className={cn(
                         "group text-left p-5 rounded-xl border-2 transition-all hover:scale-[1.02]",
-                        selectedTemplate?.id === template.id
+                        selectedShape?.id === shape.id
                           ? "border-primary bg-primary/10"
                           : "border-border bg-card hover:border-primary/50 hover:bg-primary/5"
                       )}
                     >
-                      <div className="text-5xl mb-3">{template.thumbnail}</div>
-                      <div className="flex items-center gap-2 mb-2">
-                        {categoryIcons[template.category]}
-                        <h3 className="font-semibold text-lg">{template.name}</h3>
+                      <div className="flex justify-center mb-3 text-primary">
+                        <svg viewBox="0 0 80 80" className="w-20 h-20">
+                          {renderShapePreview(shape.id)}
+                        </svg>
                       </div>
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {template.description}
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        {shape.icon}
+                        <h3 className="font-semibold">{shape.name}</h3>
+                      </div>
+                      <p className="text-xs text-muted-foreground text-center">
+                        {shape.description}
                       </p>
-                      <div className="flex gap-4 text-xs">
-                        <span className="px-2 py-1 bg-muted rounded">
-                          {template.sectors} setores
-                        </span>
-                        <span className="px-2 py-1 bg-muted rounded">
-                          ~{template.totalSeats.toLocaleString()} lugares
-                        </span>
-                      </div>
                     </button>
                   ))}
                 </div>
@@ -312,72 +298,45 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
             )}
 
             {/* Step 2: Configuration */}
-            {step === 'config' && selectedTemplate && (
+            {step === 'config' && selectedShape && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Config form */}
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-lg font-semibold mb-2">Configure seu mapa</h2>
+                    <h2 className="text-lg font-semibold mb-2">Configure o setor: {selectedShape.name}</h2>
                     <p className="text-sm text-muted-foreground">
-                      Ajuste os parâmetros para seu espaço
+                      Ajuste os parâmetros de assentos
                     </p>
                   </div>
 
                   <div className="space-y-5">
                     <div>
-                      <Label className="text-sm font-medium">Total de Assentos Desejado</Label>
-                      <div className="flex items-center gap-4 mt-2">
-                        <Slider
-                          value={[customParams.totalSeats]}
-                          onValueChange={([v]) => {
-                            setCustomParams(prev => ({
-                              ...prev,
-                              totalSeats: v,
-                              rows: Math.ceil(Math.sqrt(v / prev.sectors)),
-                              cols: Math.ceil(v / (prev.sectors * Math.ceil(Math.sqrt(v / prev.sectors)))),
-                            }));
-                          }}
-                          min={50}
-                          max={15000}
-                          step={50}
-                          className="flex-1"
-                        />
-                        <Input
-                          type="number"
-                          value={customParams.totalSeats}
-                          onChange={(e) => setCustomParams(prev => ({ ...prev, totalSeats: parseInt(e.target.value) || 0 }))}
-                          className="w-24"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
                       <Label className="text-sm font-medium">Número de Setores</Label>
                       <div className="flex items-center gap-4 mt-2">
                         <Slider
-                          value={[customParams.sectors]}
-                          onValueChange={([v]) => setCustomParams(prev => ({ ...prev, sectors: v }))}
+                          value={[config.sectors]}
+                          onValueChange={([v]) => setConfig(prev => ({ ...prev, sectors: v }))}
                           min={1}
-                          max={12}
+                          max={8}
                           step={1}
                           className="flex-1"
                         />
                         <Input
                           type="number"
-                          value={customParams.sectors}
-                          onChange={(e) => setCustomParams(prev => ({ ...prev, sectors: parseInt(e.target.value) || 1 }))}
-                          className="w-24"
+                          value={config.sectors}
+                          onChange={(e) => setConfig(prev => ({ ...prev, sectors: parseInt(e.target.value) || 1 }))}
+                          className="w-20"
                         />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label className="text-sm font-medium">Fileiras por Setor</Label>
+                        <Label className="text-sm font-medium">Fileiras</Label>
                         <Input
                           type="number"
-                          value={customParams.rows}
-                          onChange={(e) => setCustomParams(prev => ({ ...prev, rows: parseInt(e.target.value) || 1 }))}
+                          value={config.rows}
+                          onChange={(e) => setConfig(prev => ({ ...prev, rows: parseInt(e.target.value) || 1 }))}
                           className="mt-2"
                           min={1}
                           max={100}
@@ -387,8 +346,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                         <Label className="text-sm font-medium">Assentos por Fileira</Label>
                         <Input
                           type="number"
-                          value={customParams.cols}
-                          onChange={(e) => setCustomParams(prev => ({ ...prev, cols: parseInt(e.target.value) || 1 }))}
+                          value={config.cols}
+                          onChange={(e) => setConfig(prev => ({ ...prev, cols: parseInt(e.target.value) || 1 }))}
                           className="mt-2"
                           min={1}
                           max={100}
@@ -400,14 +359,14 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                       <Label className="text-sm font-medium">Tamanho do Assento (px)</Label>
                       <div className="flex items-center gap-4 mt-2">
                         <Slider
-                          value={[customParams.seatSize]}
-                          onValueChange={([v]) => setCustomParams(prev => ({ ...prev, seatSize: v }))}
+                          value={[config.seatSize]}
+                          onValueChange={([v]) => setConfig(prev => ({ ...prev, seatSize: v }))}
                           min={8}
                           max={24}
                           step={1}
                           className="flex-1"
                         />
-                        <span className="w-16 text-sm text-muted-foreground">{customParams.seatSize}px</span>
+                        <span className="w-16 text-sm text-muted-foreground">{config.seatSize}px</span>
                       </div>
                     </div>
 
@@ -416,28 +375,28 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                         <Label className="text-sm font-medium">Espaçamento Fileiras</Label>
                         <div className="flex items-center gap-2 mt-2">
                           <Slider
-                            value={[customParams.rowSpacing]}
-                            onValueChange={([v]) => setCustomParams(prev => ({ ...prev, rowSpacing: v }))}
+                            value={[config.rowSpacing]}
+                            onValueChange={([v]) => setConfig(prev => ({ ...prev, rowSpacing: v }))}
                             min={2}
                             max={20}
                             step={1}
                             className="flex-1"
                           />
-                          <span className="w-10 text-xs text-muted-foreground">{customParams.rowSpacing}</span>
+                          <span className="w-10 text-xs text-muted-foreground">{config.rowSpacing}</span>
                         </div>
                       </div>
                       <div>
                         <Label className="text-sm font-medium">Espaçamento Colunas</Label>
                         <div className="flex items-center gap-2 mt-2">
                           <Slider
-                            value={[customParams.colSpacing]}
-                            onValueChange={([v]) => setCustomParams(prev => ({ ...prev, colSpacing: v }))}
+                            value={[config.colSpacing]}
+                            onValueChange={([v]) => setConfig(prev => ({ ...prev, colSpacing: v }))}
                             min={1}
                             max={10}
                             step={1}
                             className="flex-1"
                           />
-                          <span className="w-10 text-xs text-muted-foreground">{customParams.colSpacing}</span>
+                          <span className="w-10 text-xs text-muted-foreground">{config.colSpacing}</span>
                         </div>
                       </div>
                     </div>
@@ -446,18 +405,24 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
 
                 {/* Live preview */}
                 <div className="bg-muted/30 rounded-xl p-6 flex flex-col items-center justify-center">
-                  <h3 className="text-sm font-medium mb-4 text-muted-foreground">Preview</h3>
+                  <div className="flex items-center gap-3 mb-4">
+                    <svg viewBox="0 0 80 80" className="w-12 h-12 text-primary">
+                      {renderShapePreview(selectedShape.id)}
+                    </svg>
+                    <h3 className="text-sm font-medium text-muted-foreground">{selectedShape.name}</h3>
+                  </div>
+                  
                   {renderMiniPreview()}
                   
                   <div className="mt-6 p-4 bg-background rounded-lg w-full max-w-xs">
                     <div className="text-sm space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Total calculado:</span>
-                        <span className="font-medium">{(customParams.rows * customParams.cols * customParams.sectors).toLocaleString()} assentos</span>
+                        <span className="text-muted-foreground">Total por setor:</span>
+                        <span className="font-medium">{(config.rows * config.cols).toLocaleString()} assentos</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Por setor:</span>
-                        <span className="font-medium">{(customParams.rows * customParams.cols).toLocaleString()} assentos</span>
+                        <span className="text-muted-foreground">Total geral:</span>
+                        <span className="font-medium">{(config.rows * config.cols * config.sectors).toLocaleString()} assentos</span>
                       </div>
                     </div>
                   </div>
@@ -465,52 +430,50 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               </div>
             )}
 
-            {/* Step 3: Final Preview */}
-            {step === 'preview' && selectedTemplate && (
+            {/* Step 3: Preview */}
+            {step === 'preview' && selectedShape && (
               <div className="space-y-6">
                 <div>
                   <h2 className="text-lg font-semibold mb-2">Confirme sua configuração</h2>
                   <p className="text-sm text-muted-foreground">
-                    Revise os detalhes antes de criar o mapa
+                    Revise os parâmetros antes de criar
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="bg-muted/30 rounded-xl p-6">
-                    <div className="text-5xl mb-4">{selectedTemplate.thumbnail}</div>
-                    <h3 className="text-xl font-semibold">{selectedTemplate.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{selectedTemplate.description}</p>
+                  <div className="bg-muted/30 rounded-xl p-6 text-center">
+                    <svg viewBox="0 0 80 80" className="w-24 h-24 mx-auto text-primary mb-4">
+                      {renderShapePreview(selectedShape.id)}
+                    </svg>
+                    <h3 className="text-xl font-bold">{selectedShape.name}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{selectedShape.description}</p>
                   </div>
-
-                  <div className="bg-muted/30 rounded-xl p-6 space-y-4">
-                    <h4 className="font-medium">Configuração Final</h4>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div className="p-3 bg-background rounded-lg">
-                        <div className="text-muted-foreground text-xs">Total de Assentos</div>
-                        <div className="text-lg font-bold">{(customParams.rows * customParams.cols * customParams.sectors).toLocaleString()}</div>
-                      </div>
-                      <div className="p-3 bg-background rounded-lg">
-                        <div className="text-muted-foreground text-xs">Setores</div>
-                        <div className="text-lg font-bold">{customParams.sectors}</div>
-                      </div>
-                      <div className="p-3 bg-background rounded-lg">
-                        <div className="text-muted-foreground text-xs">Fileiras</div>
-                        <div className="text-lg font-bold">{customParams.rows}</div>
-                      </div>
-                      <div className="p-3 bg-background rounded-lg">
-                        <div className="text-muted-foreground text-xs">Assentos/Fileira</div>
-                        <div className="text-lg font-bold">{customParams.cols}</div>
-                      </div>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-muted/30 rounded-lg p-4">
+                      <h4 className="font-medium mb-3">Resumo</h4>
+                      <dl className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <dt className="text-muted-foreground">Setores:</dt>
+                          <dd className="font-medium">{config.sectors}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-muted-foreground">Fileiras por setor:</dt>
+                          <dd className="font-medium">{config.rows}</dd>
+                        </div>
+                        <div className="flex justify-between">
+                          <dt className="text-muted-foreground">Assentos por fileira:</dt>
+                          <dd className="font-medium">{config.cols}</dd>
+                        </div>
+                        <div className="flex justify-between border-t border-border pt-2 mt-2">
+                          <dt className="text-muted-foreground">Total de assentos:</dt>
+                          <dd className="font-bold text-primary">{(config.rows * config.cols * config.sectors).toLocaleString()}</dd>
+                        </div>
+                      </dl>
                     </div>
-                  </div>
-                </div>
-
-                <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary mt-0.5" />
-                  <div>
-                    <p className="font-medium">Pronto para criar!</p>
-                    <p className="text-sm text-muted-foreground">
-                      Após criar, você poderá editar livremente setores, assentos e adicionar elementos.
+                    
+                    <p className="text-xs text-muted-foreground">
+                      Após criar, você poderá ajustar os vértices da forma diretamente no canvas para personalizar o layout.
                     </p>
                   </div>
                 </div>
@@ -520,18 +483,18 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
         </ScrollArea>
 
         {/* Footer */}
-        <div className="px-8 py-4 border-t border-border bg-muted/30 flex items-center justify-between">
+        <div className="px-8 py-4 border-t border-border bg-muted/30 flex justify-between">
           <Button variant="ghost" onClick={onClose}>
             Cancelar
           </Button>
           
           <div className="flex gap-2">
-            {step !== 'template' && (
-              <Button 
-                variant="outline" 
-                onClick={() => setStep(step === 'preview' ? 'config' : 'template')}
+            {step !== 'shape' && (
+              <Button
+                variant="outline"
+                onClick={() => setStep(step === 'preview' ? 'config' : 'shape')}
               >
-                <ChevronLeft className="h-4 w-4 mr-2" />
+                <ChevronLeft className="h-4 w-4 mr-1" />
                 Voltar
               </Button>
             )}
@@ -539,14 +502,14 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
             {step === 'config' && (
               <Button onClick={() => setStep('preview')}>
                 Continuar
-                <ChevronRight className="h-4 w-4 ml-2" />
+                <ChevronRight className="h-4 w-4 ml-1" />
               </Button>
             )}
             
             {step === 'preview' && (
-              <Button onClick={handleComplete} className="bg-primary">
-                <Check className="h-4 w-4 mr-2" />
-                Criar Mapa
+              <Button onClick={handleComplete}>
+                <Check className="h-4 w-4 mr-1" />
+                Criar Setor
               </Button>
             )}
           </div>
