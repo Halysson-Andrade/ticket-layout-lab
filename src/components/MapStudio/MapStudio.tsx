@@ -10,6 +10,7 @@ import { StatusBar } from './StatusBar';
 import { GridGeneratorModal } from './GridGeneratorModal';
 import { OnboardingWizard } from './OnboardingWizard';
 import { ExportModal } from './ExportModal';
+import { BackgroundImagePanel, BackgroundImageConfig } from './BackgroundImagePanel';
 import { 
   VenueMap, 
   Sector, 
@@ -66,6 +67,7 @@ export const MapStudio: React.FC = () => {
   const [zoom, setZoom] = useState(0.8);
   const [pan, setPan] = useState({ x: 100, y: 50 });
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [bgConfig, setBgConfig] = useState<BackgroundImageConfig | null>(null);
 
   // Modals
   const [showGridGenerator, setShowGridGenerator] = useState(false);
@@ -391,13 +393,33 @@ export const MapStudio: React.FC = () => {
       if (file) {
         const reader = new FileReader();
         reader.onload = (ev) => {
-          setBackgroundImage(ev.target?.result as string);
+          const url = ev.target?.result as string;
+          setBackgroundImage(url);
+          setBgConfig({
+            url,
+            opacity: 50,
+            scale: 100,
+            x: 0,
+            y: 0,
+          });
           toast.success('Imagem de fundo importada!');
         };
         reader.readAsDataURL(file);
       }
     };
     input.click();
+  }, []);
+
+  // Atualiza config da imagem de fundo
+  const handleBgConfigChange = useCallback((config: BackgroundImageConfig | null) => {
+    if (config === null) {
+      setBackgroundImage(null);
+      setBgConfig(null);
+      toast.success('Imagem de fundo removida');
+    } else {
+      setBgConfig(config);
+      setBackgroundImage(config.url);
+    }
   }, []);
 
   // Seleciona template
@@ -636,6 +658,7 @@ export const MapStudio: React.FC = () => {
           zoom={zoom}
           pan={pan}
           backgroundImage={backgroundImage}
+          bgConfig={bgConfig}
           onZoomChange={setZoom}
           onPanChange={setPan}
           onSelectSector={handleSelectSector}
@@ -692,6 +715,13 @@ export const MapStudio: React.FC = () => {
           onUpdateSector={handleUpdateSector}
           onUpdateSeats={handleUpdateSeats}
           onRegenerateSeats={handleRegenerateSeats}
+        />
+
+        {/* Background Image Panel */}
+        <BackgroundImagePanel
+          config={bgConfig}
+          onConfigChange={handleBgConfigChange}
+          onImportImage={handleImportImage}
         />
 
         {/* Minimap */}
