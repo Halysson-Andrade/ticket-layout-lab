@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronRight, ChevronLeft, Check, Armchair, LayoutGrid, Settings, Square, Triangle, Pentagon, Hexagon, Circle, Star, ArrowUp } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Check, Armchair, LayoutGrid, Settings, Square, Triangle, Pentagon, Hexagon, Circle, Star, ArrowUp, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -199,42 +199,37 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   });
 
   // Hook useMemo ANTES do early return
-  // Calcula dimensões do preview baseado na quantidade de assentos
+  // Calcula dimensões do preview baseado na quantidade de assentos - EXPANDE para caber todos
   const previewDimensions = useMemo(() => {
     // Mesas precisam de muito mais espaço que cadeiras
     const isTable = config.furnitureType === 'table' || config.furnitureType === 'bistro';
     
-    // Tamanho base: mesas são ~4x maiores que cadeiras
-    const baseSeatSize = isTable ? 20 : 6;
-    const baseSpacing = isTable ? 12 : 2;
-    
-    // Ajusta tamanho proporcionalmente ao config
+    // Tamanho base proporcional
     const scaledSeatSize = isTable 
-      ? Math.max(16, Math.min(30, baseSeatSize * (config.seatSize / 14)))
-      : Math.max(4, Math.min(8, baseSeatSize * (config.seatSize / 14)));
+      ? Math.max(18, Math.min(28, 20 * (config.seatSize / 14)))
+      : Math.max(5, Math.min(10, 7 * (config.seatSize / 14)));
     
     const scaledRowSpacing = isTable 
-      ? Math.max(8, config.rowSpacing * 2)
-      : Math.max(1, config.rowSpacing / 3);
+      ? Math.max(10, config.rowSpacing * 1.5)
+      : Math.max(2, config.rowSpacing / 2);
     
     const scaledColSpacing = isTable 
-      ? Math.max(8, config.colSpacing * 2)
-      : Math.max(1, config.colSpacing / 2);
+      ? Math.max(10, config.colSpacing * 1.5)
+      : Math.max(2, config.colSpacing / 2);
     
-    // Para mesas, reduz a quantidade máxima de colunas/linhas
-    const cols = isTable ? Math.min(config.cols, 10) : Math.min(config.cols, 40);
-    const rows = isTable ? Math.min(config.rows, 8) : Math.min(config.rows, 30);
+    const cols = config.cols;
+    const rows = config.rows;
     
+    // Calcula tamanho necessário para caber TODOS os assentos
     const gridWidth = cols * (scaledSeatSize + scaledColSpacing);
     const gridHeight = rows * (scaledSeatSize + scaledRowSpacing);
     
-    // Tamanho mínimo e máximo do preview (maior para mesas)
-    const width = isTable 
-      ? Math.max(200, Math.min(400, gridWidth + 60))
-      : Math.max(150, Math.min(350, gridWidth + 40));
-    const height = isTable 
-      ? Math.max(150, Math.min(300, gridHeight + 60))
-      : Math.max(100, Math.min(250, gridHeight + 40));
+    // Margem extra para a forma geométrica (formas não-retangulares precisam de mais espaço)
+    const shapeMargin = selectedShape?.id === 'rectangle' ? 1.1 : 1.4;
+    
+    // Expande o preview para caber todos os assentos
+    const width = Math.max(180, (gridWidth + 40) * shapeMargin);
+    const height = Math.max(120, (gridHeight + 40) * shapeMargin);
     
     return { 
       width, 
@@ -246,7 +241,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       rows,
       isTable
     };
-  }, [config.cols, config.rows, config.seatSize, config.rowSpacing, config.colSpacing, config.furnitureType]);
+  }, [config.cols, config.rows, config.seatSize, config.rowSpacing, config.colSpacing, config.furnitureType, selectedShape]);
 
   const seatsInShape = useMemo(() => {
     if (!selectedShape) return [];
@@ -303,6 +298,14 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   const realCapacity = useMemo(() => {
     return seatsInShape.filter(s => s.inside).length;
   }, [seatsInShape]);
+
+  // Assentos fora da forma
+  const seatsOutside = useMemo(() => {
+    return seatsInShape.filter(s => !s.inside).length;
+  }, [seatsInShape]);
+
+  // Total configurado
+  const totalConfigured = config.rows * config.cols;
 
   // Early return DEPOIS de todos os hooks
   if (!open) return null;
@@ -823,15 +826,40 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   
                   {renderMiniPreview()}
                   
+                  {/* Aviso quando há assentos fora da forma */}
+                  {seatsOutside > 0 && (
+                    <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-start gap-2 w-full max-w-xs">
+                      <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                      <div className="text-xs text-amber-600 dark:text-amber-400">
+                        <strong>{seatsOutside}</strong> {config.furnitureType === 'chair' ? 'assentos' : 'mesas'} fora do setor. 
+                        Ajuste as configurações ou escolha uma forma mais adequada.
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="mt-6 p-4 bg-background rounded-lg w-full max-w-xs">
                     <div className="text-sm space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Capacidade por setor:</span>
-                        <span className="font-medium text-primary">{realCapacity.toLocaleString()} {config.furnitureType === 'chair' ? 'assentos' : 'mesas'}</span>
+                        <span className="text-muted-foreground">Configurado:</span>
+                        <span className="font-medium">{totalConfigured.toLocaleString()} {config.furnitureType === 'chair' ? 'assentos' : 'mesas'}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Total geral:</span>
-                        <span className="font-bold text-primary">{(realCapacity * config.sectors).toLocaleString()} {config.furnitureType === 'chair' ? 'assentos' : 'mesas'}</span>
+                        <span className="text-muted-foreground">Capacidade real:</span>
+                        <span className={cn("font-medium", seatsOutside > 0 ? "text-amber-500" : "text-primary")}>
+                          {realCapacity.toLocaleString()} {config.furnitureType === 'chair' ? 'assentos' : 'mesas'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Aproveitamento:</span>
+                        <span className={cn("font-medium", realCapacity / totalConfigured >= 0.9 ? "text-green-500" : "text-amber-500")}>
+                          {totalConfigured > 0 ? Math.round((realCapacity / totalConfigured) * 100) : 0}%
+                        </span>
+                      </div>
+                      <div className="pt-2 border-t">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Total ({config.sectors} {config.sectors > 1 ? 'setores' : 'setor'}):</span>
+                          <span className="font-bold text-primary">{(realCapacity * config.sectors).toLocaleString()}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
