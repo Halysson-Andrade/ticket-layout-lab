@@ -260,7 +260,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       case 'circle':
         return <ellipse cx="40" cy="40" rx="30" ry="20" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
       case 'arc':
-        return <path d="M 5 60 Q 40 5 75 60 L 65 60 Q 40 20 15 60 Z" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
+        // Arco real com raio interno e externo (meia-lua)
+        return <path d="M 10 50 A 30 25 0 0 1 70 50 L 60 50 A 20 15 0 0 0 20 50 Z" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
       case 'diamond':
         return <polygon points="40,10 70,40 40,70 10,40" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
       case 'l-shape':
@@ -373,11 +374,11 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   };
 
   return (
-    <div className="absolute inset-0 z-50 bg-background/95 backdrop-blur-md flex items-center justify-center">
-      <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+    <div className="absolute inset-0 z-50 bg-background/95 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-5xl w-full h-[90vh] flex flex-col overflow-hidden">
         {/* Header with steps */}
-        <div className="px-8 py-6 border-b border-border bg-muted/30">
-          <h1 className="text-2xl font-bold mb-4">Criar Novo Setor</h1>
+        <div className="px-8 py-4 border-b border-border bg-muted/30 shrink-0">
+          <h1 className="text-2xl font-bold mb-3">Criar Novo Setor</h1>
           
           {/* Step indicator */}
           <div className="flex items-center gap-2">
@@ -409,20 +410,20 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-hidden">
-          {/* Step 1: Shape Selection - com scroll */}
+        {/* Content - altura fixa com scroll */}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          {/* Step 1: Shape Selection */}
           {step === 'shape' && (
             <ScrollArea className="h-full">
-              <div className="p-8 space-y-6">
+              <div className="p-6 space-y-4">
                 <div>
-                  <h2 className="text-lg font-semibold mb-2">Escolha a forma do setor</h2>
+                  <h2 className="text-lg font-semibold mb-1">Escolha a forma do setor</h2>
                   <p className="text-sm text-muted-foreground">
                     Selecione a geometria que melhor se adapta ao seu espaço
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 pb-4">
                   {shapeTemplates.map((shape) => (
                     <button
                       key={shape.id}
@@ -456,17 +457,18 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           {/* Step 2: Configuration */}
           {step === 'config' && selectedShape && (
             <ScrollArea className="h-full">
-              <div className="p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Config form */}
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-lg font-semibold mb-2">Configure o setor: {selectedShape.name}</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Ajuste os parâmetros de assentos
-                    </p>
-                  </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Config form */}
+                  <div className="space-y-4">
+                    <div>
+                      <h2 className="text-lg font-semibold mb-1">Configure o setor: {selectedShape.name}</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Ajuste os parâmetros de assentos
+                      </p>
+                    </div>
 
-                  <div className="space-y-5">
+                    <div className="space-y-4">
                     <div>
                       <Label className="text-sm font-medium">Número de Setores</Label>
                       <div className="flex items-center gap-4 mt-2">
@@ -689,6 +691,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                     </div>
                   </div>
                 </div>
+              </div>
               </div>
             </ScrollArea>
           )}
