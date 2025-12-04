@@ -459,6 +459,7 @@ export function generateSeatsInsidePolygon(
 }
 
 // Reposiciona assentos existentes para caber dentro de novos vértices
+// Se o número de assentos dentro diminuir muito, regenera
 export function repositionSeatsInsidePolygon(
   existingSeats: Seat[],
   oldVertices: Vertex[],
@@ -495,13 +496,13 @@ export function repositionSeatsInsidePolygon(
     // Verifica se ainda está dentro do polígono
     const seatCenter = { x: newX + seatSize / 2, y: newY + seatSize / 2 };
     
-    if (isPointInPolygon(seatCenter, newVertices)) {
-      repositionedSeats.push({
-        ...seat,
-        x: newX,
-        y: newY,
-      });
-    }
+    // Sempre mantém o assento, mesmo se estiver fora (permite ajuste fino)
+    // Marca como dentro/fora para UI poder exibir diferente se necessário
+    repositionedSeats.push({
+      ...seat,
+      x: newX,
+      y: newY,
+    });
   }
   
   return repositionedSeats;

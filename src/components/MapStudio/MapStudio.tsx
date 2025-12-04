@@ -51,6 +51,7 @@ export const MapStudio: React.FC = () => {
   const [elements, setElements] = useState<VenueElement[]>([]);
   const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
   const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([]);
+  const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
   
   // UI state
   const [activeTool, setActiveTool] = useState<ToolType>('select');
@@ -150,6 +151,26 @@ export const MapStudio: React.FC = () => {
     }
     if (ids.length > 0) {
       setSelectedSectorIds([]);
+      setSelectedElementIds([]);
+    }
+  }, []);
+
+  // Seleciona elementos
+  const handleSelectElements = useCallback((ids: string[], additive: boolean) => {
+    if (additive) {
+      setSelectedElementIds(prev => {
+        const newIds = [...prev];
+        ids.forEach(id => {
+          if (!newIds.includes(id)) newIds.push(id);
+        });
+        return newIds;
+      });
+    } else {
+      setSelectedElementIds(ids);
+    }
+    if (ids.length > 0) {
+      setSelectedSectorIds([]);
+      setSelectedSeatIds([]);
     }
   }, []);
 
@@ -341,7 +362,23 @@ export const MapStudio: React.FC = () => {
   // Deleta elemento
   const handleDeleteElement = useCallback((id: string) => {
     setElements(prev => prev.filter(e => e.id !== id));
+    setSelectedElementIds([]);
     toast.success('Elemento removido');
+  }, []);
+
+  // Move elemento
+  const handleMoveElement = useCallback((id: string, dx: number, dy: number) => {
+    setElements(prev => prev.map(el => {
+      if (el.id !== id) return el;
+      return {
+        ...el,
+        bounds: {
+          ...el.bounds,
+          x: el.bounds.x + dx,
+          y: el.bounds.y + dy,
+        },
+      };
+    }));
   }, []);
 
   // Importa imagem de fundo
@@ -593,6 +630,7 @@ export const MapStudio: React.FC = () => {
           elements={elements}
           selectedSectorIds={selectedSectorIds}
           selectedSeatIds={selectedSeatIds}
+          selectedElementIds={selectedElementIds}
           activeTool={activeTool}
           activeSeatType={activeSeatType}
           zoom={zoom}
@@ -602,8 +640,10 @@ export const MapStudio: React.FC = () => {
           onPanChange={setPan}
           onSelectSector={handleSelectSector}
           onSelectSeats={handleSelectSeats}
+          onSelectElements={handleSelectElements}
           onCreateSector={handleCreateSector}
           onMoveSector={handleMoveSector}
+          onMoveElement={handleMoveElement}
           onUpdateSectorVertices={handleUpdateSectorVertices}
           onApplySeatType={handleApplySeatType}
         />

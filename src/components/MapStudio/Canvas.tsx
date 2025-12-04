@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
-import { Sector, Seat, VenueElement, ToolType, SeatType, SEAT_COLORS, ELEMENT_ICONS, Vertex } from '@/types/mapStudio';
+import { Sector, Seat, VenueElement, ToolType, SeatType, SEAT_COLORS, ELEMENT_ICONS, Vertex, TableConfig } from '@/types/mapStudio';
 import { isPointInBounds, isPointInPolygon, getBoundsFromVertices } from '@/lib/mapUtils';
 
 interface CanvasProps {
@@ -9,6 +9,7 @@ interface CanvasProps {
   elements: VenueElement[];
   selectedSectorIds: string[];
   selectedSeatIds: string[];
+  selectedElementIds: string[];
   activeTool: ToolType;
   activeSeatType: SeatType;
   zoom: number;
@@ -18,8 +19,10 @@ interface CanvasProps {
   onPanChange: (pan: { x: number; y: number }) => void;
   onSelectSector: (id: string, additive: boolean) => void;
   onSelectSeats: (ids: string[], additive: boolean) => void;
+  onSelectElements: (ids: string[], additive: boolean) => void;
   onCreateSector: (bounds: { x: number; y: number; width: number; height: number }) => void;
   onMoveSector: (id: string, dx: number, dy: number) => void;
+  onMoveElement: (id: string, dx: number, dy: number) => void;
   onUpdateSectorVertices: (id: string, vertices: Vertex[]) => void;
   onApplySeatType: (ids: string[], type: SeatType) => void;
 }
@@ -33,6 +36,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   elements,
   selectedSectorIds,
   selectedSeatIds,
+  selectedElementIds,
   activeTool,
   activeSeatType,
   zoom,
@@ -42,8 +46,10 @@ export const Canvas: React.FC<CanvasProps> = ({
   onPanChange,
   onSelectSector,
   onSelectSeats,
+  onSelectElements,
   onCreateSector,
   onMoveSector,
+  onMoveElement,
   onUpdateSectorVertices,
   onApplySeatType,
 }) => {
@@ -52,6 +58,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   const [isPanning, setIsPanning] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isDraggingElement, setIsDraggingElement] = useState(false);
   const [isBoxSelecting, setIsBoxSelecting] = useState(false);
   const [isDraggingVertex, setIsDraggingVertex] = useState(false);
   const [activeVertexIndex, setActiveVertexIndex] = useState<number | null>(null);
@@ -98,6 +105,61 @@ export const Canvas: React.FC<CanvasProps> = ({
     return null;
   }, [zoom]);
 
+  // Renderiza mesa/bistrô com cadeiras
+  const renderTableWithChairs = useCallback((
+    ctx: CanvasRenderingContext2D,
+    seat: Seat,
+    isSelected: boolean
+  ) => {
+    const config = seat.tableConfig || { shape: 'round', chairCount: 4, tableWidth: 40, tableHeight: 40 };
+    const tableX = seat.x;
+    const tableY = seat.y;
+    const tableW = config.tableWidth;
+    const tableH = config.tableHeight;
+    const chairRadius = 6;
+    
+    // Cor da mesa
+    ctx.fillStyle = isSelected ? '#3b82f6' : (seat.furnitureType === 'bistro' ? '#8b5cf6' : '#64748b');
+    
+    // Desenha mesa
+    if (config.shape === 'round') {
+      ctx.beginPath();
+      ctx.arc(tableX + tableW / 2, tableY + tableH / 2, Math.min(tableW, tableH) / 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillRect(tableX, tableY, tableW, tableH);
+    }
+    
+    // Borda se selecionado
+    if (isSelected) {
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2 / zoom;
+      if (config.shape === 'round') {
+        ctx.beginPath();
+        ctx.arc(tableX + tableW / 2, tableY + tableH / 2, Math.min(tableW, tableH) / 2, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        ctx.strokeRect(tableX, tableY, tableW, tableH);
+      }
+    }
+    
+    // Desenha cadeiras ao redor
+    ctx.fillStyle = SEAT_COLORS[seat.type];
+    const centerX = tableX + tableW / 2;
+    const centerY = tableY + tableH / 2;
+    const radius = (Math.max(tableW, tableH) / 2) + chairRadius + 4;
+    
+    for (let i = 0; i < config.chairCount; i++) {
+      const angle = (i / config.chairCount) * Math.PI * 2 - Math.PI / 2;
+      const chairX = centerX + Math.cos(angle) * radius;
+      const chairY = centerY + Math.sin(angle) * radius;
+      
+      ctx.beginPath();
+      ctx.arc(chairX, chairY, chairRadius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }, [zoom]);
+
   // Renderização do canvas
   const render = useCallback(() => {
     const canvas = canvasRef.current;
@@ -139,10 +201,22 @@ export const Canvas: React.FC<CanvasProps> = ({
       ctx.globalAlpha = 1;
     }
 
-    // Elementos (palco, bar, etc)
+    // Elementos (palco, bar, etc) - agora selecionáveis e móveis
     elements.forEach(el => {
+      const isElSelected = selectedElementIds.includes(el.id);
+      
       ctx.fillStyle = el.color || '#4a5568';
       ctx.fillRect(el.bounds.x, el.bounds.y, el.bounds.width, el.bounds.height);
+      
+      // Borda de seleção
+      if (isElSelected) {
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 3 / zoom;
+        ctx.setLineDash([6, 3]);
+        ctx.strokeRect(el.bounds.x - 2, el.bounds.y - 2, el.bounds.width + 4, el.bounds.height + 4);
+        ctx.setLineDash([]);
+      }
+      
       ctx.fillStyle = '#fff';
       ctx.font = `${Math.min(el.bounds.width, el.bounds.height) * 0.3}px sans-serif`;
       ctx.textAlign = 'center';
@@ -220,33 +294,36 @@ export const Canvas: React.FC<CanvasProps> = ({
       ctx.textBaseline = 'top';
       ctx.fillText(sector.name, bounds.x + 4, bounds.y + 4);
 
-      // Assentos
+      // Assentos (cadeiras simples ou mesas com cadeiras)
       sector.seats.forEach(seat => {
         const isSeatSelected = selectedSeatIds.includes(seat.id);
-        const seatSize = 14;
         
-        // Cor do assento
-        ctx.fillStyle = isSeatSelected ? '#3b82f6' : SEAT_COLORS[seat.type];
-        
-        // Desenha assento
-        ctx.beginPath();
-        ctx.arc(seat.x + seatSize / 2, seat.y + seatSize / 2, seatSize / 2, 0, Math.PI * 2);
-        ctx.fill();
+        // Se for mesa ou bistrô, renderiza com cadeiras ao redor
+        if (seat.furnitureType === 'table' || seat.furnitureType === 'bistro') {
+          renderTableWithChairs(ctx, seat, isSeatSelected);
+        } else {
+          // Cadeira simples
+          const seatSize = 14;
+          
+          ctx.fillStyle = isSeatSelected ? '#3b82f6' : SEAT_COLORS[seat.type];
+          
+          ctx.beginPath();
+          ctx.arc(seat.x + seatSize / 2, seat.y + seatSize / 2, seatSize / 2, 0, Math.PI * 2);
+          ctx.fill();
 
-        // Borda se selecionado
-        if (isSeatSelected) {
-          ctx.strokeStyle = '#fff';
-          ctx.lineWidth = 2 / zoom;
-          ctx.stroke();
-        }
+          if (isSeatSelected) {
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2 / zoom;
+            ctx.stroke();
+          }
 
-        // Label do assento (apenas em zoom alto)
-        if (zoom > 0.8) {
-          ctx.fillStyle = '#fff';
-          ctx.font = `${8}px sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(seat.number, seat.x + seatSize / 2, seat.y + seatSize / 2);
+          if (zoom > 0.8) {
+            ctx.fillStyle = '#fff';
+            ctx.font = `${8}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(seat.number, seat.x + seatSize / 2, seat.y + seatSize / 2);
+          }
         }
       });
 
@@ -286,7 +363,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     }
 
     ctx.restore();
-  }, [sectors, elements, selectedSectorIds, selectedSeatIds, zoom, pan, width, height, isDrawing, drawStart, drawCurrent, activeTool, isBoxSelecting, boxSelectStart, boxSelectCurrent]);
+  }, [sectors, elements, selectedSectorIds, selectedSeatIds, selectedElementIds, zoom, pan, width, height, isDrawing, drawStart, drawCurrent, activeTool, isBoxSelecting, boxSelectStart, boxSelectCurrent, renderTableWithChairs]);
 
   // Atualiza canvas
   useEffect(() => {
@@ -314,11 +391,17 @@ export const Canvas: React.FC<CanvasProps> = ({
     onZoomChange(newZoom);
   }, [zoom, pan, onZoomChange, onPanChange]);
 
+  // Prevent context menu
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+  }, []);
+
   // Mouse down
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     const pos = screenToCanvas(e.clientX, e.clientY);
     
-    if (activeTool === 'pan' || e.button === 1) {
+    // Right-click para pan (botão 2)
+    if (e.button === 2 || activeTool === 'pan' || e.button === 1) {
       setIsPanning(true);
       setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
       return;
@@ -346,11 +429,23 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
       }
 
-      // Verifica click em assento
+      // Verifica click em elemento (palco, bar, etc)
+      for (const el of elements) {
+        if (isPointInBounds(pos, el.bounds)) {
+          onSelectElements([el.id], e.shiftKey);
+          setIsDraggingElement(true);
+          setDragStart(pos);
+          return;
+        }
+      }
+
+      // Verifica click em assento (incluindo mesas)
       for (const sector of sectors) {
         if (!sector.visible) continue;
         for (const seat of sector.seats) {
-          const seatBounds = { x: seat.x, y: seat.y, width: 14, height: 14 };
+          const seatW = seat.tableConfig?.tableWidth || 14;
+          const seatH = seat.tableConfig?.tableHeight || 14;
+          const seatBounds = { x: seat.x, y: seat.y, width: seatW, height: seatH };
           if (isPointInBounds(pos, seatBounds)) {
             onSelectSeats([seat.id], e.shiftKey);
             if (!e.shiftKey && activeSeatType !== 'normal') {
@@ -384,7 +479,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       setBoxSelectStart(pos);
       setBoxSelectCurrent(pos);
     }
-  }, [activeTool, screenToCanvas, pan, sectors, selectedSectorIds, onSelectSeats, onSelectSector, onApplySeatType, activeSeatType, getVertexAtPoint]);
+  }, [activeTool, screenToCanvas, pan, sectors, elements, selectedSectorIds, onSelectSeats, onSelectSector, onSelectElements, onApplySeatType, activeSeatType, getVertexAtPoint]);
 
   // Mouse move
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -412,6 +507,15 @@ export const Canvas: React.FC<CanvasProps> = ({
       return;
     }
 
+    // Arrastar elementos do venue
+    if (isDraggingElement && selectedElementIds.length > 0) {
+      const dx = pos.x - dragStart.x;
+      const dy = pos.y - dragStart.y;
+      selectedElementIds.forEach(id => onMoveElement(id, dx, dy));
+      setDragStart(pos);
+      return;
+    }
+
     if (isDragging && selectedSectorIds.length > 0) {
       const dx = pos.x - dragStart.x;
       const dy = pos.y - dragStart.y;
@@ -422,7 +526,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     if (isBoxSelecting) {
       setBoxSelectCurrent(pos);
     }
-  }, [isPanning, isDrawing, isDragging, isDraggingVertex, activeVertexIndex, isBoxSelecting, activeTool, dragStart, screenToCanvas, selectedSectorIds, sectors, onPanChange, onMoveSector, onUpdateSectorVertices]);
+  }, [isPanning, isDrawing, isDragging, isDraggingElement, isDraggingVertex, activeVertexIndex, isBoxSelecting, activeTool, dragStart, screenToCanvas, selectedSectorIds, selectedElementIds, sectors, onPanChange, onMoveSector, onMoveElement, onUpdateSectorVertices]);
 
   // Mouse up
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
@@ -477,6 +581,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     setIsPanning(false);
     setIsDrawing(false);
     setIsDragging(false);
+    setIsDraggingElement(false);
     setIsBoxSelecting(false);
     setIsDraggingVertex(false);
     setActiveVertexIndex(null);
@@ -486,7 +591,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     <div 
       ref={containerRef}
       className="absolute inset-0 overflow-hidden bg-canvas-bg cursor-crosshair"
-      style={{ cursor: activeTool === 'pan' ? 'grab' : isPanning ? 'grabbing' : isDraggingVertex ? 'move' : isBoxSelecting ? 'crosshair' : 'default' }}
+      style={{ cursor: activeTool === 'pan' ? 'grab' : isPanning ? 'grabbing' : isDraggingVertex ? 'move' : isDraggingElement ? 'move' : isBoxSelecting ? 'crosshair' : 'default' }}
     >
       <canvas
         ref={canvasRef}
@@ -496,6 +601,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onContextMenu={handleContextMenu}
         onMouseLeave={handleMouseUp}
       />
       
