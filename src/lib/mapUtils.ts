@@ -1,4 +1,4 @@
-import { Seat, GridGeneratorParams, RowLabelType, SeatLabelType, SEAT_COLORS, Vertex, SectorShape, Bounds } from '@/types/mapStudio';
+import { Seat, GridGeneratorParams, RowLabelType, SeatLabelType, SEAT_COLORS, Vertex, SectorShape, Bounds, FurnitureType, TableConfig, TableShape } from '@/types/mapStudio';
 
 // Gera ID único
 export function generateId(): string {
@@ -8,6 +8,8 @@ export function generateId(): string {
 // Gera vértices baseado na forma
 export function generateVerticesForShape(shape: SectorShape, bounds: Bounds): Vertex[] {
   const { x, y, width, height } = bounds;
+  const cx = x + width / 2;
+  const cy = y + height / 2;
   
   switch (shape) {
     case 'rectangle':
@@ -17,6 +19,7 @@ export function generateVerticesForShape(shape: SectorShape, bounds: Bounds): Ve
         { x: x + width, y: y + height },
         { x, y: y + height },
       ];
+      
     case 'parallelogram':
       const skew = width * 0.2;
       return [
@@ -25,6 +28,7 @@ export function generateVerticesForShape(shape: SectorShape, bounds: Bounds): Ve
         { x: x + width - skew, y: y + height },
         { x, y: y + height },
       ];
+      
     case 'trapezoid':
       const inset = width * 0.15;
       return [
@@ -33,39 +37,168 @@ export function generateVerticesForShape(shape: SectorShape, bounds: Bounds): Ve
         { x: x + width, y: y + height },
         { x, y: y + height },
       ];
+      
     case 'pentagon':
-      const cx = x + width / 2;
-      const cy = y + height / 2;
       const r = Math.min(width, height) / 2;
       return Array.from({ length: 5 }, (_, i) => {
         const angle = (i * 2 * Math.PI / 5) - Math.PI / 2;
         return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
       });
+      
     case 'hexagon':
-      const hcx = x + width / 2;
-      const hcy = y + height / 2;
       const hr = Math.min(width, height) / 2;
       return Array.from({ length: 6 }, (_, i) => {
         const angle = (i * Math.PI / 3) - Math.PI / 2;
-        return { x: hcx + hr * Math.cos(angle), y: hcy + hr * Math.sin(angle) };
+        return { x: cx + hr * Math.cos(angle), y: cy + hr * Math.sin(angle) };
       });
+      
+    case 'octagon':
+      const or = Math.min(width, height) / 2;
+      return Array.from({ length: 8 }, (_, i) => {
+        const angle = (i * Math.PI / 4) - Math.PI / 8;
+        return { x: cx + or * Math.cos(angle), y: cy + or * Math.sin(angle) };
+      });
+      
     case 'triangle':
       return [
         { x: x + width / 2, y },
         { x: x + width, y: y + height },
         { x, y: y + height },
       ];
+      
+    case 'diamond':
+      return [
+        { x: cx, y },
+        { x: x + width, y: cy },
+        { x: cx, y: y + height },
+        { x, y: cy },
+      ];
+      
+    case 'star':
+      const outerR = Math.min(width, height) / 2;
+      const innerR = outerR * 0.4;
+      return Array.from({ length: 10 }, (_, i) => {
+        const angle = (i * Math.PI / 5) - Math.PI / 2;
+        const radius = i % 2 === 0 ? outerR : innerR;
+        return { x: cx + radius * Math.cos(angle), y: cy + radius * Math.sin(angle) };
+      });
+      
+    case 'l-shape':
+      const lw = width * 0.4;
+      const lh = height * 0.4;
+      return [
+        { x, y },
+        { x: x + lw, y },
+        { x: x + lw, y: y + height - lh },
+        { x: x + width, y: y + height - lh },
+        { x: x + width, y: y + height },
+        { x, y: y + height },
+      ];
+      
+    case 'u-shape':
+      const uw = width * 0.3;
+      const uh = height * 0.5;
+      return [
+        { x, y },
+        { x: x + uw, y },
+        { x: x + uw, y: y + uh },
+        { x: x + width - uw, y: y + uh },
+        { x: x + width - uw, y },
+        { x: x + width, y },
+        { x: x + width, y: y + height },
+        { x, y: y + height },
+      ];
+      
+    case 't-shape':
+      const tw = width * 0.3;
+      const th = height * 0.35;
+      return [
+        { x, y },
+        { x: x + width, y },
+        { x: x + width, y: y + th },
+        { x: cx + tw, y: y + th },
+        { x: cx + tw, y: y + height },
+        { x: cx - tw, y: y + height },
+        { x: cx - tw, y: y + th },
+        { x, y: y + th },
+      ];
+      
+    case 'z-shape':
+      const zw = width * 0.35;
+      const zh = height * 0.35;
+      return [
+        { x, y },
+        { x: x + width, y },
+        { x: x + width, y: y + zh },
+        { x: x + zw, y: y + zh },
+        { x: x + zw, y: y + height - zh },
+        { x: x + width, y: y + height - zh },
+        { x: x + width, y: y + height },
+        { x, y: y + height },
+        { x, y: y + height - zh },
+        { x: x + width - zw, y: y + height - zh },
+        { x: x + width - zw, y: y + zh },
+        { x, y: y + zh },
+      ];
+      
+    case 'cross':
+      const cw = width * 0.3;
+      const ch = height * 0.3;
+      return [
+        { x: cx - cw, y },
+        { x: cx + cw, y },
+        { x: cx + cw, y: cy - ch },
+        { x: x + width, y: cy - ch },
+        { x: x + width, y: cy + ch },
+        { x: cx + cw, y: cy + ch },
+        { x: cx + cw, y: y + height },
+        { x: cx - cw, y: y + height },
+        { x: cx - cw, y: cy + ch },
+        { x, y: cy + ch },
+        { x, y: cy - ch },
+        { x: cx - cw, y: cy - ch },
+      ];
+      
+    case 'arrow':
+      const aw = width * 0.25;
+      const ah = height * 0.4;
+      return [
+        { x: cx, y },
+        { x: x + width, y: y + ah },
+        { x: cx + aw, y: y + ah },
+        { x: cx + aw, y: y + height },
+        { x: cx - aw, y: y + height },
+        { x: cx - aw, y: y + ah },
+        { x, y: y + ah },
+      ];
+      
+    case 'wave':
+      const segments = 12;
+      const waveHeight = height * 0.15;
+      const vertices: Vertex[] = [];
+      // Top wave
+      for (let i = 0; i <= segments; i++) {
+        const px = x + (width * i / segments);
+        const py = y + Math.sin(i * Math.PI) * waveHeight;
+        vertices.push({ x: px, y: py });
+      }
+      // Bottom wave (reversed)
+      for (let i = segments; i >= 0; i--) {
+        const px = x + (width * i / segments);
+        const py = y + height - Math.sin(i * Math.PI) * waveHeight;
+        vertices.push({ x: px, y: py });
+      }
+      return vertices;
+      
     case 'arc':
     case 'circle':
-      // Aproximação de círculo com 12 pontos
-      const acx = x + width / 2;
-      const acy = y + height / 2;
       const rx = width / 2;
       const ry = height / 2;
-      return Array.from({ length: 12 }, (_, i) => {
-        const angle = (i * 2 * Math.PI / 12);
-        return { x: acx + rx * Math.cos(angle), y: acy + ry * Math.sin(angle) };
+      return Array.from({ length: 16 }, (_, i) => {
+        const angle = (i * 2 * Math.PI / 16);
+        return { x: cx + rx * Math.cos(angle), y: cy + ry * Math.sin(angle) };
       });
+      
     default:
       return [
         { x, y },

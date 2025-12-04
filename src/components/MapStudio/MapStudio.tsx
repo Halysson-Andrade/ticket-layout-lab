@@ -20,8 +20,12 @@ import {
   Template,
   SectorShape,
   Vertex,
+  ElementType,
+  FurnitureType,
+  TableConfig,
   SECTOR_COLORS,
-  GridGeneratorParams 
+  GridGeneratorParams,
+  ELEMENT_ICONS
 } from '@/types/mapStudio';
 import { generateSeatsGrid, generateId, generateVerticesForShape, getBoundsFromVertices, generateSeatsInsidePolygon, repositionSeatsInsidePolygon } from '@/lib/mapUtils';
 import { toast } from 'sonner';
@@ -51,6 +55,13 @@ export const MapStudio: React.FC = () => {
   // UI state
   const [activeTool, setActiveTool] = useState<ToolType>('select');
   const [activeSeatType, setActiveSeatType] = useState<SeatType>('normal');
+  const [activeFurnitureType, setActiveFurnitureType] = useState<FurnitureType>('chair');
+  const [tableConfig, setTableConfig] = useState<TableConfig>({
+    shape: 'round',
+    chairCount: 6,
+    tableWidth: 60,
+    tableHeight: 60,
+  });
   const [zoom, setZoom] = useState(0.8);
   const [pan, setPan] = useState({ x: 100, y: 50 });
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
@@ -289,6 +300,26 @@ export const MapStudio: React.FC = () => {
     });
     toast.success('Assentos regenerados!');
   }, [pushHistory]);
+
+  // Adiciona elemento de venue
+  const handleAddElement = useCallback((type: ElementType) => {
+    const newElement: VenueElement = {
+      id: generateId(),
+      type,
+      label: ELEMENT_ICONS[type] + ' ' + type.charAt(0).toUpperCase() + type.slice(1).replace('-', ' '),
+      bounds: { x: 400, y: 100, width: 150, height: 80 },
+      rotation: 0,
+      color: type === 'stage' ? '#6366f1' : type === 'bar' ? '#f59e0b' : '#64748b',
+    };
+    setElements(prev => [...prev, newElement]);
+    toast.success(`Elemento "${type}" adicionado!`);
+  }, []);
+
+  // Deleta elemento
+  const handleDeleteElement = useCallback((id: string) => {
+    setElements(prev => prev.filter(e => e.id !== id));
+    toast.success('Elemento removido');
+  }, []);
 
   // Importa imagem de fundo
   const handleImportImage = useCallback(() => {
@@ -581,8 +612,14 @@ export const MapStudio: React.FC = () => {
           onToggleSectorVisibility={handleToggleSectorVisibility}
           onToggleSectorLock={handleToggleSectorLock}
           onDeleteSector={handleDeleteSector}
+          onDeleteElement={handleDeleteElement}
           activeSeatType={activeSeatType}
           onSeatTypeChange={setActiveSeatType}
+          activeFurnitureType={activeFurnitureType}
+          onFurnitureTypeChange={setActiveFurnitureType}
+          tableConfig={tableConfig}
+          onTableConfigChange={setTableConfig}
+          onAddElement={handleAddElement}
         />
 
         {/* Right Sidebar */}

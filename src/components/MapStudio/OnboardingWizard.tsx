@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { ChevronRight, ChevronLeft, Check, Armchair, LayoutGrid, Settings, Square, Triangle, Pentagon, Hexagon, Circle } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Check, Armchair, LayoutGrid, Settings, Square, Triangle, Pentagon, Hexagon, Circle, Star, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { SectorShape } from '@/types/mapStudio';
+import { SectorShape, SHAPE_NAMES } from '@/types/mapStudio';
 import { cn } from '@/lib/utils';
 
 interface OnboardingWizardProps {
@@ -37,73 +37,130 @@ const shapeTemplates: ShapeTemplate[] = [
   {
     id: 'rectangle',
     name: 'Retângulo',
-    description: 'Formato clássico para cinemas, teatros e auditórios',
-    icon: <Square className="h-8 w-8" />,
+    description: 'Cinemas, teatros, auditórios',
+    icon: <Square className="h-6 w-6" />,
     defaultParams: { rows: 12, cols: 24, seatSize: 14, rowSpacing: 6, colSpacing: 2 },
   },
   {
     id: 'parallelogram',
     name: 'Paralelogramo',
-    description: 'Ideal para setores laterais com ângulo de visão',
-    icon: (
-      <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M6 4h14l-4 16H2L6 4z" />
-      </svg>
-    ),
+    description: 'Setores laterais com ângulo',
+    icon: <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 4h14l-4 16H2L6 4z" /></svg>,
     defaultParams: { rows: 10, cols: 20, seatSize: 14, rowSpacing: 6, colSpacing: 2 },
   },
   {
     id: 'trapezoid',
     name: 'Trapézio',
-    description: 'Perfeito para arquibancadas e setores frontais',
-    icon: (
-      <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M4 20h16l-3-16H7L4 20z" />
-      </svg>
-    ),
+    description: 'Arquibancadas, setores frontais',
+    icon: <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 20h16l-3-16H7L4 20z" /></svg>,
     defaultParams: { rows: 15, cols: 30, seatSize: 12, rowSpacing: 4, colSpacing: 2 },
   },
   {
     id: 'triangle',
     name: 'Triângulo',
-    description: 'Para cantos e setores angulares',
-    icon: <Triangle className="h-8 w-8" />,
+    description: 'Cantos e setores angulares',
+    icon: <Triangle className="h-6 w-6" />,
     defaultParams: { rows: 8, cols: 16, seatSize: 14, rowSpacing: 6, colSpacing: 3 },
   },
   {
     id: 'pentagon',
     name: 'Pentágono',
-    description: 'Forma versátil para espaços irregulares',
-    icon: <Pentagon className="h-8 w-8" />,
+    description: 'Espaços irregulares',
+    icon: <Pentagon className="h-6 w-6" />,
     defaultParams: { rows: 10, cols: 20, seatSize: 14, rowSpacing: 5, colSpacing: 3 },
   },
   {
     id: 'hexagon',
     name: 'Hexágono',
-    description: 'Layout orgânico para eventos ao redor',
-    icon: <Hexagon className="h-8 w-8" />,
+    description: 'Layout orgânico, eventos ao redor',
+    icon: <Hexagon className="h-6 w-6" />,
     defaultParams: { rows: 8, cols: 24, seatSize: 16, rowSpacing: 6, colSpacing: 2 },
+  },
+  {
+    id: 'octagon',
+    name: 'Octágono',
+    description: 'Arenas, ringues',
+    icon: <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="7,2 17,2 22,7 22,17 17,22 7,22 2,17 2,7" /></svg>,
+    defaultParams: { rows: 10, cols: 30, seatSize: 14, rowSpacing: 5, colSpacing: 2 },
   },
   {
     id: 'circle',
     name: 'Círculo/Oval',
-    description: 'Para circos, arenas e eventos 360°',
-    icon: <Circle className="h-8 w-8" />,
+    description: 'Circos, arenas 360°',
+    icon: <Circle className="h-6 w-6" />,
     defaultParams: { rows: 10, cols: 40, seatSize: 14, rowSpacing: 4, colSpacing: 2 },
   },
   {
     id: 'arc',
     name: 'Arco',
-    description: 'Curvatura suave para palcos e shows',
-    icon: (
-      <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M4 18 A 8 8 0 0 1 20 18" />
-      </svg>
-    ),
+    description: 'Curvatura para palcos',
+    icon: <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 18 A 8 8 0 0 1 20 18" /></svg>,
     defaultParams: { rows: 12, cols: 30, seatSize: 14, rowSpacing: 5, colSpacing: 2 },
   },
+  {
+    id: 'diamond',
+    name: 'Losango',
+    description: 'Áreas centrais, VIP',
+    icon: <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12,2 22,12 12,22 2,12" /></svg>,
+    defaultParams: { rows: 8, cols: 16, seatSize: 14, rowSpacing: 5, colSpacing: 3 },
+  },
+  {
+    id: 'l-shape',
+    name: 'Forma L',
+    description: 'Cantos e extensões',
+    icon: <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h8v8h8v8H4V4z" /></svg>,
+    defaultParams: { rows: 10, cols: 20, seatSize: 14, rowSpacing: 5, colSpacing: 2 },
+  },
+  {
+    id: 'u-shape',
+    name: 'Forma U',
+    description: 'Ao redor do palco',
+    icon: <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4v16h16V4h-5v10H9V4H4z" /></svg>,
+    defaultParams: { rows: 10, cols: 24, seatSize: 14, rowSpacing: 5, colSpacing: 2 },
+  },
+  {
+    id: 't-shape',
+    name: 'Forma T',
+    description: 'Passarelas e extensões',
+    icon: <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16v6h-5v10H9V10H4V4z" /></svg>,
+    defaultParams: { rows: 12, cols: 20, seatSize: 14, rowSpacing: 5, colSpacing: 2 },
+  },
+  {
+    id: 'z-shape',
+    name: 'Forma Z',
+    description: 'Setores escalonados',
+    icon: <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16v5h-10v6h10v5H4v-5h10v-6H4V4z" /></svg>,
+    defaultParams: { rows: 10, cols: 18, seatSize: 14, rowSpacing: 5, colSpacing: 2 },
+  },
+  {
+    id: 'cross',
+    name: 'Cruz',
+    description: 'Layout central expandido',
+    icon: <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 4h6v5h5v6h-5v5H9v-5H4V9h5V4z" /></svg>,
+    defaultParams: { rows: 10, cols: 20, seatSize: 14, rowSpacing: 5, colSpacing: 2 },
+  },
+  {
+    id: 'arrow',
+    name: 'Seta',
+    description: 'Direcionado ao palco',
+    icon: <ArrowUp className="h-6 w-6" />,
+    defaultParams: { rows: 12, cols: 20, seatSize: 14, rowSpacing: 5, colSpacing: 2 },
+  },
+  {
+    id: 'star',
+    name: 'Estrela',
+    description: 'Eventos especiais',
+    icon: <Star className="h-6 w-6" />,
+    defaultParams: { rows: 8, cols: 20, seatSize: 14, rowSpacing: 5, colSpacing: 3 },
+  },
+  {
+    id: 'wave',
+    name: 'Onda',
+    description: 'Layout orgânico curvo',
+    icon: <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 12 Q 6 6 12 12 T 22 12" /></svg>,
+    defaultParams: { rows: 10, cols: 30, seatSize: 14, rowSpacing: 5, colSpacing: 2 },
+  },
 ];
-
 type Step = 'shape' | 'config' | 'preview';
 
 export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
@@ -151,7 +208,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   ];
 
   const renderShapePreview = (shapeId: SectorShape) => {
-    const size = 80;
+    const cx = 40, cy = 40;
     switch (shapeId) {
       case 'rectangle':
         return <rect x="10" y="20" width="60" height="40" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
@@ -162,25 +219,56 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       case 'triangle':
         return <polygon points="40,15 70,65 10,65" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
       case 'pentagon':
-        const cx = 40, cy = 40, r = 28;
+        const r = 28;
         const pentPoints = Array.from({ length: 5 }, (_, i) => {
           const angle = (i * 2 * Math.PI / 5) - Math.PI / 2;
           return `${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`;
         }).join(' ');
         return <polygon points={pentPoints} fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
       case 'hexagon':
-        const hcx = 40, hcy = 40, hr = 28;
+        const hr = 28;
         const hexPoints = Array.from({ length: 6 }, (_, i) => {
           const angle = (i * Math.PI / 3) - Math.PI / 2;
-          return `${hcx + hr * Math.cos(angle)},${hcy + hr * Math.sin(angle)}`;
+          return `${cx + hr * Math.cos(angle)},${cy + hr * Math.sin(angle)}`;
         }).join(' ');
         return <polygon points={hexPoints} fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
+      case 'octagon':
+        const or = 28;
+        const octPoints = Array.from({ length: 8 }, (_, i) => {
+          const angle = (i * Math.PI / 4) - Math.PI / 8;
+          return `${cx + or * Math.cos(angle)},${cy + or * Math.sin(angle)}`;
+        }).join(' ');
+        return <polygon points={octPoints} fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
       case 'circle':
         return <ellipse cx="40" cy="40" rx="30" ry="20" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
       case 'arc':
-        return <path d="M 10 50 Q 40 10 70 50" fill="none" stroke="currentColor" strokeWidth="2" />;
+        return <path d="M 10 50 Q 40 10 70 50" fill="currentColor" opacity="0.2" stroke="currentColor" strokeWidth="2" />;
+      case 'diamond':
+        return <polygon points="40,10 70,40 40,70 10,40" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
+      case 'l-shape':
+        return <path d="M10,10 h25 v25 h25 v25 h-50 z" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
+      case 'u-shape':
+        return <path d="M10,10 v50 h60 v-50 h-20 v30 h-20 v-30 z" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
+      case 't-shape':
+        return <path d="M10,10 h60 v20 h-20 v30 h-20 v-30 h-20 z" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
+      case 'z-shape':
+        return <path d="M10,10 h60 v15 h-35 v20 h35 v15 h-60 v-15 h35 v-20 h-35 z" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
+      case 'cross':
+        return <path d="M25,10 h30 v15 h15 v30 h-15 v15 h-30 v-15 h-15 v-30 h15 z" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
+      case 'arrow':
+        return <polygon points="40,10 70,35 55,35 55,70 25,70 25,35 10,35" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
+      case 'star':
+        const sr = 30, ir = 12;
+        const starPoints = Array.from({ length: 10 }, (_, i) => {
+          const angle = (i * Math.PI / 5) - Math.PI / 2;
+          const radius = i % 2 === 0 ? sr : ir;
+          return `${cx + radius * Math.cos(angle)},${cy + radius * Math.sin(angle)}`;
+        }).join(' ');
+        return <polygon points={starPoints} fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
+      case 'wave':
+        return <path d="M10,30 Q25,10 40,30 T70,30 v20 Q55,70 40,50 T10,50 z" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
       default:
-        return null;
+        return <rect x="10" y="20" width="60" height="40" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
     }
   };
 
