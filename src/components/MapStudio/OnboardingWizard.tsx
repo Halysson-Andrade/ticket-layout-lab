@@ -198,6 +198,46 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     seatType: 'normal',
   });
 
+  // Hook useMemo ANTES do early return
+  const seatsInShape = useMemo(() => {
+    if (!selectedShape) return [];
+    
+    const previewWidth = 200;
+    const previewHeight = 150;
+    const bounds = { x: 0, y: 0, width: previewWidth, height: previewHeight };
+    const vertices = generateVerticesForShape(selectedShape.id, bounds);
+    
+    const seats: { x: number; y: number; inside: boolean }[] = [];
+    const seatSize = 6;
+    const spacing = 2;
+    const cols = Math.min(config.cols, 25);
+    const rows = Math.min(config.rows, 15);
+    
+    const gridWidth = cols * (seatSize + spacing);
+    const gridHeight = rows * (seatSize + spacing);
+    const offsetX = (previewWidth - gridWidth) / 2;
+    const offsetY = (previewHeight - gridHeight) / 2;
+    
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const x = offsetX + c * (seatSize + spacing) + seatSize / 2;
+        const y = offsetY + r * (seatSize + spacing) + seatSize / 2;
+        
+        // Aplica curvatura para arcos
+        let adjustedY = y;
+        if (config.curvature > 0 && selectedShape.id === 'arc') {
+          const normalizedX = (x - previewWidth / 2) / (previewWidth / 2);
+          adjustedY = y - (1 - normalizedX * normalizedX) * config.curvature * 0.5;
+        }
+        
+        const inside = isPointInPolygon({ x, y: adjustedY }, vertices);
+        seats.push({ x, y: adjustedY, inside });
+      }
+    }
+    return seats;
+  }, [selectedShape, config.rows, config.cols, config.curvature]);
+
+  // Early return DEPOIS de todos os hooks
   if (!open) return null;
 
   const handleSelectShape = (shape: ShapeTemplate) => {
@@ -290,45 +330,6 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
         return <rect x="10" y="20" width="60" height="40" fill="currentColor" opacity="0.3" stroke="currentColor" strokeWidth="2" />;
     }
   };
-
-  // Gera preview com assentos dentro da forma
-  const seatsInShape = useMemo(() => {
-    if (!selectedShape) return [];
-    
-    const previewWidth = 200;
-    const previewHeight = 150;
-    const bounds = { x: 0, y: 0, width: previewWidth, height: previewHeight };
-    const vertices = generateVerticesForShape(selectedShape.id, bounds);
-    
-    const seats: { x: number; y: number; inside: boolean }[] = [];
-    const seatSize = 6;
-    const spacing = 2;
-    const cols = Math.min(config.cols, 25);
-    const rows = Math.min(config.rows, 15);
-    
-    const gridWidth = cols * (seatSize + spacing);
-    const gridHeight = rows * (seatSize + spacing);
-    const offsetX = (previewWidth - gridWidth) / 2;
-    const offsetY = (previewHeight - gridHeight) / 2;
-    
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const x = offsetX + c * (seatSize + spacing) + seatSize / 2;
-        const y = offsetY + r * (seatSize + spacing) + seatSize / 2;
-        
-        // Aplica curvatura para arcos
-        let adjustedY = y;
-        if (config.curvature > 0 && selectedShape.id === 'arc') {
-          const normalizedX = (x - previewWidth / 2) / (previewWidth / 2);
-          adjustedY = y - (1 - normalizedX * normalizedX) * config.curvature * 0.5;
-        }
-        
-        const inside = isPointInPolygon({ x, y: adjustedY }, vertices);
-        seats.push({ x, y: adjustedY, inside });
-      }
-    }
-    return seats;
-  }, [selectedShape, config.rows, config.cols, config.curvature]);
 
   const renderMiniPreview = () => {
     if (!selectedShape) return null;
