@@ -199,43 +199,88 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   });
 
   // Hook useMemo ANTES do early return
+  // Calcula dimensões do preview baseado na quantidade de assentos
+  const previewDimensions = useMemo(() => {
+    // Escala o preview baseado na quantidade de assentos
+    const baseSeatSize = 6;
+    const baseSpacing = 2;
+    
+    // Ajusta tamanho do assento proporcionalmente ao config
+    const scaledSeatSize = Math.max(4, Math.min(8, baseSeatSize * (config.seatSize / 14)));
+    const scaledRowSpacing = Math.max(1, config.rowSpacing / 3);
+    const scaledColSpacing = Math.max(1, config.colSpacing / 2);
+    
+    const cols = Math.min(config.cols, 40);
+    const rows = Math.min(config.rows, 30);
+    
+    const gridWidth = cols * (scaledSeatSize + scaledColSpacing);
+    const gridHeight = rows * (scaledSeatSize + scaledRowSpacing);
+    
+    // Tamanho mínimo e máximo do preview
+    const width = Math.max(150, Math.min(350, gridWidth + 40));
+    const height = Math.max(100, Math.min(250, gridHeight + 40));
+    
+    return { 
+      width, 
+      height, 
+      seatSize: scaledSeatSize, 
+      rowSpacing: scaledRowSpacing, 
+      colSpacing: scaledColSpacing,
+      cols,
+      rows
+    };
+  }, [config.cols, config.rows, config.seatSize, config.rowSpacing, config.colSpacing]);
+
   const seatsInShape = useMemo(() => {
     if (!selectedShape) return [];
     
-    const previewWidth = 200;
-    const previewHeight = 150;
+    const { width: previewWidth, height: previewHeight, seatSize, rowSpacing, colSpacing, cols, rows } = previewDimensions;
     const bounds = { x: 0, y: 0, width: previewWidth, height: previewHeight };
     const vertices = generateVerticesForShape(selectedShape.id, bounds);
     
     const seats: { x: number; y: number; inside: boolean }[] = [];
-    const seatSize = 6;
-    const spacing = 2;
-    const cols = Math.min(config.cols, 25);
-    const rows = Math.min(config.rows, 15);
     
-    const gridWidth = cols * (seatSize + spacing);
-    const gridHeight = rows * (seatSize + spacing);
+    const gridWidth = cols * (seatSize + colSpacing);
+    const gridHeight = rows * (seatSize + rowSpacing);
     const offsetX = (previewWidth - gridWidth) / 2;
     const offsetY = (previewHeight - gridHeight) / 2;
     
+    // Para formas arc, usa algoritmo especial
+    const isArcShape = selectedShape.id === 'arc';
+    
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        const x = offsetX + c * (seatSize + spacing) + seatSize / 2;
-        const y = offsetY + r * (seatSize + spacing) + seatSize / 2;
+        const x = offsetX + c * (seatSize + colSpacing) + seatSize / 2;
+        const y = offsetY + r * (seatSize + rowSpacing) + seatSize / 2;
         
-        // Aplica curvatura para arcos
-        let adjustedY = y;
-        if (config.curvature > 0 && selectedShape.id === 'arc') {
-          const normalizedX = (x - previewWidth / 2) / (previewWidth / 2);
-          adjustedY = y - (1 - normalizedX * normalizedX) * config.curvature * 0.5;
+        let inside = false;
+        
+        if (isArcShape) {
+          // Para arco, usa detecção especial baseada em raios
+          const cx = previewWidth / 2;
+          const cy = previewHeight / 2;
+          const dx = x - cx;
+          const dy = y - cy;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const outerR = Math.min(previewWidth, previewHeight) / 2;
+          const innerR = outerR * 0.4;
+          // Só aceita pontos na metade superior (arco)
+          inside = dist >= innerR && dist <= outerR && y < cy + outerR * 0.3;
+        } else {
+          // Aplica curvatura para outras formas
+          let adjustedY = y;
+          if (config.curvature > 0) {
+            const normalizedX = (x - previewWidth / 2) / (previewWidth / 2);
+            adjustedY = y - (1 - normalizedX * normalizedX) * config.curvature * 0.3;
+          }
+          inside = isPointInPolygon({ x, y: adjustedY }, vertices);
         }
         
-        const inside = isPointInPolygon({ x, y: adjustedY }, vertices);
-        seats.push({ x, y: adjustedY, inside });
+        seats.push({ x, y, inside });
       }
     }
     return seats;
-  }, [selectedShape, config.rows, config.cols, config.curvature]);
+  }, [selectedShape, previewDimensions, config.curvature]);
 
   // Early return DEPOIS de todos os hooks
   if (!open) return null;
@@ -334,13 +379,61 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   const renderMiniPreview = () => {
     if (!selectedShape) return null;
     
-    const previewWidth = 200;
-    const previewHeight = 150;
+    const { width: previewWidth, height: previewHeight, seatSize } = previewDimensions;
     const bounds = { x: 0, y: 0, width: previewWidth, height: previewHeight };
     const vertices = generateVerticesForShape(selectedShape.id, bounds);
     
     const pathData = vertices.map((v, i) => `${i === 0 ? 'M' : 'L'} ${v.x} ${v.y}`).join(' ') + ' Z';
     const insideSeats = seatsInShape.filter(s => s.inside);
+
+    // Renderiza mesa ou cadeira baseado no tipo de mobília
+    const renderSeat = (seat: { x: number; y: number; inside: boolean }, i: number) => {
+      if (!seat.inside) return null;
+      
+      const seatRadius = Math.max(2, seatSize / 2);
+      
+      if (config.furnitureType === 'table' || config.furnitureType === 'bistro') {
+        // Renderiza mesa com cadeiras ao redor
+        const tableSize = seatRadius * 3;
+        const chairSize = seatRadius * 0.8;
+        const chairCount = config.chairsPerTable;
+        
+        return (
+          <g key={i}>
+            {/* Mesa */}
+            {config.tableShape === 'round' ? (
+              <circle cx={seat.x} cy={seat.y} r={tableSize} fill="#8B4513" stroke="#5D2E0C" strokeWidth="1" />
+            ) : config.tableShape === 'square' ? (
+              <rect x={seat.x - tableSize} y={seat.y - tableSize} width={tableSize * 2} height={tableSize * 2} fill="#8B4513" stroke="#5D2E0C" strokeWidth="1" />
+            ) : (
+              <rect x={seat.x - tableSize * 1.3} y={seat.y - tableSize * 0.7} width={tableSize * 2.6} height={tableSize * 1.4} fill="#8B4513" stroke="#5D2E0C" strokeWidth="1" rx="2" />
+            )}
+            {/* Cadeiras ao redor */}
+            {Array.from({ length: chairCount }).map((_, ci) => {
+              const angle = (ci * 2 * Math.PI / chairCount) - Math.PI / 2;
+              const chairDist = tableSize + chairSize + 2;
+              const cx = seat.x + chairDist * Math.cos(angle);
+              const cy = seat.y + chairDist * Math.sin(angle);
+              return (
+                <circle key={ci} cx={cx} cy={cy} r={chairSize} fill={SEAT_COLORS[config.seatType]} opacity={0.9} />
+              );
+            })}
+          </g>
+        );
+      }
+      
+      // Cadeira simples
+      return (
+        <circle
+          key={i}
+          cx={seat.x}
+          cy={seat.y}
+          r={seatRadius}
+          fill={SEAT_COLORS[config.seatType]}
+          opacity={0.9}
+        />
+      );
+    };
 
     return (
       <div className="flex flex-col items-center gap-2">
@@ -352,23 +445,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
             stroke="hsl(var(--primary))" 
             strokeWidth="2" 
           />
-          {/* Assentos dentro da forma */}
-          {seatsInShape.map((seat, i) => (
-            seat.inside && (
-              <circle
-                key={i}
-                cx={seat.x}
-                cy={seat.y}
-                r={3}
-                fill={SEAT_COLORS[config.seatType]}
-                opacity={0.9}
-              />
-            )
-          ))}
+          {/* Assentos/Mesas dentro da forma */}
+          {seatsInShape.map(renderSeat)}
         </svg>
         
         <div className="text-xs text-muted-foreground mt-2 text-center">
-          <strong>{insideSeats.length}</strong> assentos visíveis de ~{config.rows * config.cols}
+          <strong>{insideSeats.length}</strong> {config.furnitureType === 'chair' ? 'assentos' : 'mesas'} de ~{config.rows * config.cols}
         </div>
       </div>
     );

@@ -308,7 +308,10 @@ export const MapStudio: React.FC = () => {
       params.colSpacing,
       params.rowLabelType,
       params.seatLabelType,
-      params.prefix
+      params.prefix,
+      'chair',
+      undefined,
+      sector.shape === 'arc'
     );
 
     setSectors(prev => {
@@ -348,7 +351,8 @@ export const MapStudio: React.FC = () => {
           'numeric',
           '',
           furnitureType,
-          tableConf
+          tableConf,
+          s.shape === 'arc'
         );
         
         return { ...s, seats: newSeats };
@@ -807,7 +811,8 @@ export const MapStudio: React.FC = () => {
               'numeric',
               `S${sectors.length + i + 1}-`,
               shapeConfig.furnitureType,
-              tableConf
+              tableConf,
+              shapeConfig.shape === 'arc'
             );
             
             const sector: Sector = {
