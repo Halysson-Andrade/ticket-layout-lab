@@ -2,8 +2,6 @@ import React from 'react';
 import { 
   Armchair, 
   Square, 
-  Triangle,
-  Circle,
   Star,
   Accessibility,
   Eye,
@@ -13,13 +11,17 @@ import {
   Trash2,
   ChevronDown,
   ChevronRight,
-  Palette
+  Palette,
+  Layers,
+  MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Sector, VenueElement, SeatType, SEAT_COLORS } from '@/types/mapStudio';
+import { Sector, VenueElement, SeatType, SEAT_COLORS, ElementType, FurnitureType, TableConfig, ELEMENT_ICONS } from '@/types/mapStudio';
 import { cn } from '@/lib/utils';
+import { ElementsPanel } from './ElementsPanel';
+import { FurnitureSelector } from './FurnitureSelector';
 
 interface LeftSidebarProps {
   sectors: Sector[];
@@ -29,8 +31,14 @@ interface LeftSidebarProps {
   onToggleSectorVisibility: (id: string) => void;
   onToggleSectorLock: (id: string) => void;
   onDeleteSector: (id: string) => void;
+  onDeleteElement: (id: string) => void;
   activeSeatType: SeatType;
   onSeatTypeChange: (type: SeatType) => void;
+  activeFurnitureType: FurnitureType;
+  onFurnitureTypeChange: (type: FurnitureType) => void;
+  tableConfig: TableConfig;
+  onTableConfigChange: (config: TableConfig) => void;
+  onAddElement: (type: ElementType) => void;
 }
 
 const seatTypes: { type: SeatType; label: string; icon: React.ReactNode }[] = [
@@ -50,16 +58,24 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   onToggleSectorVisibility,
   onToggleSectorLock,
   onDeleteSector,
+  onDeleteElement,
   activeSeatType,
   onSeatTypeChange,
+  activeFurnitureType,
+  onFurnitureTypeChange,
+  tableConfig,
+  onTableConfigChange,
+  onAddElement,
 }) => {
   const [sectorsOpen, setSectorsOpen] = React.useState(true);
   const [typesOpen, setTypesOpen] = React.useState(true);
+  const [elementsOpen, setElementsOpen] = React.useState(false);
+  const [furnitureOpen, setFurnitureOpen] = React.useState(false);
 
   return (
-    <div className="absolute left-4 top-20 bottom-4 w-64 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg z-10 flex flex-col overflow-hidden">
+    <div className="absolute left-4 top-20 bottom-4 w-72 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg z-10 flex flex-col overflow-hidden">
       <div className="px-4 py-3 border-b border-border">
-        <h2 className="font-semibold text-sm">Camadas & Tipos</h2>
+        <h2 className="font-semibold text-sm">Ferramentas & Camadas</h2>
       </div>
       
       <ScrollArea className="flex-1">
@@ -98,18 +114,68 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
             </CollapsibleContent>
           </Collapsible>
 
+          {/* Tipo de Mobília */}
+          <Collapsible open={furnitureOpen} onOpenChange={setFurnitureOpen}>
+            <CollapsibleTrigger className="flex items-center gap-2 w-full text-sm font-medium hover:text-primary transition-colors">
+              {furnitureOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              <Armchair className="h-4 w-4" />
+              <span>Mobília (Mesa/Bistrô)</span>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2 pl-4">
+              <FurnitureSelector
+                selectedType={activeFurnitureType}
+                tableConfig={tableConfig}
+                onTypeChange={onFurnitureTypeChange}
+                onTableConfigChange={onTableConfigChange}
+              />
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Elementos do Evento */}
+          <Collapsible open={elementsOpen} onOpenChange={setElementsOpen}>
+            <CollapsibleTrigger className="flex items-center gap-2 w-full text-sm font-medium hover:text-primary transition-colors">
+              {elementsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              <MapPin className="h-4 w-4" />
+              <span>Elementos ({elements.length})</span>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2 pl-4">
+              <ElementsPanel onAddElement={onAddElement} />
+              
+              {elements.length > 0 && (
+                <div className="mt-3 space-y-1">
+                  <p className="text-[10px] text-muted-foreground mb-1">Elementos no mapa:</p>
+                  {elements.map((el) => (
+                    <div
+                      key={el.id}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded text-xs bg-muted/50 group"
+                    >
+                      <span>{ELEMENT_ICONS[el.type]}</span>
+                      <span className="flex-1 truncate">{el.label}</span>
+                      <button
+                        className="p-0.5 opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity"
+                        onClick={() => onDeleteElement(el.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
+
           {/* Setores */}
           <Collapsible open={sectorsOpen} onOpenChange={setSectorsOpen}>
             <CollapsibleTrigger className="flex items-center gap-2 w-full text-sm font-medium hover:text-primary transition-colors">
               {sectorsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              <Square className="h-4 w-4" />
+              <Layers className="h-4 w-4" />
               <span>Setores ({sectors.length})</span>
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-2 pl-2">
               {sectors.length === 0 ? (
                 <p className="text-xs text-muted-foreground py-4 text-center">
                   Nenhum setor criado.<br/>
-                  Use a ferramenta <strong>Criar Setor</strong> (R)
+                  Use <strong>Novo Mapa</strong> ou ferramenta <strong>Setor (R)</strong>
                 </p>
               ) : (
                 <div className="space-y-1">

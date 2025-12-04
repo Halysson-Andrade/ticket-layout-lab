@@ -4,8 +4,13 @@
 
 export type SeatType = 'normal' | 'pcd' | 'companion' | 'obeso' | 'vip' | 'blocked';
 export type SeatStatus = 'available' | 'reserved' | 'sold' | 'blocked';
-export type ElementType = 'stage' | 'bar' | 'bathroom' | 'entrance' | 'exit' | 'speaker' | 'custom';
-export type ToolType = 'select' | 'pan' | 'sector' | 'seat-grid' | 'seat-single' | 'element' | 'lasso';
+export type ElementType = 'stage' | 'bar' | 'bathroom' | 'entrance' | 'exit' | 'speaker' | 'dj' | 'screen' | 'vip-area' | 'food' | 'custom';
+export type ToolType = 'select' | 'pan' | 'sector' | 'seat-grid' | 'seat-single' | 'element' | 'lasso' | 'table';
+
+// Tipos de mobília
+export type FurnitureType = 'chair' | 'table' | 'bistro';
+export type TableShape = 'round' | 'square' | 'rectangular';
+
 export type RowLabelType = 'alpha' | 'numeric' | 'roman';
 export type SeatLabelType = 'numeric' | 'odd-left' | 'even-left' | 'reverse';
 
@@ -21,14 +26,39 @@ export interface Bounds {
   height: number;
 }
 
-// Vértice para polígonos editáveis
 export interface Vertex {
   x: number;
   y: number;
 }
 
-// Forma base do setor
-export type SectorShape = 'rectangle' | 'parallelogram' | 'trapezoid' | 'pentagon' | 'hexagon' | 'triangle' | 'circle' | 'arc';
+// Formas expandidas para setores
+export type SectorShape = 
+  | 'rectangle' 
+  | 'parallelogram' 
+  | 'trapezoid' 
+  | 'pentagon' 
+  | 'hexagon' 
+  | 'triangle' 
+  | 'circle' 
+  | 'arc'
+  | 'l-shape'
+  | 'u-shape'
+  | 't-shape'
+  | 'z-shape'
+  | 'cross'
+  | 'diamond'
+  | 'octagon'
+  | 'arrow'
+  | 'star'
+  | 'wave';
+
+// Configuração de mesa/bistrô
+export interface TableConfig {
+  shape: TableShape;
+  chairCount: number;
+  tableWidth: number;
+  tableHeight: number;
+}
 
 export interface Seat {
   id: string;
@@ -42,6 +72,8 @@ export interface Seat {
   rotation: number;
   price?: number;
   categoryId?: string;
+  furnitureType?: FurnitureType;
+  tableConfig?: TableConfig;
 }
 
 export interface Sector {
@@ -49,13 +81,14 @@ export interface Sector {
   name: string;
   color: string;
   bounds: Bounds;
-  vertices: Vertex[]; // Polígono editável
+  vertices: Vertex[];
   shape: SectorShape;
   rotation: number;
   seats: Seat[];
   categoryId?: string;
   visible: boolean;
   locked: boolean;
+  furnitureType?: FurnitureType;
 }
 
 export interface VenueElement {
@@ -101,6 +134,8 @@ export interface GridGeneratorParams {
   rotation: number;
   sectorId: string;
   prefix?: string;
+  furnitureType?: FurnitureType;
+  tableConfig?: TableConfig;
 }
 
 export interface Template {
@@ -141,5 +176,36 @@ export const ELEMENT_ICONS: Record<ElementType, string> = {
   entrance: '🚪',
   exit: '🚪',
   speaker: '🔊',
+  dj: '🎧',
+  screen: '📺',
+  'vip-area': '⭐',
+  food: '🍔',
   custom: '📦',
+};
+
+export const SHAPE_NAMES: Record<SectorShape, string> = {
+  rectangle: 'Retângulo',
+  parallelogram: 'Paralelogramo',
+  trapezoid: 'Trapézio',
+  pentagon: 'Pentágono',
+  hexagon: 'Hexágono',
+  triangle: 'Triângulo',
+  circle: 'Círculo',
+  arc: 'Arco',
+  'l-shape': 'Forma L',
+  'u-shape': 'Forma U',
+  't-shape': 'Forma T',
+  'z-shape': 'Forma Z',
+  cross: 'Cruz',
+  diamond: 'Losango',
+  octagon: 'Octágono',
+  arrow: 'Seta',
+  star: 'Estrela',
+  wave: 'Onda',
+};
+
+export const FURNITURE_LABELS: Record<FurnitureType, string> = {
+  chair: 'Cadeira',
+  table: 'Mesa',
+  bistro: 'Bistrô',
 };
