@@ -269,6 +269,25 @@ export function isPointInPolygon(point: { x: number; y: number }, vertices: Vert
   return inside;
 }
 
+// Verifica se ponto está dentro de um arco (forma especial)
+export function isPointInArc(point: { x: number; y: number }, bounds: Bounds): boolean {
+  const cx = bounds.x + bounds.width / 2;
+  const cy = bounds.y + bounds.height / 2;
+  const dx = point.x - cx;
+  const dy = point.y - cy;
+  
+  // Normaliza para elipse
+  const normalizedX = dx / (bounds.width / 2);
+  const normalizedY = dy / (bounds.height / 2);
+  const dist = Math.sqrt(normalizedX * normalizedX + normalizedY * normalizedY);
+  
+  const outerR = 1.0;
+  const innerR = 0.4;
+  
+  // Verifica se está entre os raios e na metade superior
+  return dist >= innerR && dist <= outerR && normalizedY < 0.3;
+}
+
 // Converte número para letra (A, B, C... Z, AA, AB...)
 export function numberToAlpha(num: number): string {
   let result = '';
@@ -410,7 +429,8 @@ export function generateSeatsInsidePolygon(
   seatLabelType: SeatLabelType = 'numeric',
   prefix: string = '',
   furnitureType: FurnitureType = 'chair',
-  tableConfig?: TableConfig
+  tableConfig?: TableConfig,
+  isArcShape: boolean = false
 ): Seat[] {
   if (vertices.length < 3) return [];
 
@@ -437,7 +457,12 @@ export function generateSeatsInsidePolygon(
       // Verifica se o centro do assento está dentro do polígono
       const seatCenter = { x: x + itemSize / 2, y: y + itemSize / 2 };
       
-      if (isPointInPolygon(seatCenter, vertices)) {
+      // Usa detecção especial para arcos
+      const isInside = isArcShape 
+        ? isPointInArc(seatCenter, bounds)
+        : isPointInPolygon(seatCenter, vertices);
+      
+      if (isInside) {
         const seatLabel = getSeatLabel(colIndex, 100, seatLabelType, 1);
         
         const seat: Seat = {
