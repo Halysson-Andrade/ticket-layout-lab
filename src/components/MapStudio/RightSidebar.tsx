@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3 } from 'lucide-react';
+import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3, CircleDot } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -25,17 +25,26 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
 }) => {
   // Local state para edição em tempo real
   const [localRotation, setLocalRotation] = useState(0);
+  const [localCurvature, setLocalCurvature] = useState(0);
 
   useEffect(() => {
     if (selectedSector) {
       setLocalRotation(selectedSector.rotation);
+      setLocalCurvature(selectedSector.curvature || 0);
     }
-  }, [selectedSector?.id, selectedSector?.rotation]);
+  }, [selectedSector?.id, selectedSector?.rotation, selectedSector?.curvature]);
 
   const handleRotationChange = (value: number) => {
     setLocalRotation(value);
     if (selectedSector) {
       onUpdateSector(selectedSector.id, { rotation: value });
+    }
+  };
+
+  const handleCurvatureChange = (value: number) => {
+    setLocalCurvature(value);
+    if (selectedSector) {
+      onUpdateSector(selectedSector.id, { curvature: value });
     }
   };
 
@@ -218,6 +227,29 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                         {deg}°
                       </Button>
                     ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Curvatura */}
+              <div className="space-y-3">
+                <Label className="text-xs flex items-center gap-2">
+                  <CircleDot className="h-3 w-3" />
+                  Curvatura
+                </Label>
+                <div className="space-y-2">
+                  <Slider
+                    value={[localCurvature]}
+                    onValueChange={([value]) => handleCurvatureChange(value)}
+                    min={0}
+                    max={100}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-muted-foreground">Reto</span>
+                    <span className="text-xs font-medium">{localCurvature}%</span>
+                    <span className="text-[10px] text-muted-foreground">Curvo</span>
                   </div>
                 </div>
               </div>

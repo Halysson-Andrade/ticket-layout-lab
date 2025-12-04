@@ -115,6 +115,7 @@ export const MapStudio: React.FC = () => {
       vertices: generateVerticesForShape(shape, bounds),
       shape,
       rotation: 0,
+      curvature: 0,
       seats: [],
       visible: true,
       locked: false,
@@ -329,6 +330,15 @@ export const MapStudio: React.FC = () => {
       const newSectors = prev.map(s => {
         if (s.id !== sectorId) return s;
         
+        // Mantém o tipo de mobília do setor
+        const furnitureType = s.furnitureType || 'chair';
+        const tableConf = furnitureType !== 'chair' ? {
+          shape: 'round' as const,
+          chairCount: 6,
+          tableWidth: 60,
+          tableHeight: 60,
+        } : undefined;
+        
         const newSeats = generateSeatsInsidePolygon(
           s.vertices,
           s.id,
@@ -336,7 +346,9 @@ export const MapStudio: React.FC = () => {
           4,  // spacing
           'alpha',
           'numeric',
-          ''
+          '',
+          furnitureType,
+          tableConf
         );
         
         return { ...s, seats: newSeats };
@@ -443,6 +455,7 @@ export const MapStudio: React.FC = () => {
         vertices: generateVerticesForShape(shape, bounds),
         shape,
         rotation: 0,
+        curvature: 0,
         seats: [],
         visible: true,
         locked: false,
@@ -777,7 +790,14 @@ export const MapStudio: React.FC = () => {
             const vertices = generateVerticesForShape(shapeConfig.shape, bounds);
             const sectorId = generateId();
             
-            // Gera assentos DENTRO do polígono
+            // Gera assentos DENTRO do polígono com tipo de mobília
+            const tableConf = shapeConfig.furnitureType !== 'chair' ? {
+              shape: shapeConfig.tableShape,
+              chairCount: shapeConfig.chairsPerTable,
+              tableWidth: 60,
+              tableHeight: 60,
+            } : undefined;
+            
             const seats = generateSeatsInsidePolygon(
               vertices,
               sectorId,
@@ -785,7 +805,9 @@ export const MapStudio: React.FC = () => {
               shapeConfig.colSpacing,
               'alpha',
               'numeric',
-              `S${sectors.length + i + 1}-`
+              `S${sectors.length + i + 1}-`,
+              shapeConfig.furnitureType,
+              tableConf
             );
             
             const sector: Sector = {
@@ -796,9 +818,11 @@ export const MapStudio: React.FC = () => {
               vertices,
               shape: shapeConfig.shape,
               rotation: 0,
+              curvature: shapeConfig.curvature || 0,
               seats,
               visible: true,
               locked: false,
+              furnitureType: shapeConfig.furnitureType,
             };
             newSectors.push(sector);
           }

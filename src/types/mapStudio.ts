@@ -84,6 +84,7 @@ export interface Sector {
   vertices: Vertex[];
   shape: SectorShape;
   rotation: number;
+  curvature: number;
   seats: Seat[];
   categoryId?: string;
   visible: boolean;
