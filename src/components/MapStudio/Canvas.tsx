@@ -271,6 +271,10 @@ export const Canvas: React.FC<CanvasProps> = ({
       const centerX = bounds.x + bounds.width / 2;
       const centerY = bounds.y + bounds.height / 2;
       
+      // Zoom dinâmico: define se mostra assentos ou cor sólida
+      const showSeatsThreshold = 0.5;
+      const showSolidColor = zoom < showSeatsThreshold && sector.seats.length > 0;
+      
       // Aplica rotação se existir
       if (sector.rotation && sector.rotation !== 0) {
         ctx.translate(centerX, centerY);
@@ -321,8 +325,17 @@ export const Canvas: React.FC<CanvasProps> = ({
           ctx.closePath();
         }
         
-        // Fill com cor do setor
-        ctx.fillStyle = sector.color + '20';
+        // Fill - usa cor sólida se zoom baixo, senão usa cor com transparência
+        if (showSolidColor) {
+          // Converte hex para rgba com opacidade sólida (80%)
+          const hex = sector.color || '#6366f1';
+          const r = parseInt(hex.slice(1, 3), 16);
+          const g = parseInt(hex.slice(3, 5), 16);
+          const b = parseInt(hex.slice(5, 7), 16);
+          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.8)`;
+        } else {
+          ctx.fillStyle = sector.color + '20';
+        }
         ctx.fill();
         
         // Stroke
@@ -363,58 +376,8 @@ export const Canvas: React.FC<CanvasProps> = ({
       ctx.textBaseline = 'top';
       ctx.fillText(sector.name, bounds.x + 4, bounds.y + 4);
 
-      // Zoom dinâmico: se zoom < 0.5, mostra setor preenchido; se >= 0.5 mostra assentos
-      const showSeatsThreshold = 0.5;
-      
-      if (zoom < showSeatsThreshold && sector.seats.length > 0) {
-        // Zoom distante: mostra setor como cor sólida com contagem
-        // Usa a mesma lógica de desenho do contorno (com ou sem curvatura)
-        const curvatureZoom = sector.curvature || 0;
-        const isNaturallyCurvedZoom = sector.vertices.length > 8;
-        const shouldApplyCurvatureZoom = curvatureZoom > 0 && !isNaturallyCurvedZoom;
-        
-        // Usa a cor do setor diretamente
-        const sectorColor = sector.color || '#6366f1';
-        ctx.fillStyle = sectorColor + '80'; // 50% opacidade
-        
-        if (sector.vertices && sector.vertices.length > 2) {
-          ctx.beginPath();
-          
-          if (shouldApplyCurvatureZoom) {
-            // Desenha com curvas para manter consistência visual
-            const verts = sector.vertices;
-            ctx.moveTo(verts[0].x, verts[0].y);
-            
-            for (let i = 0; i < verts.length; i++) {
-              const current = verts[i];
-              const next = verts[(i + 1) % verts.length];
-              const midX = (current.x + next.x) / 2;
-              const midY = (current.y + next.y) / 2;
-              
-              const dx = next.x - current.x;
-              const dy = next.y - current.y;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              const curveAmount = (curvatureZoom / 100) * dist * 0.3;
-              
-              const nx = -dy / dist;
-              const ny = dx / dist;
-              
-              const cpX = midX + nx * curveAmount;
-              const cpY = midY + ny * curveAmount;
-              
-              ctx.quadraticCurveTo(cpX, cpY, next.x, next.y);
-            }
-          } else {
-            ctx.moveTo(sector.vertices[0].x, sector.vertices[0].y);
-            for (let i = 1; i < sector.vertices.length; i++) {
-              ctx.lineTo(sector.vertices[i].x, sector.vertices[i].y);
-            }
-            ctx.closePath();
-          }
-          ctx.fill();
-        }
-        
-        // Mostra contagem de assentos no centro
+      // Mostra contagem de assentos no centro quando zoom baixo
+      if (showSolidColor) {
         ctx.fillStyle = '#fff';
         ctx.font = `bold ${16 / zoom}px sans-serif`;
         ctx.textAlign = 'center';
