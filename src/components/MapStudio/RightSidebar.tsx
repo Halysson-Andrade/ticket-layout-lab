@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3, CircleDot, Maximize2 } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3, CircleDot, Maximize2, Info } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sector, Seat, SeatType, SEAT_COLORS, SECTOR_COLORS } from '@/types/mapStudio';
+import { Sector, Seat, SeatType, SEAT_COLORS, SECTOR_COLORS, SHAPE_NAMES } from '@/types/mapStudio';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 
 interface RightSidebarProps {
   selectedSector: Sector | null;
@@ -17,6 +17,15 @@ interface RightSidebarProps {
   onResizeSector?: (sectorId: string, width: number, height: number) => void;
 }
 
+const SEAT_TYPE_LABELS: Record<SeatType, string> = {
+  normal: 'Normal',
+  pcd: 'PCD',
+  companion: 'Acompanhante',
+  obeso: 'Obeso',
+  vip: 'VIP',
+  blocked: 'Bloqueado',
+};
+
 export const RightSidebar: React.FC<RightSidebarProps> = ({
   selectedSector,
   selectedSeats,
@@ -25,12 +34,15 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   onRegenerateSeats,
   onResizeSector,
 }) => {
-  // Local state para edição em tempo real
+  // Local state para edição em tempo real com debounce
   const [localRotation, setLocalRotation] = useState(0);
   const [localCurvature, setLocalCurvature] = useState(0);
   const [localWidth, setLocalWidth] = useState(450);
   const [localHeight, setLocalHeight] = useState(280);
+  
+  const debounceRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
+  // Sincroniza com setor selecionado
   useEffect(() => {
     if (selectedSector) {
       setLocalRotation(selectedSector.rotation);
@@ -40,44 +52,67 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
     }
   }, [selectedSector?.id, selectedSector?.rotation, selectedSector?.curvature, selectedSector?.bounds.width, selectedSector?.bounds.height]);
 
-  const handleRotationChange = (value: number) => {
+  // Debounced update helper
+  const debouncedUpdate = useCallback((key: string, fn: () => void, delay: number = 150) => {
+    if (debounceRef.current[key]) {
+      clearTimeout(debounceRef.current[key]);
+    }
+    debounceRef.current[key] = setTimeout(fn, delay);
+  }, []);
+
+  const handleRotationChange = useCallback((value: number) => {
     setLocalRotation(value);
     if (selectedSector) {
-      onUpdateSector(selectedSector.id, { rotation: value });
+      debouncedUpdate('rotation', () => onUpdateSector(selectedSector.id, { rotation: value }));
     }
-  };
+  }, [selectedSector, onUpdateSector, debouncedUpdate]);
 
-  const handleCurvatureChange = (value: number) => {
+  const handleCurvatureChange = useCallback((value: number) => {
     setLocalCurvature(value);
     if (selectedSector) {
-      onUpdateSector(selectedSector.id, { curvature: value });
+      debouncedUpdate('curvature', () => onUpdateSector(selectedSector.id, { curvature: value }), 200);
     }
-  };
+  }, [selectedSector, onUpdateSector, debouncedUpdate]);
 
-  const handleWidthChange = (value: number) => {
+  const handleWidthChange = useCallback((value: number) => {
     setLocalWidth(value);
     if (selectedSector && onResizeSector) {
-      onResizeSector(selectedSector.id, value, localHeight);
+      debouncedUpdate('width', () => onResizeSector(selectedSector.id, value, localHeight), 100);
     }
-  };
+  }, [selectedSector, onResizeSector, localHeight, debouncedUpdate]);
 
-  const handleHeightChange = (value: number) => {
+  const handleHeightChange = useCallback((value: number) => {
     setLocalHeight(value);
     if (selectedSector && onResizeSector) {
-      onResizeSector(selectedSector.id, localWidth, value);
+      debouncedUpdate('height', () => onResizeSector(selectedSector.id, localWidth, value), 100);
     }
-  };
+  }, [selectedSector, onResizeSector, localWidth, debouncedUpdate]);
+
+  // Cleanup debounce timers
+  useEffect(() => {
+    return () => {
+      Object.values(debounceRef.current).forEach(clearTimeout);
+    };
+  }, []);
 
   if (!selectedSector && selectedSeats.length === 0) {
     return (
       <div className="absolute right-4 top-20 bottom-4 w-72 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg z-10 flex flex-col overflow-hidden">
         <div className="px-4 py-3 border-b border-border">
-          <h2 className="font-semibold text-sm">Propriedades</h2>
+          <h2 className="font-semibold text-sm flex items-center gap-2">
+            <Settings className="h-4 w-4 text-muted-foreground" />
+            Propriedades
+          </h2>
         </div>
         <div className="flex-1 flex items-center justify-center text-center p-6">
-          <div className="text-muted-foreground">
-            <Settings className="h-12 w-12 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">Selecione um setor ou assentos para editar suas propriedades</p>
+          <div className="text-muted-foreground space-y-3">
+            <div className="w-16 h-16 mx-auto rounded-full bg-muted/50 flex items-center justify-center">
+              <Settings className="h-8 w-8 opacity-30" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">Nenhuma seleção</p>
+              <p className="text-xs mt-1">Clique em um setor ou assento para editar suas propriedades</p>
+            </div>
           </div>
         </div>
       </div>
@@ -85,216 +120,256 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   }
 
   return (
-    <div className="absolute right-4 top-20 bottom-4 w-72 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg z-10 flex flex-col overflow-hidden">
-      <div className="px-4 py-3 border-b border-border">
-        <h2 className="font-semibold text-sm">
-          {selectedSeats.length > 0 
-            ? `${selectedSeats.length} Assento(s) Selecionado(s)`
-            : 'Propriedades do Setor'
-          }
-        </h2>
-      </div>
-      
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-4">
-          {/* Propriedades do Setor */}
-          {selectedSector && selectedSeats.length === 0 && (
-            <>
-              <div className="space-y-2">
-                <Label className="text-xs flex items-center gap-2">
-                  <Type className="h-3 w-3" />
-                  Nome do Setor
-                </Label>
-                <Input
-                  value={selectedSector.name}
-                  onChange={(e) => onUpdateSector(selectedSector.id, { name: e.target.value })}
-                  className="h-8 text-sm"
+    <TooltipProvider delayDuration={300}>
+      <div className="absolute right-4 top-20 bottom-4 w-72 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg z-10 flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-border">
+          <h2 className="font-semibold text-sm flex items-center gap-2">
+            {selectedSeats.length > 0 ? (
+              <>
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                {selectedSeats.length} Assento(s)
+              </>
+            ) : selectedSector ? (
+              <>
+                <div 
+                  className="w-3 h-3 rounded" 
+                  style={{ backgroundColor: selectedSector.color }}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs flex items-center gap-2">
-                  <Palette className="h-3 w-3" />
-                  Cor do Setor
-                </Label>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {SECTOR_COLORS.map((color) => (
-                    <button
-                      key={color}
-                      className={`w-full aspect-square rounded border-2 transition-all ${
-                        selectedSector.color === color 
-                          ? 'border-primary scale-110' 
-                          : 'border-transparent hover:scale-105'
-                      }`}
-                      style={{ backgroundColor: color }}
-                      onClick={() => onUpdateSector(selectedSector.id, { color })}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs flex items-center gap-2">
-                  <Move className="h-3 w-3" />
-                  Posição
-                </Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground">X</Label>
-                    <Input
-                      type="number"
-                      value={Math.round(selectedSector.bounds.x)}
-                      onChange={(e) => onUpdateSector(selectedSector.id, {
-                        bounds: { ...selectedSector.bounds, x: parseInt(e.target.value) || 0 }
-                      })}
-                      className="h-7 text-xs"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-[10px] text-muted-foreground">Y</Label>
-                    <Input
-                      type="number"
-                      value={Math.round(selectedSector.bounds.y)}
-                      onChange={(e) => onUpdateSector(selectedSector.id, {
-                        bounds: { ...selectedSector.bounds, y: parseInt(e.target.value) || 0 }
-                      })}
-                      className="h-7 text-xs"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Dimensões com sliders */}
-              <div className="space-y-3">
-                <Label className="text-xs flex items-center gap-2">
-                  <Maximize2 className="h-3 w-3" />
-                  Dimensões
-                </Label>
-                
+                {selectedSector.name}
+              </>
+            ) : 'Propriedades'}
+          </h2>
+          {selectedSector && (
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {SHAPE_NAMES[selectedSector.shape]} • {selectedSector.seats.length} assentos
+            </p>
+          )}
+        </div>
+        
+        <ScrollArea className="flex-1">
+          <div className="p-4 space-y-5">
+            {/* Propriedades do Setor */}
+            {selectedSector && selectedSeats.length === 0 && (
+              <>
+                {/* Nome */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-[10px] text-muted-foreground">Largura</Label>
-                    <span className="text-xs text-muted-foreground">{localWidth}px</span>
-                  </div>
-                  <Slider
-                    value={[localWidth]}
-                    onValueChange={([value]) => handleWidthChange(value)}
-                    min={100}
-                    max={2000}
-                    step={10}
-                    className="w-full"
+                  <Label className="text-xs flex items-center gap-2">
+                    <Type className="h-3 w-3" />
+                    Nome do Setor
+                  </Label>
+                  <Input
+                    value={selectedSector.name}
+                    onChange={(e) => onUpdateSector(selectedSector.id, { name: e.target.value })}
+                    className="h-8 text-sm"
+                    placeholder="Digite o nome do setor"
                   />
                 </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-[10px] text-muted-foreground">Altura</Label>
-                    <span className="text-xs text-muted-foreground">{localHeight}px</span>
-                  </div>
-                  <Slider
-                    value={[localHeight]}
-                    onValueChange={([value]) => handleHeightChange(value)}
-                    min={100}
-                    max={1500}
-                    step={10}
-                    className="w-full"
-                  />
-                </div>
-              </div>
 
-              {/* Rotação com slider para feedback em tempo real */}
-              <div className="space-y-3">
-                <Label className="text-xs flex items-center gap-2">
-                  <RotateCw className="h-3 w-3" />
-                  Rotação
-                </Label>
+                {/* Cor */}
                 <div className="space-y-2">
-                  <Slider
-                    value={[localRotation]}
-                    onValueChange={([value]) => handleRotationChange(value)}
-                    min={0}
-                    max={360}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => handleRotationChange(Math.max(0, localRotation - 15))}
-                    >
-                      <Minus className="h-3 w-3" />
-                    </Button>
-                    <Input
-                      type="number"
-                      value={localRotation}
-                      onChange={(e) => handleRotationChange(parseInt(e.target.value) || 0)}
-                      className="h-7 text-xs text-center"
-                      min={0}
-                      max={360}
-                    />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => handleRotationChange(Math.min(360, localRotation + 15))}
-                    >
-                      <Plus className="h-3 w-3" />
-                    </Button>
-                    <span className="text-xs text-muted-foreground">°</span>
-                  </div>
-                  {/* Atalhos de rotação */}
-                  <div className="flex gap-1">
-                    {[0, 45, 90, 180, 270].map(deg => (
-                      <Button
-                        key={deg}
-                        variant={localRotation === deg ? "default" : "outline"}
-                        size="sm"
-                        className="flex-1 h-6 text-[10px] px-1"
-                        onClick={() => handleRotationChange(deg)}
-                      >
-                        {deg}°
-                      </Button>
+                  <Label className="text-xs flex items-center gap-2">
+                    <Palette className="h-3 w-3" />
+                    Cor do Setor
+                  </Label>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {SECTOR_COLORS.map((color) => (
+                      <Tooltip key={color}>
+                        <TooltipTrigger asChild>
+                          <button
+                            className={`w-full aspect-square rounded-md border-2 transition-all hover:scale-110 ${
+                              selectedSector.color === color 
+                                ? 'border-primary ring-2 ring-primary/30 scale-105' 
+                                : 'border-transparent hover:border-primary/50'
+                            }`}
+                            style={{ backgroundColor: color }}
+                            onClick={() => onUpdateSector(selectedSector.id, { color })}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs">
+                          Selecionar cor
+                        </TooltipContent>
+                      </Tooltip>
                     ))}
                   </div>
                 </div>
-              </div>
 
-              {/* Curvatura */}
-              <div className="space-y-3">
-                <Label className="text-xs flex items-center gap-2">
-                  <CircleDot className="h-3 w-3" />
-                  Curvatura
-                </Label>
+                {/* Posição */}
                 <div className="space-y-2">
-                  <Slider
-                    value={[localCurvature]}
-                    onValueChange={([value]) => handleCurvatureChange(value)}
-                    min={0}
-                    max={100}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground">Reto</span>
-                    <span className="text-xs font-medium">{localCurvature}%</span>
-                    <span className="text-[10px] text-muted-foreground">Curvo</span>
+                  <Label className="text-xs flex items-center gap-2">
+                    <Move className="h-3 w-3" />
+                    Posição
+                  </Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">X</Label>
+                      <Input
+                        type="number"
+                        value={Math.round(selectedSector.bounds.x)}
+                        onChange={(e) => onUpdateSector(selectedSector.id, {
+                          bounds: { ...selectedSector.bounds, x: parseInt(e.target.value) || 0 }
+                        })}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">Y</Label>
+                      <Input
+                        type="number"
+                        value={Math.round(selectedSector.bounds.y)}
+                        onChange={(e) => onUpdateSector(selectedSector.id, {
+                          bounds: { ...selectedSector.bounds, y: parseInt(e.target.value) || 0 }
+                        })}
+                        className="h-7 text-xs"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Info e ações do setor */}
-              <div className="pt-2 border-t border-border space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  <strong>{selectedSector.seats.length}</strong> assentos neste setor
-                </p>
-                
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Grid3X3 className="h-3 w-3" />
-                    Dica: Arraste os vértices para remodelar o setor
-                  </p>
+                {/* Dimensões */}
+                <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+                  <Label className="text-xs flex items-center gap-2">
+                    <Maximize2 className="h-3 w-3" />
+                    Dimensões
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="max-w-[200px] text-xs">
+                        Ajuste a largura e altura do setor. Os assentos não são regenerados automaticamente.
+                      </TooltipContent>
+                    </Tooltip>
+                  </Label>
+                  
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-[10px] text-muted-foreground">Largura</Label>
+                        <span className="text-xs font-mono bg-background px-1.5 py-0.5 rounded">{localWidth}px</span>
+                      </div>
+                      <Slider
+                        value={[localWidth]}
+                        onValueChange={([value]) => handleWidthChange(value)}
+                        min={100}
+                        max={2000}
+                        step={10}
+                        className="w-full"
+                      />
+                    </div>
+                    
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-[10px] text-muted-foreground">Altura</Label>
+                        <span className="text-xs font-mono bg-background px-1.5 py-0.5 rounded">{localHeight}px</span>
+                      </div>
+                      <Slider
+                        value={[localHeight]}
+                        onValueChange={([value]) => handleHeightChange(value)}
+                        min={100}
+                        max={1500}
+                        step={10}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rotação */}
+                <div className="space-y-3">
+                  <Label className="text-xs flex items-center gap-2">
+                    <RotateCw className="h-3 w-3" />
+                    Rotação
+                  </Label>
+                  <div className="space-y-2">
+                    <Slider
+                      value={[localRotation]}
+                      onValueChange={([value]) => handleRotationChange(value)}
+                      min={0}
+                      max={360}
+                      step={1}
+                      className="w-full"
+                    />
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleRotationChange(Math.max(0, localRotation - 15))}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <Input
+                        type="number"
+                        value={localRotation}
+                        onChange={(e) => handleRotationChange(parseInt(e.target.value) || 0)}
+                        className="h-7 text-xs text-center flex-1"
+                        min={0}
+                        max={360}
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleRotationChange(Math.min(360, localRotation + 15))}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                      <span className="text-xs text-muted-foreground w-4">°</span>
+                    </div>
+                    {/* Atalhos de rotação */}
+                    <div className="flex gap-1">
+                      {[0, 45, 90, 180, 270].map(deg => (
+                        <Button
+                          key={deg}
+                          variant={localRotation === deg ? "default" : "outline"}
+                          size="sm"
+                          className="flex-1 h-6 text-[10px] px-1"
+                          onClick={() => handleRotationChange(deg)}
+                        >
+                          {deg}°
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Curvatura */}
+                <div className="space-y-3">
+                  <Label className="text-xs flex items-center gap-2">
+                    <CircleDot className="h-3 w-3" />
+                    Curvatura
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="max-w-[200px] text-xs">
+                        Transforma a forma em arco. Valores acima de 80 criam arcos completos.
+                      </TooltipContent>
+                    </Tooltip>
+                  </Label>
+                  <div className="space-y-2">
+                    <Slider
+                      value={[localCurvature]}
+                      onValueChange={([value]) => handleCurvatureChange(value)}
+                      min={0}
+                      max={100}
+                      step={1}
+                      className="w-full"
+                    />
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-muted-foreground">Reto</span>
+                      <span className="font-mono bg-muted px-2 py-0.5 rounded">{localCurvature}%</span>
+                      <span className="text-muted-foreground">Curvo</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ações do setor */}
+                <div className="pt-3 border-t border-border space-y-3">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Grid3X3 className="h-3 w-3 flex-shrink-0" />
+                    <span>Arraste os vértices para remodelar</span>
+                  </div>
                   
                   {onRegenerateSeats && (
                     <Button
@@ -308,41 +383,40 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                     </Button>
                   )}
                 </div>
-              </div>
-            </>
-          )}
+              </>
+            )}
 
-          {/* Propriedades dos Assentos */}
-          {selectedSeats.length > 0 && (
-            <>
-              <div className="space-y-2">
-                <Label className="text-xs">Tipo do Assento</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['normal', 'pcd', 'companion', 'obeso', 'vip', 'blocked'] as SeatType[]).map(type => (
-                    <Button
-                      key={type}
-                      variant={selectedSeats[0]?.type === type ? "default" : "outline"}
-                      size="sm"
-                      className="h-9 text-xs justify-start gap-2"
-                      onClick={() => onUpdateSeats(selectedSeats.map(s => s.id), { type })}
-                    >
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: SEAT_COLORS[type] }} 
-                      />
-                      {type === 'normal' && 'Normal'}
-                      {type === 'pcd' && 'PCD'}
-                      {type === 'companion' && 'Acomp.'}
-                      {type === 'obeso' && 'Obeso'}
-                      {type === 'vip' && 'VIP'}
-                      {type === 'blocked' && 'Bloq.'}
-                    </Button>
-                  ))}
+            {/* Propriedades dos Assentos */}
+            {selectedSeats.length > 0 && (
+              <>
+                <div className="space-y-2">
+                  <Label className="text-xs">Tipo do Assento</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['normal', 'pcd', 'companion', 'obeso', 'vip', 'blocked'] as SeatType[]).map(type => (
+                      <Tooltip key={type}>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant={selectedSeats[0]?.type === type ? "default" : "outline"}
+                            size="sm"
+                            className="h-9 text-xs justify-start gap-2"
+                            onClick={() => onUpdateSeats(selectedSeats.map(s => s.id), { type })}
+                          >
+                            <div 
+                              className="w-3 h-3 rounded-full flex-shrink-0" 
+                              style={{ backgroundColor: SEAT_COLORS[type] }} 
+                            />
+                            <span className="truncate">{SEAT_TYPE_LABELS[type]}</span>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" className="text-xs">
+                          Aplicar tipo {SEAT_TYPE_LABELS[type]}
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {selectedSeats.length === 1 && (
-                <>
+                {selectedSeats.length === 1 && (
                   <div className="space-y-2">
                     <Label className="text-xs">Identificação</Label>
                     <div className="grid grid-cols-2 gap-2">
@@ -364,40 +438,40 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                       </div>
                     </div>
                   </div>
-                </>
-              )}
+                )}
 
-              {selectedSeats.length > 1 && (
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <p className="text-xs text-muted-foreground">
-                    <strong>{selectedSeats.length}</strong> assentos selecionados.
-                    Alterações serão aplicadas a todos.
-                  </p>
+                {selectedSeats.length > 1 && (
+                  <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                    <p className="text-xs text-primary">
+                      <strong>{selectedSeats.length}</strong> assentos selecionados.
+                      Alterações serão aplicadas a todos.
+                    </p>
+                  </div>
+                )}
+
+                <div className="pt-3 border-t border-border space-y-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs"
+                    onClick={() => onUpdateSeats(selectedSeats.map(s => s.id), { type: 'blocked' })}
+                  >
+                    Bloquear Selecionados
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs"
+                    onClick={() => onUpdateSeats(selectedSeats.map(s => s.id), { type: 'normal' })}
+                  >
+                    Restaurar para Normal
+                  </Button>
                 </div>
-              )}
-
-              <div className="pt-2 space-y-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full text-xs"
-                  onClick={() => onUpdateSeats(selectedSeats.map(s => s.id), { type: 'blocked' })}
-                >
-                  Bloquear Selecionados
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full text-xs"
-                  onClick={() => onUpdateSeats(selectedSeats.map(s => s.id), { type: 'normal' })}
-                >
-                  Restaurar para Normal
-                </Button>
-              </div>
-            </>
-          )}
-        </div>
-      </ScrollArea>
-    </div>
+              </>
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+    </TooltipProvider>
   );
 };
