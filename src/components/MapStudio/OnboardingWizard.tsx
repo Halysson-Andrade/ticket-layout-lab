@@ -243,54 +243,125 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     };
   }, [config.cols, config.rows, config.seatSize, config.rowSpacing, config.colSpacing, config.furnitureType, selectedShape]);
 
+  // Gera posições dos assentos DENTRO da forma geométrica
   const seatsInShape = useMemo(() => {
     if (!selectedShape) return [];
     
     const { width: previewWidth, height: previewHeight, seatSize, rowSpacing, colSpacing, cols, rows } = previewDimensions;
     const bounds = { x: 0, y: 0, width: previewWidth, height: previewHeight };
-    const vertices = generateVerticesForShape(selectedShape.id, bounds);
+    const cx = previewWidth / 2;
+    const cy = previewHeight / 2;
+    
+    const curvature = config.curvature || 0;
+    const isArcShape = selectedShape.id === 'arc' || curvature >= 80;
+    const hasHighCurvature = curvature >= 40;
     
     const seats: { x: number; y: number; inside: boolean }[] = [];
     
-    const gridWidth = cols * (seatSize + colSpacing);
-    const gridHeight = rows * (seatSize + rowSpacing);
-    const offsetX = (previewWidth - gridWidth) / 2;
-    const offsetY = (previewHeight - gridHeight) / 2;
-    
-    // Para formas arc, usa algoritmo especial
-    const isArcShape = selectedShape.id === 'arc';
-    
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const x = offsetX + c * (seatSize + colSpacing) + seatSize / 2;
-        const y = offsetY + r * (seatSize + rowSpacing) + seatSize / 2;
+    if (isArcShape) {
+      // POSICIONAMENTO EM ARCO - assentos seguem linhas curvas em semicírculo superior
+      const outerRadius = Math.min(previewWidth, previewHeight) * 0.45;
+      const innerRatio = selectedShape.id === 'arc' ? 0.35 : Math.max(0.15, 0.5 - curvature / 200);
+      const innerRadius = outerRadius * innerRatio;
+      
+      // Arco vai de 0° a 180° (semicírculo superior - abertura para baixo)
+      const startAngle = Math.PI;  // 180°
+      const endAngle = 0;          // 0° (vai no sentido horário)
+      
+      for (let r = 0; r < rows; r++) {
+        // Raio desta fileira (da externa para interna)
+        const rowRatio = rows > 1 ? r / (rows - 1) : 0;
+        const rowRadius = outerRadius - rowRatio * (outerRadius - innerRadius);
         
-        let inside = false;
+        // Ajusta quantidade de assentos por fileira baseado no raio
+        const circumference = Math.PI * rowRadius;
+        const seatSpaceNeeded = seatSize + colSpacing;
+        const maxSeatsInRow = Math.max(1, Math.floor(circumference / seatSpaceNeeded));
+        const seatsInRow = Math.min(cols, maxSeatsInRow);
         
-        if (isArcShape) {
-          // Para arco, usa detecção especial baseada em raios
-          const cx = previewWidth / 2;
-          const cy = previewHeight / 2;
-          const dx = x - cx;
-          const dy = y - cy;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          const outerR = Math.min(previewWidth, previewHeight) / 2;
-          const innerR = outerR * 0.4;
-          // Só aceita pontos na metade superior (arco)
-          inside = dist >= innerR && dist <= outerR && y < cy + outerR * 0.3;
-        } else {
-          // Aplica curvatura para outras formas
-          let adjustedY = y;
-          if (config.curvature > 0) {
-            const normalizedX = (x - previewWidth / 2) / (previewWidth / 2);
-            adjustedY = y - (1 - normalizedX * normalizedX) * config.curvature * 0.3;
-          }
-          inside = isPointInPolygon({ x, y: adjustedY }, vertices);
+        // Ajusta o ângulo de início e fim para centralizar os assentos
+        const angleNeeded = seatsInRow > 1 ? (seatsInRow - 1) * seatSpaceNeeded / rowRadius : 0;
+        const centerAngle = -Math.PI / 2; // -90° (topo)
+        const rowStartAngle = centerAngle - angleNeeded / 2;
+        
+        for (let c = 0; c < seatsInRow; c++) {
+          const angle = seatsInRow > 1 
+            ? rowStartAngle + (c * angleNeeded / (seatsInRow - 1))
+            : centerAngle;
+          
+          const x = cx + rowRadius * Math.cos(angle);
+          const y = cy + rowRadius * Math.sin(angle);
+          
+          seats.push({ x, y, inside: true });
         }
+      }
+    } else if (hasHighCurvature) {
+      // ALTA CURVATURA (40-79) - transição para arco
+      const outerRadius = Math.min(previewWidth, previewHeight) * 0.45;
+      const innerRatio = Math.max(0.2, 0.6 - curvature / 150);
+      const innerRadius = outerRadius * innerRatio;
+      
+      // Ângulo proporcional à curvatura (40% = 90°, 79% = quase 180°)
+      const angleSpread = Math.PI * (0.5 + (curvature - 40) / 80);
+      
+      for (let r = 0; r < rows; r++) {
+        const rowRatio = rows > 1 ? r / (rows - 1) : 0;
+        const rowRadius = outerRadius - rowRatio * (outerRadius - innerRadius);
         
-        seats.push({ x, y, inside });
+        for (let c = 0; c < cols; c++) {
+          const colRatio = cols > 1 ? c / (cols - 1) : 0.5;
+          const angle = -Math.PI / 2 - angleSpread / 2 + angleSpread * colRatio;
+          
+          const x = cx + rowRadius * Math.cos(angle);
+          const y = cy + rowRadius * Math.sin(angle);
+          
+          seats.push({ x, y, inside: true });
+        }
+      }
+    } else if (curvature > 0) {
+      // CURVATURA MODERADA - grid com deformação curva
+      const vertices = generateVerticesForShape(selectedShape.id, bounds);
+      const gridWidth = cols * (seatSize + colSpacing);
+      const gridHeight = rows * (seatSize + rowSpacing);
+      const offsetX = (previewWidth - gridWidth) / 2;
+      const offsetY = (previewHeight - gridHeight) / 2;
+      
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          // Posição base no grid
+          const baseX = offsetX + c * (seatSize + colSpacing) + seatSize / 2;
+          const baseY = offsetY + r * (seatSize + rowSpacing) + seatSize / 2;
+          
+          // Aplica curvatura - pontos nas bordas descem, centro sobe
+          const normalizedX = (baseX - cx) / (previewWidth / 2);
+          const curveOffset = (1 - normalizedX * normalizedX) * curvature * 0.4;
+          
+          // Desloca Y baseado na curvatura
+          const x = baseX;
+          const y = baseY - curveOffset + (r / rows) * curvature * 0.2;
+          
+          const inside = isPointInPolygon({ x, y }, vertices);
+          seats.push({ x, y, inside });
+        }
+      }
+    } else {
+      // SEM CURVATURA - grid normal dentro da forma
+      const vertices = generateVerticesForShape(selectedShape.id, bounds);
+      const gridWidth = cols * (seatSize + colSpacing);
+      const gridHeight = rows * (seatSize + rowSpacing);
+      const offsetX = (previewWidth - gridWidth) / 2;
+      const offsetY = (previewHeight - gridHeight) / 2;
+      
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const x = offsetX + c * (seatSize + colSpacing) + seatSize / 2;
+          const y = offsetY + r * (seatSize + rowSpacing) + seatSize / 2;
+          const inside = isPointInPolygon({ x, y }, vertices);
+          seats.push({ x, y, inside });
+        }
       }
     }
+    
     return seats;
   }, [selectedShape, previewDimensions, config.curvature]);
 
@@ -409,12 +480,48 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     const vertices = generateVerticesForShape(selectedShape.id, bounds);
     
     // Gera path com ou sem curvatura
-    let pathData: string;
     const curvature = config.curvature || 0;
-    const isNaturallyCurved = vertices.length > 8; // arc, circle, wave já têm muitos vértices
+    const cx = previewWidth / 2;
+    const cy = previewHeight / 2;
+    let pathData: string;
     
-    if (curvature > 0 && !isNaturallyCurved) {
-      // Path com curvas de Bezier
+    const isArcShape = selectedShape.id === 'arc' || curvature >= 80;
+    const hasHighCurvature = curvature >= 40;
+    
+    if (isArcShape) {
+      // Forma de arco completo (semicírculo superior com buraco interno)
+      const outerR = Math.min(previewWidth, previewHeight) * 0.45;
+      const innerR = outerR * 0.35;
+      pathData = `
+        M ${cx - outerR} ${cy}
+        A ${outerR} ${outerR} 0 0 1 ${cx + outerR} ${cy}
+        L ${cx + innerR} ${cy}
+        A ${innerR} ${innerR} 0 0 0 ${cx - innerR} ${cy}
+        Z
+      `;
+    } else if (hasHighCurvature) {
+      // Transição para arco - curva mais pronunciada
+      const outerR = Math.min(previewWidth, previewHeight) * 0.45;
+      const innerR = outerR * Math.max(0.2, 0.6 - curvature / 150);
+      const angleSpread = Math.PI * (0.5 + (curvature - 40) / 80);
+      const startX = cx + outerR * Math.cos(-Math.PI / 2 - angleSpread / 2);
+      const startY = cy + outerR * Math.sin(-Math.PI / 2 - angleSpread / 2);
+      const endX = cx + outerR * Math.cos(-Math.PI / 2 + angleSpread / 2);
+      const endY = cy + outerR * Math.sin(-Math.PI / 2 + angleSpread / 2);
+      const innerStartX = cx + innerR * Math.cos(-Math.PI / 2 + angleSpread / 2);
+      const innerStartY = cy + innerR * Math.sin(-Math.PI / 2 + angleSpread / 2);
+      const innerEndX = cx + innerR * Math.cos(-Math.PI / 2 - angleSpread / 2);
+      const innerEndY = cy + innerR * Math.sin(-Math.PI / 2 - angleSpread / 2);
+      
+      pathData = `
+        M ${startX} ${startY}
+        A ${outerR} ${outerR} 0 0 1 ${endX} ${endY}
+        L ${innerStartX} ${innerStartY}
+        A ${innerR} ${innerR} 0 0 0 ${innerEndX} ${innerEndY}
+        Z
+      `;
+    } else if (curvature > 0 && vertices.length <= 8) {
+      // Curvatura moderada - curva as bordas da forma
       const parts: string[] = [`M ${vertices[0].x} ${vertices[0].y}`];
       for (let i = 0; i < vertices.length; i++) {
         const current = vertices[i];
@@ -425,7 +532,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
         const dx = next.x - current.x;
         const dy = next.y - current.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const curveAmount = (curvature / 100) * dist * 0.3;
+        const curveAmount = (curvature / 100) * dist * 0.4;
         
         const nx = -dy / dist;
         const ny = dx / dist;
@@ -437,6 +544,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       }
       pathData = parts.join(' ');
     } else {
+      // Sem curvatura - polígono normal
       pathData = vertices.map((v, i) => `${i === 0 ? 'M' : 'L'} ${v.x} ${v.y}`).join(' ') + ' Z';
     }
     
