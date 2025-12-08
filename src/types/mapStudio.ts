@@ -137,6 +137,8 @@ export interface GridGeneratorParams {
   prefix?: string;
   furnitureType?: FurnitureType;
   tableConfig?: TableConfig;
+  tableShape?: TableShape;
+  chairsPerTable?: number;
 }
 
 export interface Template {

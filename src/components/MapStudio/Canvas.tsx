@@ -486,15 +486,20 @@ export const Canvas: React.FC<CanvasProps> = ({
     requestAnimationFrame(render);
   }, [render]);
 
-  // Mouse wheel zoom
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    const newZoom = Math.min(3, Math.max(0.2, zoom * delta));
+  // Mouse wheel zoom - precisa usar listener nativo para passive: false
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
     
-    // Zoom em direção ao cursor
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (rect) {
+    const handleWheelNative = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      const newZoom = Math.min(3, Math.max(0.2, zoom * delta));
+      
+      // Zoom em direção ao cursor
+      const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
       
@@ -502,9 +507,12 @@ export const Canvas: React.FC<CanvasProps> = ({
         x: mouseX - (mouseX - pan.x) * (newZoom / zoom),
         y: mouseY - (mouseY - pan.y) * (newZoom / zoom),
       });
-    }
+      
+      onZoomChange(newZoom);
+    };
     
-    onZoomChange(newZoom);
+    canvas.addEventListener('wheel', handleWheelNative, { passive: false });
+    return () => canvas.removeEventListener('wheel', handleWheelNative);
   }, [zoom, pan, onZoomChange, onPanChange]);
 
   // Prevent context menu
@@ -807,7 +815,6 @@ export const Canvas: React.FC<CanvasProps> = ({
         ref={canvasRef}
         width={containerRef.current?.clientWidth || 1200}
         height={containerRef.current?.clientHeight || 800}
-        onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
