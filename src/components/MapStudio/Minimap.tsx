@@ -31,7 +31,7 @@ export const Minimap: React.FC<MinimapProps> = ({
   const vpH = (viewportHeight / zoom) * scale;
 
   return (
-    <div className="absolute bottom-4 right-4 z-10 bg-card/90 backdrop-blur-sm border border-border rounded-lg overflow-hidden shadow-lg">
+    <div className="absolute bottom-4 left-[290px] z-10 bg-card/90 backdrop-blur-sm border border-border rounded-lg overflow-hidden shadow-lg">
       <svg
         width={minimapWidth}
         height={minimapHeight}

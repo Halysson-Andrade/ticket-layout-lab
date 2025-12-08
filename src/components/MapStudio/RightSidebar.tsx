@@ -180,7 +180,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                     value={[localWidth]}
                     onValueChange={([value]) => handleWidthChange(value)}
                     min={100}
-                    max={1000}
+                    max={2000}
                     step={10}
                     className="w-full"
                   />
@@ -195,7 +195,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                     value={[localHeight]}
                     onValueChange={([value]) => handleHeightChange(value)}
                     min={100}
-                    max={800}
+                    max={1500}
                     step={10}
                     className="w-full"
                   />
