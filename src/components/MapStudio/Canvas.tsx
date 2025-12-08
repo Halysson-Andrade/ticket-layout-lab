@@ -37,6 +37,7 @@ interface CanvasProps {
   onUpdateSectorVertices: (id: string, vertices: Vertex[]) => void;
   onApplySeatType: (ids: string[], type: SeatType) => void;
   onMoveSeat: (seatId: string, sectorId: string, x: number, y: number) => void;
+  onMoveSelectedSeats?: (dx: number, dy: number) => void;
   onSeatMoveEnd?: () => void;
   onAddVertex?: (sectorId: string, edgeIndex: number, position: { x: number; y: number }) => void;
   onRemoveVertex?: (sectorId: string, vertexIndex: number) => void;
@@ -72,6 +73,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   onUpdateSectorVertices,
   onApplySeatType,
   onMoveSeat,
+  onMoveSelectedSeats,
   onSeatMoveEnd,
   onAddVertex,
   onRemoveVertex,
@@ -836,12 +838,22 @@ export const Canvas: React.FC<CanvasProps> = ({
       return;
     }
 
-    // Arrastar assento dentro do setor
+    // Arrastar assentos selecionados
     if (isDraggingSeat && draggingSeatInfo) {
-      const sector = sectors.find(s => s.id === draggingSeatInfo.sectorId);
-      if (sector && isPointInPolygon(pos, sector.vertices)) {
-        onMoveSeat(draggingSeatInfo.seatId, draggingSeatInfo.sectorId, pos.x - 7, pos.y - 7);
+      const dx = pos.x - dragStart.x;
+      const dy = pos.y - dragStart.y;
+      
+      // Move todos os assentos selecionados
+      if (selectedSeatIds.length > 1 && onMoveSelectedSeats) {
+        onMoveSelectedSeats(dx, dy);
+      } else {
+        // Move apenas o assento arrastado
+        const sector = sectors.find(s => s.id === draggingSeatInfo.sectorId);
+        if (sector && isPointInPolygon(pos, sector.vertices)) {
+          onMoveSeat(draggingSeatInfo.seatId, draggingSeatInfo.sectorId, pos.x - 7, pos.y - 7);
+        }
       }
+      setDragStart(pos);
       return;
     }
 

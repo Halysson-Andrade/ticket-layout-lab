@@ -463,6 +463,19 @@ export const MapStudio: React.FC = () => {
     }));
   }, []);
 
+  // Move múltiplos assentos selecionados
+  const handleMoveSelectedSeats = useCallback((dx: number, dy: number) => {
+    setSectors(prev => prev.map(sector => ({
+      ...sector,
+      seats: sector.seats.map(seat => {
+        if (selectedSeatIds.includes(seat.id)) {
+          return { ...seat, x: seat.x + dx, y: seat.y + dy };
+        }
+        return seat;
+      }),
+    })));
+  }, [selectedSeatIds]);
+
   // Salva histórico após finalizar movimento de assento
   const handleSeatMoveEnd = useCallback(() => {
     pushHistory(sectors);
@@ -792,6 +805,7 @@ export const MapStudio: React.FC = () => {
           onUpdateSectorVertices={handleUpdateSectorVertices}
           onApplySeatType={handleApplySeatType}
           onMoveSeat={handleMoveSeat}
+          onMoveSelectedSeats={handleMoveSelectedSeats}
           onSeatMoveEnd={handleSeatMoveEnd}
           onAddVertex={handleAddVertex}
           onRemoveVertex={handleRemoveVertex}
