@@ -32,8 +32,10 @@ interface CanvasProps {
   onCreateSector: (bounds: { x: number; y: number; width: number; height: number }) => void;
   onMoveSector: (id: string, dx: number, dy: number) => void;
   onMoveElement: (id: string, dx: number, dy: number) => void;
+  onResizeElement: (id: string, width: number, height: number) => void;
   onUpdateSectorVertices: (id: string, vertices: Vertex[]) => void;
   onApplySeatType: (ids: string[], type: SeatType) => void;
+  onMoveSeat: (seatId: string, sectorId: string, x: number, y: number) => void;
 }
 
 const HANDLE_SIZE = 10;
@@ -60,8 +62,10 @@ export const Canvas: React.FC<CanvasProps> = ({
   onCreateSector,
   onMoveSector,
   onMoveElement,
+  onResizeElement,
   onUpdateSectorVertices,
   onApplySeatType,
+  onMoveSeat,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -69,9 +73,13 @@ export const Canvas: React.FC<CanvasProps> = ({
   const [isDrawing, setIsDrawing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isDraggingElement, setIsDraggingElement] = useState(false);
+  const [isDraggingSeat, setIsDraggingSeat] = useState(false);
+  const [draggingSeatInfo, setDraggingSeatInfo] = useState<{ seatId: string; sectorId: string } | null>(null);
   const [isBoxSelecting, setIsBoxSelecting] = useState(false);
   const [isDraggingVertex, setIsDraggingVertex] = useState(false);
   const [activeVertexIndex, setActiveVertexIndex] = useState<number | null>(null);
+  const [isResizingElement, setIsResizingElement] = useState(false);
+  const [resizeCorner, setResizeCorner] = useState<'se' | 'sw' | 'ne' | 'nw' | null>(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [drawStart, setDrawStart] = useState({ x: 0, y: 0 });
   const [drawCurrent, setDrawCurrent] = useState({ x: 0, y: 0 });
@@ -227,20 +235,32 @@ export const Canvas: React.FC<CanvasProps> = ({
       ctx.globalAlpha = 1;
     }
 
-    // Elementos (palco, bar, etc) - agora selecionáveis e móveis
+    // Elementos (palco, bar, etc) - selecionáveis, móveis e redimensionáveis
     elements.forEach(el => {
       const isElSelected = selectedElementIds.includes(el.id);
       
       ctx.fillStyle = el.color || '#4a5568';
       ctx.fillRect(el.bounds.x, el.bounds.y, el.bounds.width, el.bounds.height);
       
-      // Borda de seleção
+      // Borda de seleção com handles de redimensionamento
       if (isElSelected) {
         ctx.strokeStyle = '#3b82f6';
         ctx.lineWidth = 3 / zoom;
         ctx.setLineDash([6, 3]);
         ctx.strokeRect(el.bounds.x - 2, el.bounds.y - 2, el.bounds.width + 4, el.bounds.height + 4);
         ctx.setLineDash([]);
+        
+        // Desenha handles de redimensionamento nos cantos
+        const handleSize = 8 / zoom;
+        ctx.fillStyle = '#3b82f6';
+        // NE
+        ctx.fillRect(el.bounds.x + el.bounds.width - handleSize/2, el.bounds.y - handleSize/2, handleSize, handleSize);
+        // NW
+        ctx.fillRect(el.bounds.x - handleSize/2, el.bounds.y - handleSize/2, handleSize, handleSize);
+        // SE
+        ctx.fillRect(el.bounds.x + el.bounds.width - handleSize/2, el.bounds.y + el.bounds.height - handleSize/2, handleSize, handleSize);
+        // SW
+        ctx.fillRect(el.bounds.x - handleSize/2, el.bounds.y + el.bounds.height - handleSize/2, handleSize, handleSize);
       }
       
       ctx.fillStyle = '#fff';
@@ -325,22 +345,19 @@ export const Canvas: React.FC<CanvasProps> = ({
           ctx.closePath();
         }
         
-        // Fill - usa cor sólida se zoom baixo, senão usa cor com transparência
-        if (showSolidColor) {
-          // Converte hex para rgba com opacidade sólida (80%)
-          const hex = sector.color || '#6366f1';
-          const r = parseInt(hex.slice(1, 3), 16);
-          const g = parseInt(hex.slice(3, 5), 16);
-          const b = parseInt(hex.slice(5, 7), 16);
-          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.8)`;
-        } else {
-          ctx.fillStyle = sector.color + '20';
-        }
+        // Fill - sempre usa cor sólida preenchida (com opacidade)
+        const hex = sector.color || '#6366f1';
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        // Opacidade maior quando zoom baixo, menor quando zoom alto para ver assentos
+        const fillOpacity = showSolidColor ? 0.85 : 0.35;
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${fillOpacity})`;
         ctx.fill();
         
         // Stroke
         ctx.strokeStyle = isSelected ? '#3b82f6' : sector.color;
-        ctx.lineWidth = isSelected ? 2 / zoom : 1 / zoom;
+        ctx.lineWidth = isSelected ? 3 / zoom : 1.5 / zoom;
         ctx.stroke();
 
         // Desenha handles dos vértices se selecionado
@@ -528,6 +545,28 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
       }
 
+      // Verifica click em handle de redimensionamento de elemento selecionado
+      for (const elId of selectedElementIds) {
+        const el = elements.find(e => e.id === elId);
+        if (el) {
+          const handleSize = 10 / zoom;
+          const corners = [
+            { corner: 'nw' as const, x: el.bounds.x, y: el.bounds.y },
+            { corner: 'ne' as const, x: el.bounds.x + el.bounds.width, y: el.bounds.y },
+            { corner: 'sw' as const, x: el.bounds.x, y: el.bounds.y + el.bounds.height },
+            { corner: 'se' as const, x: el.bounds.x + el.bounds.width, y: el.bounds.y + el.bounds.height },
+          ];
+          for (const { corner, x, y } of corners) {
+            if (Math.abs(pos.x - x) < handleSize && Math.abs(pos.y - y) < handleSize) {
+              setIsResizingElement(true);
+              setResizeCorner(corner);
+              setDragStart(pos);
+              return;
+            }
+          }
+        }
+      }
+
       // Verifica click em elemento (palco, bar, etc)
       for (const el of elements) {
         if (isPointInBounds(pos, el.bounds)) {
@@ -538,24 +577,34 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
       }
 
-      // Verifica click em assento (incluindo mesas)
-      for (const sector of sectors) {
-        if (!sector.visible) continue;
-        for (const seat of sector.seats) {
-          const seatW = seat.tableConfig?.tableWidth || 14;
-          const seatH = seat.tableConfig?.tableHeight || 14;
-          const seatBounds = { x: seat.x, y: seat.y, width: seatW, height: seatH };
-          if (isPointInBounds(pos, seatBounds)) {
-            onSelectSeats([seat.id], e.shiftKey);
-            if (!e.shiftKey && activeSeatType !== 'normal') {
-              onApplySeatType([seat.id], activeSeatType);
+      // CTRL+click para selecionar/mover assento individual
+      // Sem CTRL, sempre seleciona o setor
+      if (e.ctrlKey || e.metaKey) {
+        for (const sector of sectors) {
+          if (!sector.visible) continue;
+          for (const seat of sector.seats) {
+            const seatW = seat.tableConfig?.tableWidth || 14;
+            const seatH = seat.tableConfig?.tableHeight || 14;
+            const seatBounds = { x: seat.x, y: seat.y, width: seatW, height: seatH };
+            if (isPointInBounds(pos, seatBounds)) {
+              // Se o assento já está selecionado, inicia arraste
+              if (selectedSeatIds.includes(seat.id)) {
+                setIsDraggingSeat(true);
+                setDraggingSeatInfo({ seatId: seat.id, sectorId: sector.id });
+                setDragStart(pos);
+              } else {
+                onSelectSeats([seat.id], e.shiftKey);
+                if (activeSeatType !== 'normal') {
+                  onApplySeatType([seat.id], activeSeatType);
+                }
+              }
+              return;
             }
-            return;
           }
         }
       }
 
-      // Verifica click em setor (usando polígono)
+      // Verifica click em setor (usando polígono) - comportamento padrão
       for (const sector of sectors) {
         if (!sector.visible || sector.locked) continue;
         if (sector.vertices && sector.vertices.length > 2) {
@@ -578,7 +627,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       setBoxSelectStart(pos);
       setBoxSelectCurrent(pos);
     }
-  }, [activeTool, screenToCanvas, pan, sectors, elements, selectedSectorIds, onSelectSeats, onSelectSector, onSelectElements, onApplySeatType, activeSeatType, getVertexAtPoint]);
+  }, [activeTool, screenToCanvas, pan, sectors, elements, selectedSectorIds, selectedElementIds, selectedSeatIds, onSelectSeats, onSelectSector, onSelectElements, onApplySeatType, activeSeatType, getVertexAtPoint, zoom]);
 
   // Mouse move
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -606,6 +655,41 @@ export const Canvas: React.FC<CanvasProps> = ({
       return;
     }
 
+    // Redimensionar elemento
+    if (isResizingElement && selectedElementIds.length === 1 && resizeCorner) {
+      const el = elements.find(e => e.id === selectedElementIds[0]);
+      if (el) {
+        let newWidth = el.bounds.width;
+        let newHeight = el.bounds.height;
+        
+        if (resizeCorner === 'se') {
+          newWidth = Math.max(50, pos.x - el.bounds.x);
+          newHeight = Math.max(30, pos.y - el.bounds.y);
+        } else if (resizeCorner === 'ne') {
+          newWidth = Math.max(50, pos.x - el.bounds.x);
+          newHeight = Math.max(30, el.bounds.y + el.bounds.height - pos.y);
+        } else if (resizeCorner === 'sw') {
+          newWidth = Math.max(50, el.bounds.x + el.bounds.width - pos.x);
+          newHeight = Math.max(30, pos.y - el.bounds.y);
+        } else if (resizeCorner === 'nw') {
+          newWidth = Math.max(50, el.bounds.x + el.bounds.width - pos.x);
+          newHeight = Math.max(30, el.bounds.y + el.bounds.height - pos.y);
+        }
+        
+        onResizeElement(el.id, newWidth, newHeight);
+      }
+      return;
+    }
+
+    // Arrastar assento dentro do setor
+    if (isDraggingSeat && draggingSeatInfo) {
+      const sector = sectors.find(s => s.id === draggingSeatInfo.sectorId);
+      if (sector && isPointInPolygon(pos, sector.vertices)) {
+        onMoveSeat(draggingSeatInfo.seatId, draggingSeatInfo.sectorId, pos.x - 7, pos.y - 7);
+      }
+      return;
+    }
+
     // Arrastar elementos do venue
     if (isDraggingElement && selectedElementIds.length > 0) {
       const dx = pos.x - dragStart.x;
@@ -625,7 +709,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     if (isBoxSelecting) {
       setBoxSelectCurrent(pos);
     }
-  }, [isPanning, isDrawing, isDragging, isDraggingElement, isDraggingVertex, activeVertexIndex, isBoxSelecting, activeTool, dragStart, screenToCanvas, selectedSectorIds, selectedElementIds, sectors, onPanChange, onMoveSector, onMoveElement, onUpdateSectorVertices]);
+  }, [isPanning, isDrawing, isDragging, isDraggingElement, isDraggingVertex, isDraggingSeat, draggingSeatInfo, isResizingElement, resizeCorner, activeVertexIndex, isBoxSelecting, activeTool, dragStart, screenToCanvas, selectedSectorIds, selectedElementIds, sectors, elements, onPanChange, onMoveSector, onMoveElement, onResizeElement, onMoveSeat, onUpdateSectorVertices]);
 
   // Mouse up
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
@@ -681,16 +765,20 @@ export const Canvas: React.FC<CanvasProps> = ({
     setIsDrawing(false);
     setIsDragging(false);
     setIsDraggingElement(false);
+    setIsDraggingSeat(false);
+    setDraggingSeatInfo(null);
     setIsBoxSelecting(false);
     setIsDraggingVertex(false);
     setActiveVertexIndex(null);
+    setIsResizingElement(false);
+    setResizeCorner(null);
   }, [isDrawing, activeTool, drawStart, drawCurrent, onCreateSector, isBoxSelecting, boxSelectStart, boxSelectCurrent, sectors, onSelectSeats, activeSeatType, onApplySeatType]);
 
   return (
     <div 
       ref={containerRef}
       className="absolute inset-0 overflow-hidden bg-canvas-bg cursor-crosshair"
-      style={{ cursor: activeTool === 'pan' ? 'grab' : isPanning ? 'grabbing' : isDraggingVertex ? 'move' : isDraggingElement ? 'move' : isBoxSelecting ? 'crosshair' : 'default' }}
+      style={{ cursor: activeTool === 'pan' ? 'grab' : isPanning ? 'grabbing' : isDraggingVertex ? 'move' : isDraggingElement ? 'move' : isDraggingSeat ? 'grabbing' : isResizingElement ? 'nwse-resize' : isBoxSelecting ? 'crosshair' : 'default' }}
     >
       <canvas
         ref={canvasRef}
@@ -707,21 +795,28 @@ export const Canvas: React.FC<CanvasProps> = ({
       {/* Hint overlay */}
       {selectedSeatIds.length === 0 && sectors.length > 0 && !isBoxSelecting && !selectedSectorIds.length && (
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-background/90 backdrop-blur-sm px-4 py-2 rounded-lg text-sm text-muted-foreground pointer-events-none">
-          Arraste para selecionar múltiplos assentos • Shift+click para adicionar à seleção
+          Ctrl+click no assento para selecionar • Arraste para box selection
         </div>
       )}
       
       {/* Vertex editing hint */}
       {selectedSectorIds.length === 1 && activeTool === 'select' && (
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-primary/90 backdrop-blur-sm px-4 py-2 rounded-lg text-sm text-primary-foreground pointer-events-none">
-          Arraste os quadrados azuis para ajustar a forma do setor
+          Arraste os quadrados azuis para ajustar • Ctrl+click para mover assentos
         </div>
       )}
       
-      {/* Selection count */}
+      {/* Selection count with move hint */}
       {selectedSeatIds.length > 0 && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm font-medium shadow-lg">
-          {selectedSeatIds.length} assento{selectedSeatIds.length > 1 ? 's' : ''} selecionado{selectedSeatIds.length > 1 ? 's' : ''}
+          {selectedSeatIds.length} assento{selectedSeatIds.length > 1 ? 's' : ''} selecionado{selectedSeatIds.length > 1 ? 's' : ''} • Ctrl+arraste para mover
+        </div>
+      )}
+      
+      {/* Element resize hint */}
+      {selectedElementIds.length === 1 && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-accent/90 backdrop-blur-sm px-4 py-2 rounded-lg text-sm text-accent-foreground pointer-events-none">
+          Arraste os cantos para redimensionar o elemento
         </div>
       )}
     </div>
