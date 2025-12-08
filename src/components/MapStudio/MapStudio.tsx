@@ -28,7 +28,7 @@ import {
   GridGeneratorParams,
   ELEMENT_ICONS
 } from '@/types/mapStudio';
-import { generateSeatsGrid, generateId, generateVerticesForShape, getBoundsFromVertices, generateSeatsInsidePolygon, repositionSeatsInsidePolygon } from '@/lib/mapUtils';
+import { generateSeatsGrid, generateId, generateVerticesForShape, generateVerticesWithCurvature, getBoundsFromVertices, generateSeatsInsidePolygon, repositionSeatsInsidePolygon } from '@/lib/mapUtils';
 import { toast } from 'sonner';
 
 const CANVAS_WIDTH = 2000;
@@ -791,7 +791,8 @@ export const MapStudio: React.FC = () => {
             const y = 200 + row * 350;
             const bounds = { x, y, width: 450, height: 280 };
             
-            const vertices = generateVerticesForShape(shapeConfig.shape, bounds);
+            // Gera vértices considerando a curvatura
+            const vertices = generateVerticesWithCurvature(shapeConfig.shape, bounds, shapeConfig.curvature || 0);
             const sectorId = generateId();
             
             // Gera assentos DENTRO do polígono com tipo de mobília e curvatura
