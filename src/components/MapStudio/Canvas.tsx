@@ -568,9 +568,15 @@ export const Canvas: React.FC<CanvasProps> = ({
     return () => canvas.removeEventListener('wheel', handleWheelNative);
   }, [zoom, pan, onZoomChange, onPanChange]);
 
-  // Context menu handler - mostra menu personalizado ao clicar com botão direito
+  // Context menu (botão direito) - só mostra se Ctrl pressionado
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
+    
+    // Só mostra context menu se Ctrl estiver pressionado
+    // Caso contrário, permite pan normal via right-click
+    if (!e.ctrlKey && !e.metaKey) {
+      return;
+    }
     
     const pos = screenToCanvas(e.clientX, e.clientY);
     
@@ -636,15 +642,15 @@ export const Canvas: React.FC<CanvasProps> = ({
     
     const pos = screenToCanvas(e.clientX, e.clientY);
     
-    // Right-click (botão 2) abre context menu - tratado em handleContextMenu
     // Middle click (botão 1) ou pan tool = pan
-    if (activeTool === 'pan' || e.button === 1) {
+    // Right-click (botão 2) sem Ctrl = pan também
+    if (activeTool === 'pan' || e.button === 1 || (e.button === 2 && !e.ctrlKey && !e.metaKey)) {
       setIsPanning(true);
       setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
       return;
     }
     
-    // Ignora right-click para não interferir com context menu
+    // Right-click com Ctrl = context menu (tratado em handleContextMenu)
     if (e.button === 2) {
       return;
     }
