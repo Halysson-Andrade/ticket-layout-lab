@@ -794,7 +794,7 @@ export const MapStudio: React.FC = () => {
             const vertices = generateVerticesForShape(shapeConfig.shape, bounds);
             const sectorId = generateId();
             
-            // Gera assentos DENTRO do polígono com tipo de mobília
+            // Gera assentos DENTRO do polígono com tipo de mobília e curvatura
             const tableConf = shapeConfig.furnitureType !== 'chair' ? {
               shape: shapeConfig.tableShape,
               chairCount: shapeConfig.chairsPerTable,
@@ -812,7 +812,10 @@ export const MapStudio: React.FC = () => {
               `S${sectors.length + i + 1}-`,
               shapeConfig.furnitureType,
               tableConf,
-              shapeConfig.shape === 'arc'
+              shapeConfig.shape === 'arc',
+              shapeConfig.curvature || 0,
+              shapeConfig.rows,
+              shapeConfig.cols
             );
             
             const sector: Sector = {

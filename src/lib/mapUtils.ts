@@ -419,6 +419,161 @@ export function generateSeatsGrid(
   return seats;
 }
 
+// Gera assentos em formato de arco/semicírculo
+export function generateSeatsInArc(
+  bounds: Bounds,
+  sectorId: string,
+  rows: number = 10,
+  cols: number = 20,
+  seatSize: number = 12,
+  spacing: number = 4,
+  rowLabelType: RowLabelType = 'alpha',
+  seatLabelType: SeatLabelType = 'numeric',
+  prefix: string = '',
+  furnitureType: FurnitureType = 'chair',
+  tableConfig?: TableConfig,
+  curvature: number = 100 // 0-100, onde 100 = arco completo
+): Seat[] {
+  const seats: Seat[] = [];
+  
+  const cx = bounds.x + bounds.width / 2;
+  const cy = bounds.y + bounds.height / 2;
+  
+  // Ajusta tamanho baseado no tipo de mobília
+  const itemSize = (furnitureType === 'table' || furnitureType === 'bistro') 
+    ? (tableConfig?.tableWidth || 60) + 20
+    : seatSize;
+  
+  const outerRadius = Math.min(bounds.width, bounds.height) * 0.45;
+  const innerRatio = curvature >= 80 ? 0.35 : Math.max(0.15, 0.5 - curvature / 200);
+  const innerRadius = outerRadius * innerRatio;
+  
+  // Ângulo do arco baseado na curvatura
+  const angleSpread = curvature >= 80 
+    ? Math.PI // 180° para arco completo
+    : Math.PI * (0.3 + curvature / 130); // De 30° a ~108° para curvatura moderada
+  
+  for (let r = 0; r < rows; r++) {
+    const rowRatio = rows > 1 ? r / (rows - 1) : 0;
+    const rowRadius = outerRadius - rowRatio * (outerRadius - innerRadius);
+    
+    // Calcula quantos assentos cabem nesta fileira
+    const circumference = angleSpread * rowRadius;
+    const seatSpaceNeeded = itemSize + spacing;
+    const maxSeatsInRow = Math.max(1, Math.floor(circumference / seatSpaceNeeded));
+    const seatsInRow = Math.min(cols, maxSeatsInRow);
+    
+    const rowLabel = getRowLabel(r, rowLabelType, 'A');
+    
+    for (let c = 0; c < seatsInRow; c++) {
+      const colRatio = seatsInRow > 1 ? c / (seatsInRow - 1) : 0.5;
+      const angle = -Math.PI / 2 - angleSpread / 2 + angleSpread * colRatio;
+      
+      const x = cx + rowRadius * Math.cos(angle);
+      const y = cy + rowRadius * Math.sin(angle);
+      
+      const seatLabel = getSeatLabel(c, seatsInRow, seatLabelType, 1);
+      
+      const seat: Seat = {
+        id: generateId(),
+        sectorId,
+        row: prefix + rowLabel,
+        number: seatLabel,
+        type: 'normal',
+        status: 'available',
+        x,
+        y,
+        rotation: (angle + Math.PI / 2) * (180 / Math.PI), // Rotaciona para apontar para o centro
+        furnitureType,
+      };
+      
+      if ((furnitureType === 'table' || furnitureType === 'bistro') && tableConfig) {
+        seat.tableConfig = { ...tableConfig };
+      }
+      
+      seats.push(seat);
+    }
+  }
+  
+  return seats;
+}
+
+// Gera assentos com curvatura aplicada (grid curvo)
+export function generateSeatsWithCurvature(
+  bounds: Bounds,
+  vertices: Vertex[],
+  sectorId: string,
+  rows: number = 10,
+  cols: number = 20,
+  seatSize: number = 12,
+  spacing: number = 4,
+  curvature: number = 0,
+  rowLabelType: RowLabelType = 'alpha',
+  seatLabelType: SeatLabelType = 'numeric',
+  prefix: string = '',
+  furnitureType: FurnitureType = 'chair',
+  tableConfig?: TableConfig
+): Seat[] {
+  const seats: Seat[] = [];
+  
+  const cx = bounds.x + bounds.width / 2;
+  const cy = bounds.y + bounds.height / 2;
+  
+  // Ajusta tamanho baseado no tipo de mobília
+  const itemSize = (furnitureType === 'table' || furnitureType === 'bistro') 
+    ? (tableConfig?.tableWidth || 60) + 20
+    : seatSize;
+  const step = itemSize + spacing;
+  
+  const gridWidth = cols * step;
+  const gridHeight = rows * step;
+  const offsetX = bounds.x + (bounds.width - gridWidth) / 2;
+  const offsetY = bounds.y + (bounds.height - gridHeight) / 2;
+  
+  for (let r = 0; r < rows; r++) {
+    const rowLabel = getRowLabel(r, rowLabelType, 'A');
+    
+    for (let c = 0; c < cols; c++) {
+      // Posição base no grid
+      const baseX = offsetX + c * step + itemSize / 2;
+      const baseY = offsetY + r * step + itemSize / 2;
+      
+      // Aplica curvatura - pontos nas bordas descem, centro sobe
+      const normalizedX = (baseX - cx) / (bounds.width / 2);
+      const curveOffset = (1 - normalizedX * normalizedX) * curvature * 0.8;
+      
+      const x = baseX;
+      const y = baseY - curveOffset + (r / rows) * curvature * 0.3;
+      
+      // Verifica se está dentro do polígono
+      if (!isPointInPolygon({ x, y }, vertices)) continue;
+      
+      const seatLabel = getSeatLabel(c, cols, seatLabelType, 1);
+      
+      const seat: Seat = {
+        id: generateId(),
+        sectorId,
+        row: prefix + rowLabel,
+        number: seatLabel,
+        type: 'normal',
+        status: 'available',
+        x,
+        y,
+        rotation: 0,
+        furnitureType,
+      };
+      
+      if ((furnitureType === 'table' || furnitureType === 'bistro') && tableConfig) {
+        seat.tableConfig = { ...tableConfig };
+      }
+      
+      seats.push(seat);
+    }
+  }
+  
+  return seats;
+}
+
 // Gera assentos DENTRO de um polígono
 export function generateSeatsInsidePolygon(
   vertices: Vertex[],
@@ -430,12 +585,58 @@ export function generateSeatsInsidePolygon(
   prefix: string = '',
   furnitureType: FurnitureType = 'chair',
   tableConfig?: TableConfig,
-  isArcShape: boolean = false
+  isArcShape: boolean = false,
+  curvature: number = 0,
+  rows: number = 0,
+  cols: number = 0
 ): Seat[] {
   if (vertices.length < 3) return [];
-
-  const seats: Seat[] = [];
+  
   const bounds = getBoundsFromVertices(vertices);
+  
+  // Se tiver curvatura alta ou for arco, usa geração em arco
+  if (isArcShape || curvature >= 40) {
+    const effectiveRows = rows > 0 ? rows : Math.floor(bounds.height / (seatSize + spacing));
+    const effectiveCols = cols > 0 ? cols : Math.floor(bounds.width / (seatSize + spacing));
+    return generateSeatsInArc(
+      bounds,
+      sectorId,
+      effectiveRows,
+      effectiveCols,
+      seatSize,
+      spacing,
+      rowLabelType,
+      seatLabelType,
+      prefix,
+      furnitureType,
+      tableConfig,
+      isArcShape ? 100 : curvature
+    );
+  }
+  
+  // Se tiver curvatura leve, usa grid curvo
+  if (curvature > 0) {
+    const effectiveRows = rows > 0 ? rows : Math.floor(bounds.height / (seatSize + spacing));
+    const effectiveCols = cols > 0 ? cols : Math.floor(bounds.width / (seatSize + spacing));
+    return generateSeatsWithCurvature(
+      bounds,
+      vertices,
+      sectorId,
+      effectiveRows,
+      effectiveCols,
+      seatSize,
+      spacing,
+      curvature,
+      rowLabelType,
+      seatLabelType,
+      prefix,
+      furnitureType,
+      tableConfig
+    );
+  }
+
+  // Grid normal para curvatura 0
+  const seats: Seat[] = [];
   
   // Ajusta tamanho baseado no tipo de mobília
   const itemSize = (furnitureType === 'table' || furnitureType === 'bistro') 
@@ -457,10 +658,7 @@ export function generateSeatsInsidePolygon(
       // Verifica se o centro do assento está dentro do polígono
       const seatCenter = { x: x + itemSize / 2, y: y + itemSize / 2 };
       
-      // Usa detecção especial para arcos
-      const isInside = isArcShape 
-        ? isPointInArc(seatCenter, bounds)
-        : isPointInPolygon(seatCenter, vertices);
+      const isInside = isPointInPolygon(seatCenter, vertices);
       
       if (isInside) {
         const seatLabel = getSeatLabel(colIndex, 100, seatLabelType, 1);
