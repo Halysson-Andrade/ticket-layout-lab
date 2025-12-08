@@ -777,6 +777,7 @@ export const MapStudio: React.FC = () => {
           pan={pan}
           viewportWidth={containerRef.current?.clientWidth || 1200}
           viewportHeight={(containerRef.current?.clientHeight || 800) - 56}
+          onPanChange={setPan}
         />
 
         {/* Status Bar */}

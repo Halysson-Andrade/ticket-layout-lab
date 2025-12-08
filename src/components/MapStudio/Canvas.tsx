@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react';
+import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { Sector, Seat, VenueElement, ToolType, SeatType, SEAT_COLORS, ELEMENT_ICONS, Vertex, TableConfig } from '@/types/mapStudio';
 import { isPointInBounds, isPointInPolygon, getBoundsFromVertices } from '@/lib/mapUtils';
 
