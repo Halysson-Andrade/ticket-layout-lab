@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { Sector, Seat, VenueElement, ToolType, SeatType, SEAT_COLORS, ELEMENT_ICONS, Vertex, TableConfig } from '@/types/mapStudio';
 import { isPointInBounds, isPointInPolygon, getBoundsFromVertices } from '@/lib/mapUtils';
+import { CanvasContextMenu } from './CanvasContextMenu';
 
 interface BackgroundImageConfig {
   url: string;
@@ -36,7 +37,11 @@ interface CanvasProps {
   onUpdateSectorVertices: (id: string, vertices: Vertex[]) => void;
   onApplySeatType: (ids: string[], type: SeatType) => void;
   onMoveSeat: (seatId: string, sectorId: string, x: number, y: number) => void;
-  onSeatMoveEnd?: () => void; // Chamado ao finalizar movimento de assento para salvar histórico
+  onSeatMoveEnd?: () => void;
+  onAddVertex?: (sectorId: string, edgeIndex: number, position: { x: number; y: number }) => void;
+  onRemoveVertex?: (sectorId: string, vertexIndex: number) => void;
+  onDuplicateSector?: () => void;
+  onDeleteSector?: () => void;
 }
 
 const HANDLE_SIZE = 10;
@@ -68,6 +73,10 @@ export const Canvas: React.FC<CanvasProps> = ({
   onApplySeatType,
   onMoveSeat,
   onSeatMoveEnd,
+  onAddVertex,
+  onRemoveVertex,
+  onDuplicateSector,
+  onDeleteSector,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -88,6 +97,16 @@ export const Canvas: React.FC<CanvasProps> = ({
   const [boxSelectStart, setBoxSelectStart] = useState({ x: 0, y: 0 });
   const [boxSelectCurrent, setBoxSelectCurrent] = useState({ x: 0, y: 0 });
   const bgImageRef = useRef<HTMLImageElement | null>(null);
+  
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    canvasPos: { x: number; y: number };
+    edgeIndex: number | null;
+    vertexIndex: number | null;
+    sectorId: string | null;
+  } | null>(null);
 
   // Carrega imagem de fundo
   useEffect(() => {
@@ -120,6 +139,38 @@ export const Canvas: React.FC<CanvasProps> = ({
       const dist = Math.sqrt(Math.pow(pos.x - v.x, 2) + Math.pow(pos.y - v.y, 2));
       if (dist <= handleRadius) {
         return i;
+      }
+    }
+    return null;
+  }, [zoom]);
+
+  // Verifica se o ponto está próximo de uma aresta do polígono
+  const getEdgeAtPoint = useCallback((pos: { x: number; y: number }, sector: Sector): { edgeIndex: number; point: { x: number; y: number } } | null => {
+    const threshold = 12 / zoom;
+    const vertices = sector.vertices;
+    
+    for (let i = 0; i < vertices.length; i++) {
+      const v1 = vertices[i];
+      const v2 = vertices[(i + 1) % vertices.length];
+      
+      // Calcular distância do ponto à linha
+      const dx = v2.x - v1.x;
+      const dy = v2.y - v1.y;
+      const lengthSquared = dx * dx + dy * dy;
+      
+      if (lengthSquared === 0) continue;
+      
+      // Parâmetro t para projeção do ponto na linha
+      const t = Math.max(0, Math.min(1, ((pos.x - v1.x) * dx + (pos.y - v1.y) * dy) / lengthSquared));
+      
+      // Ponto mais próximo na aresta
+      const projX = v1.x + t * dx;
+      const projY = v1.y + t * dy;
+      
+      const distSquared = Math.pow(pos.x - projX, 2) + Math.pow(pos.y - projY, 2);
+      
+      if (distSquared <= threshold * threshold) {
+        return { edgeIndex: i, point: { x: projX, y: projY } };
       }
     }
     return null;
@@ -517,19 +568,84 @@ export const Canvas: React.FC<CanvasProps> = ({
     return () => canvas.removeEventListener('wheel', handleWheelNative);
   }, [zoom, pan, onZoomChange, onPanChange]);
 
-  // Prevent context menu
+  // Context menu handler - mostra menu personalizado ao clicar com botão direito
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-  }, []);
+    
+    const pos = screenToCanvas(e.clientX, e.clientY);
+    
+    // Verifica se clicou em um vértice de setor selecionado
+    for (const sectorId of selectedSectorIds) {
+      const sector = sectors.find(s => s.id === sectorId);
+      if (sector && sector.vertices) {
+        const vertexIndex = getVertexAtPoint(pos, sector);
+        if (vertexIndex !== null) {
+          setContextMenu({
+            x: e.clientX,
+            y: e.clientY,
+            canvasPos: pos,
+            edgeIndex: null,
+            vertexIndex: vertexIndex,
+            sectorId: sectorId,
+          });
+          return;
+        }
+        
+        // Verifica se clicou em uma aresta
+        const edge = getEdgeAtPoint(pos, sector);
+        if (edge) {
+          setContextMenu({
+            x: e.clientX,
+            y: e.clientY,
+            canvasPos: edge.point,
+            edgeIndex: edge.edgeIndex,
+            vertexIndex: null,
+            sectorId: sectorId,
+          });
+          return;
+        }
+      }
+    }
+    
+    // Verifica se clicou dentro de um setor selecionado
+    for (const sectorId of selectedSectorIds) {
+      const sector = sectors.find(s => s.id === sectorId);
+      if (sector && sector.vertices && isPointInPolygon(pos, sector.vertices)) {
+        setContextMenu({
+          x: e.clientX,
+          y: e.clientY,
+          canvasPos: pos,
+          edgeIndex: null,
+          vertexIndex: null,
+          sectorId: sectorId,
+        });
+        return;
+      }
+    }
+    
+    // Fecha menu se clicar no vazio
+    setContextMenu(null);
+  }, [screenToCanvas, selectedSectorIds, sectors, getVertexAtPoint, getEdgeAtPoint]);
 
   // Mouse down
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // Fecha context menu se aberto
+    if (contextMenu) {
+      setContextMenu(null);
+    }
+    
     const pos = screenToCanvas(e.clientX, e.clientY);
     
-    // Right-click para pan (botão 2)
-    if (e.button === 2 || activeTool === 'pan' || e.button === 1) {
+    // Right-click (botão 2) abre context menu - tratado em handleContextMenu
+    // Middle click (botão 1) ou pan tool = pan
+    if (activeTool === 'pan' || e.button === 1) {
       setIsPanning(true);
       setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+      return;
+    }
+    
+    // Ignora right-click para não interferir com context menu
+    if (e.button === 2) {
       return;
     }
 
@@ -660,7 +776,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       setBoxSelectStart(pos);
       setBoxSelectCurrent(pos);
     }
-  }, [activeTool, screenToCanvas, pan, sectors, elements, selectedSectorIds, selectedElementIds, selectedSeatIds, onSelectSeats, onSelectSector, onSelectElements, onApplySeatType, activeSeatType, getVertexAtPoint, zoom]);
+  }, [activeTool, screenToCanvas, pan, sectors, elements, selectedSectorIds, selectedElementIds, selectedSeatIds, onSelectSeats, onSelectSector, onSelectElements, onApplySeatType, activeSeatType, getVertexAtPoint, zoom, contextMenu]);
 
   // Mouse move
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -837,9 +953,9 @@ export const Canvas: React.FC<CanvasProps> = ({
       )}
       
       {/* Vertex editing hint */}
-      {selectedSectorIds.length === 1 && activeTool === 'select' && (
+      {selectedSectorIds.length === 1 && activeTool === 'select' && !contextMenu && (
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-primary/90 backdrop-blur-sm px-4 py-2 rounded-lg text-sm text-primary-foreground pointer-events-none">
-          Arraste os quadrados azuis para ajustar • Ctrl+click para mover assentos
+          Arraste os vértices para ajustar • Botão direito para adicionar/remover pontos
         </div>
       )}
       
@@ -855,6 +971,33 @@ export const Canvas: React.FC<CanvasProps> = ({
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-accent/90 backdrop-blur-sm px-4 py-2 rounded-lg text-sm text-accent-foreground pointer-events-none">
           Arraste os cantos para redimensionar o elemento
         </div>
+      )}
+      
+      {/* Context menu */}
+      {contextMenu && (
+        <CanvasContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          showVertexOptions={contextMenu.edgeIndex !== null || contextMenu.vertexIndex !== null}
+          showElementOptions={contextMenu.sectorId !== null && contextMenu.edgeIndex === null && contextMenu.vertexIndex === null}
+          canRemoveVertex={contextMenu.vertexIndex !== null && (() => {
+            const sector = sectors.find(s => s.id === contextMenu.sectorId);
+            return sector ? sector.vertices.length > 3 : false;
+          })()}
+          onAddVertex={() => {
+            if (contextMenu.sectorId && contextMenu.edgeIndex !== null) {
+              onAddVertex?.(contextMenu.sectorId, contextMenu.edgeIndex, contextMenu.canvasPos);
+            }
+          }}
+          onRemoveVertex={() => {
+            if (contextMenu.sectorId && contextMenu.vertexIndex !== null) {
+              onRemoveVertex?.(contextMenu.sectorId, contextMenu.vertexIndex);
+            }
+          }}
+          onDuplicate={onDuplicateSector}
+          onDelete={onDeleteSector}
+        />
       )}
     </div>
   );
