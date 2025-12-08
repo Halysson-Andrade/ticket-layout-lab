@@ -7,7 +7,7 @@ import { RightSidebar } from './RightSidebar';
 import { Canvas } from './Canvas';
 import { Minimap } from './Minimap';
 import { StatusBar } from './StatusBar';
-import { GridGeneratorModal } from './GridGeneratorModal';
+import { SeatGeneratorModal } from './SeatGeneratorModal';
 import { OnboardingWizard } from './OnboardingWizard';
 import { ExportModal } from './ExportModal';
 import { BackgroundImagePanel, BackgroundImageConfig } from './BackgroundImagePanel';
@@ -71,7 +71,7 @@ export const MapStudio: React.FC = () => {
 
   // Modals
   const [showGridGenerator, setShowGridGenerator] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [showExport, setShowExport] = useState(false);
 
   // History for undo/redo
@@ -326,7 +326,16 @@ export const MapStudio: React.FC = () => {
     const sector = sectors.find(s => s.id === params.sectorId);
     if (!sector) return;
 
-    // Gera assentos dentro do polígono
+    // Monta configuração de mesa se necessário
+    const furnitureType = params.furnitureType || 'chair';
+    const tableConf = params.tableConfig || (furnitureType !== 'chair' ? {
+      shape: 'round' as const,
+      chairCount: 6,
+      tableWidth: 60,
+      tableHeight: 60,
+    } : undefined);
+
+    // Gera assentos dentro do polígono com tipo de mobília
     const newSeats = generateSeatsInsidePolygon(
       sector.vertices,
       sector.id,
@@ -335,22 +344,27 @@ export const MapStudio: React.FC = () => {
       params.rowLabelType,
       params.seatLabelType,
       params.prefix,
-      'chair',
-      undefined,
-      sector.shape === 'arc'
+      furnitureType,
+      tableConf,
+      sector.shape === 'arc',
+      sector.curvature || 0,
+      params.rows,
+      params.cols
     );
 
     setSectors(prev => {
       const newSectors = prev.map(s => 
         s.id === params.sectorId 
-          ? { ...s, seats: newSeats } // Substitui assentos ao invés de adicionar
+          ? { ...s, seats: newSeats, furnitureType } // Substitui assentos e atualiza tipo
           : s
       );
       pushHistory(newSectors);
       return newSectors;
     });
 
-    toast.success(`${newSeats.length} assentos gerados dentro do setor!`);
+    const isTable = furnitureType === 'table' || furnitureType === 'bistro';
+    const totalSeats = isTable && tableConf ? newSeats.length * tableConf.chairCount : newSeats.length;
+    toast.success(`${newSeats.length} ${isTable ? 'mesas' : 'assentos'} gerados (${totalSeats} lugares)!`);
   }, [sectors, pushHistory]);
 
   // Regenera assentos do setor selecionado
@@ -696,7 +710,7 @@ export const MapStudio: React.FC = () => {
             onClick={() => setShowOnboarding(true)}
           >
             <Plus className="h-4 w-4 mr-2" />
-            Novo Mapa
+            Templates
           </Button>
           <Button 
             variant="default" 
@@ -825,7 +839,7 @@ export const MapStudio: React.FC = () => {
       </main>
 
       {/* Modals */}
-      <GridGeneratorModal
+      <SeatGeneratorModal
         open={showGridGenerator}
         onClose={() => setShowGridGenerator(false)}
         onGenerate={handleGenerateGrid}

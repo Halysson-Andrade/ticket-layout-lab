@@ -175,7 +175,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
               {sectors.length === 0 ? (
                 <p className="text-xs text-muted-foreground py-4 text-center">
                   Nenhum setor criado.<br/>
-                  Use <strong>Novo Mapa</strong> ou ferramenta <strong>Setor (R)</strong>
+                  Use <strong>Templates</strong> ou ferramenta <strong>Setor (R)</strong>
                 </p>
               ) : (
                 <div className="space-y-1">
