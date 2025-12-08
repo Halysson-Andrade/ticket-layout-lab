@@ -577,8 +577,38 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
       }
 
-      // CTRL+click para selecionar/mover assento individual
-      // Sem CTRL, sempre seleciona o setor
+      // Se já há assentos selecionados, verifica se clicou em um deles para mover
+      if (selectedSeatIds.length > 0) {
+        for (const sector of sectors) {
+          if (!sector.visible) continue;
+          for (const seat of sector.seats) {
+            const seatW = seat.tableConfig?.tableWidth || 14;
+            const seatH = seat.tableConfig?.tableHeight || 14;
+            const seatBounds = { x: seat.x, y: seat.y, width: seatW, height: seatH };
+            if (isPointInBounds(pos, seatBounds)) {
+              // Clicou em um assento
+              if (selectedSeatIds.includes(seat.id)) {
+                // Assento já selecionado - inicia arraste (sem precisar de Ctrl)
+                setIsDraggingSeat(true);
+                setDraggingSeatInfo({ seatId: seat.id, sectorId: sector.id });
+                setDragStart(pos);
+                return;
+              } else if (e.ctrlKey || e.metaKey) {
+                // Ctrl+click em assento não selecionado - adiciona à seleção
+                onSelectSeats([seat.id], true);
+                return;
+              }
+              // Clicou em assento não selecionado sem Ctrl - continua para limpar seleção
+            }
+          }
+        }
+        
+        // Clicou fora dos assentos selecionados - limpa seleção de assentos
+        // e verifica se clicou em um setor ou no vazio
+        onSelectSeats([], false);
+      }
+
+      // CTRL+click para selecionar assento individual (quando não há assentos selecionados)
       if (e.ctrlKey || e.metaKey) {
         for (const sector of sectors) {
           if (!sector.visible) continue;
@@ -587,16 +617,9 @@ export const Canvas: React.FC<CanvasProps> = ({
             const seatH = seat.tableConfig?.tableHeight || 14;
             const seatBounds = { x: seat.x, y: seat.y, width: seatW, height: seatH };
             if (isPointInBounds(pos, seatBounds)) {
-              // Se o assento já está selecionado, inicia arraste
-              if (selectedSeatIds.includes(seat.id)) {
-                setIsDraggingSeat(true);
-                setDraggingSeatInfo({ seatId: seat.id, sectorId: sector.id });
-                setDragStart(pos);
-              } else {
-                onSelectSeats([seat.id], e.shiftKey);
-                if (activeSeatType !== 'normal') {
-                  onApplySeatType([seat.id], activeSeatType);
-                }
+              onSelectSeats([seat.id], e.shiftKey);
+              if (activeSeatType !== 'normal') {
+                onApplySeatType([seat.id], activeSeatType);
               }
               return;
             }
@@ -809,7 +832,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       {/* Selection count with move hint */}
       {selectedSeatIds.length > 0 && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-2 rounded-full text-sm font-medium shadow-lg">
-          {selectedSeatIds.length} assento{selectedSeatIds.length > 1 ? 's' : ''} selecionado{selectedSeatIds.length > 1 ? 's' : ''} • Ctrl+arraste para mover
+          {selectedSeatIds.length} assento{selectedSeatIds.length > 1 ? 's' : ''} • Arraste para mover • Clique fora para desselecionar
         </div>
       )}
       
