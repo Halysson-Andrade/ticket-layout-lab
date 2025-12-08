@@ -425,6 +425,30 @@ export const MapStudio: React.FC = () => {
     }));
   }, []);
 
+  // Redimensiona elemento
+  const handleResizeElement = useCallback((id: string, width: number, height: number) => {
+    setElements(prev => prev.map(el => {
+      if (el.id !== id) return el;
+      return {
+        ...el,
+        bounds: { ...el.bounds, width, height },
+      };
+    }));
+  }, []);
+
+  // Move assento dentro do setor
+  const handleMoveSeat = useCallback((seatId: string, sectorId: string, x: number, y: number) => {
+    setSectors(prev => prev.map(s => {
+      if (s.id !== sectorId) return s;
+      return {
+        ...s,
+        seats: s.seats.map(seat => 
+          seat.id === seatId ? { ...seat, x, y } : seat
+        ),
+      };
+    }));
+  }, []);
+
   // Importa imagem de fundo
   const handleImportImage = useCallback(() => {
     const input = document.createElement('input');
@@ -710,8 +734,10 @@ export const MapStudio: React.FC = () => {
           onCreateSector={handleCreateSector}
           onMoveSector={handleMoveSector}
           onMoveElement={handleMoveElement}
+          onResizeElement={handleResizeElement}
           onUpdateSectorVertices={handleUpdateSectorVertices}
           onApplySeatType={handleApplySeatType}
+          onMoveSeat={handleMoveSeat}
         />
 
         {/* Toolbar */}

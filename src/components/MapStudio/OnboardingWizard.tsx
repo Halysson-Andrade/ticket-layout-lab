@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { SectorShape, SHAPE_NAMES, FurnitureType, TableShape, FURNITURE_LABELS, SEAT_COLORS, SeatType } from '@/types/mapStudio';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SectorShape, SHAPE_NAMES, FurnitureType, TableShape, FURNITURE_LABELS, SEAT_COLORS, SeatType, RowLabelType, SeatLabelType } from '@/types/mapStudio';
 import { cn } from '@/lib/utils';
 import { generateVerticesForShape, isPointInPolygon } from '@/lib/mapUtils';
 
@@ -29,6 +30,12 @@ export interface ShapeConfig {
   tableShape: TableShape;
   chairsPerTable: number;
   seatType: SeatType;
+  // Configurações de rotulação
+  rowLabelType: RowLabelType;
+  rowLabelStart: string;
+  seatLabelType: SeatLabelType;
+  seatLabelStart: number;
+  prefix: string;
 }
 
 interface ShapeTemplate {
@@ -196,6 +203,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     tableShape: 'round',
     chairsPerTable: 6,
     seatType: 'normal',
+    // Rotulação
+    rowLabelType: 'alpha',
+    rowLabelStart: 'A',
+    seatLabelType: 'numeric',
+    seatLabelStart: 1,
+    prefix: '',
   });
 
   // Hook useMemo ANTES do early return
@@ -855,6 +868,83 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                             <span className="text-xs">{label}</span>
                           </button>
                         ))}
+                      </div>
+                    </div>
+
+                    {/* Configurações de Rotulação */}
+                    <div className="p-4 bg-muted/30 rounded-lg space-y-4">
+                      <Label className="text-sm font-medium">Numeração de Fileiras e Assentos</Label>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Tipo de Fileira</Label>
+                          <Select
+                            value={config.rowLabelType}
+                            onValueChange={(v: RowLabelType) => setConfig(prev => ({ ...prev, rowLabelType: v }))}
+                          >
+                            <SelectTrigger className="mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="alpha">Letras (A, B, C...)</SelectItem>
+                              <SelectItem value="numeric">Números (1, 2, 3...)</SelectItem>
+                              <SelectItem value="roman">Romanos (I, II, III...)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Início Fileira</Label>
+                          <Input
+                            value={config.rowLabelStart}
+                            onChange={(e) => setConfig(prev => ({ ...prev, rowLabelStart: e.target.value }))}
+                            className="mt-1"
+                            placeholder={config.rowLabelType === 'alpha' ? 'A' : '1'}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Tipo de Numeração</Label>
+                          <Select
+                            value={config.seatLabelType}
+                            onValueChange={(v: SeatLabelType) => setConfig(prev => ({ ...prev, seatLabelType: v }))}
+                          >
+                            <SelectTrigger className="mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="numeric">Sequencial (1, 2, 3...)</SelectItem>
+                              <SelectItem value="odd-left">Ímpares à esquerda</SelectItem>
+                              <SelectItem value="even-left">Pares à esquerda</SelectItem>
+                              <SelectItem value="reverse">Inverter por fileira</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Início Assento</Label>
+                          <Input
+                            type="number"
+                            value={config.seatLabelStart}
+                            onChange={(e) => setConfig(prev => ({ ...prev, seatLabelStart: parseInt(e.target.value) || 1 }))}
+                            className="mt-1"
+                            min={1}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Prefixo (opcional)</Label>
+                        <Input
+                          value={config.prefix}
+                          onChange={(e) => setConfig(prev => ({ ...prev, prefix: e.target.value }))}
+                          className="mt-1"
+                          placeholder="Ex: VIP-, A-"
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Exemplo: {config.prefix}{config.rowLabelStart}
+                          {config.seatLabelStart}
+                        </p>
                       </div>
                     </div>
 
