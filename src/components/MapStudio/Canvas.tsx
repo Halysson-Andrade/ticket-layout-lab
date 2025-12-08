@@ -373,7 +373,10 @@ export const Canvas: React.FC<CanvasProps> = ({
         const isNaturallyCurvedZoom = sector.vertices.length > 8;
         const shouldApplyCurvatureZoom = curvatureZoom > 0 && !isNaturallyCurvedZoom;
         
-        ctx.fillStyle = sector.color + '80'; // 50% opacidade
+        // Usa a cor do setor diretamente
+        const sectorColor = sector.color || '#6366f1';
+        ctx.fillStyle = sectorColor + '80'; // 50% opacidade
+        
         if (sector.vertices && sector.vertices.length > 2) {
           ctx.beginPath();
           

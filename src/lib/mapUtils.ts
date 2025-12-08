@@ -733,16 +733,66 @@ export function generateSeatsInsidePolygon(
     );
   }
 
-  // Grid normal para curvatura 0
+  // Grid normal para curvatura 0 (usa rows e cols se especificados)
   const seats: Seat[] = [];
   
   // Ajusta tamanho baseado no tipo de mobília
-  const itemSize = (furnitureType === 'table' || furnitureType === 'bistro') 
+  const isTable = furnitureType === 'table' || furnitureType === 'bistro';
+  const itemSize = isTable 
     ? (tableConfig?.tableWidth || 60) + 20 // Mesa + espaço para cadeiras
     : seatSize;
   const step = itemSize + spacing;
   
-  // Padding interno para não encostar nas bordas
+  // Se rows e cols foram especificados, usa geração baseada em grid exato
+  if (rows > 0 && cols > 0) {
+    // Calcula o tamanho total do grid
+    const gridWidth = cols * step;
+    const gridHeight = rows * step;
+    
+    // Centraliza o grid dentro do polígono
+    const offsetX = bounds.x + (bounds.width - gridWidth) / 2 + itemSize / 2;
+    const offsetY = bounds.y + (bounds.height - gridHeight) / 2 + itemSize / 2;
+    
+    for (let r = 0; r < rows; r++) {
+      const rowLabel = getRowLabel(r, rowLabelType, 'A');
+      
+      for (let c = 0; c < cols; c++) {
+        const x = offsetX + c * step;
+        const y = offsetY + r * step;
+        
+        // Verifica se está dentro do polígono
+        const seatCenter = { x, y };
+        const isInside = isPointInPolygon(seatCenter, vertices);
+        
+        if (isInside) {
+          const seatLabel = getSeatLabel(c, cols, seatLabelType, 1);
+          
+          const seat: Seat = {
+            id: generateId(),
+            sectorId,
+            row: prefix + rowLabel,
+            number: seatLabel,
+            type: 'normal',
+            status: 'available',
+            x: x - itemSize / 2,
+            y: y - itemSize / 2,
+            rotation: 0,
+            furnitureType,
+          };
+          
+          if (isTable && tableConfig) {
+            seat.tableConfig = { ...tableConfig };
+          }
+          
+          seats.push(seat);
+        }
+      }
+    }
+    
+    return seats;
+  }
+  
+  // Fallback: padding interno para não encostar nas bordas
   const padding = itemSize;
   
   let rowIndex = 0;
@@ -775,7 +825,7 @@ export function generateSeatsInsidePolygon(
         };
         
         // Adiciona config de mesa se for mesa/bistro
-        if ((furnitureType === 'table' || furnitureType === 'bistro') && tableConfig) {
+        if (isTable && tableConfig) {
           seat.tableConfig = { ...tableConfig };
         }
         
