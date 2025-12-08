@@ -261,7 +261,7 @@ export const MapStudio: React.FC = () => {
     });
   }, [pushHistory]);
 
-  // Redimensiona setor com regeneração de vértices e assentos
+  // Redimensiona setor - apenas atualiza vértices e bounds, sem regenerar assentos
   const handleResizeSector = useCallback((sectorId: string, width: number, height: number) => {
     setSectors(prev => {
       const newSectors = prev.map(s => {
@@ -270,30 +270,8 @@ export const MapStudio: React.FC = () => {
         const newBounds = { ...s.bounds, width, height };
         const newVertices = generateVerticesWithCurvature(s.shape, newBounds, s.curvature || 0);
         
-        // Regenera assentos dentro do novo polígono mantendo configurações
-        const furnitureType = s.furnitureType || 'chair';
-        const tableConf = furnitureType !== 'chair' ? {
-          shape: 'round' as const,
-          chairCount: 6,
-          tableWidth: 60,
-          tableHeight: 60,
-        } : undefined;
-        
-        const newSeats = generateSeatsInsidePolygon(
-          newVertices,
-          s.id,
-          12, // seatSize
-          4,  // spacing
-          'alpha',
-          'numeric',
-          '',
-          furnitureType,
-          tableConf,
-          s.shape === 'arc',
-          s.curvature || 0
-        );
-        
-        return { ...s, bounds: newBounds, vertices: newVertices, seats: newSeats };
+        // Apenas atualiza bounds e vértices, mantém assentos existentes
+        return { ...s, bounds: newBounds, vertices: newVertices };
       });
       pushHistory(newSectors);
       return newSectors;
