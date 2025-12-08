@@ -228,24 +228,72 @@ export const MapStudio: React.FC = () => {
         
         let updatedSector = { ...s, ...updates };
         
-        // Se bounds foi alterado, recalcula vértices
-        if (updates.bounds) {
-          const newVertices = generateVerticesForShape(s.shape, updates.bounds);
+        // Se curvatura ou bounds foi alterado, recalcula vértices e assentos
+        if (updates.curvature !== undefined || updates.bounds) {
+          const newCurvature = updates.curvature !== undefined ? updates.curvature : s.curvature || 0;
+          const newBounds = updates.bounds || s.bounds;
+          const newVertices = generateVerticesWithCurvature(s.shape, newBounds, newCurvature);
           updatedSector.vertices = newVertices;
+          updatedSector.curvature = newCurvature;
           
-          // Reposiciona assentos
-          if (s.seats.length > 0) {
-            updatedSector.seats = repositionSeatsInsidePolygon(
-              s.seats,
-              s.vertices,
-              newVertices,
-              s.id,
-              12
-            );
-          }
+          // Regenera assentos com a nova curvatura
+          const furnitureType = s.furnitureType || 'chair';
+          const tableConf = furnitureType !== 'chair' ? {
+            shape: 'round' as const,
+            chairCount: 6,
+            tableWidth: 60,
+            tableHeight: 60,
+          } : undefined;
+          
+          updatedSector.seats = generateSeatsInsidePolygon(
+            newVertices,
+            s.id,
+            12, 4, 'alpha', 'numeric', '',
+            furnitureType, tableConf,
+            s.shape === 'arc', newCurvature
+          );
         }
         
         return updatedSector;
+      });
+      pushHistory(newSectors);
+      return newSectors;
+    });
+  }, [pushHistory]);
+
+  // Redimensiona setor com regeneração de vértices e assentos
+  const handleResizeSector = useCallback((sectorId: string, width: number, height: number) => {
+    setSectors(prev => {
+      const newSectors = prev.map(s => {
+        if (s.id !== sectorId) return s;
+        
+        const newBounds = { ...s.bounds, width, height };
+        const newVertices = generateVerticesWithCurvature(s.shape, newBounds, s.curvature || 0);
+        
+        // Regenera assentos dentro do novo polígono mantendo configurações
+        const furnitureType = s.furnitureType || 'chair';
+        const tableConf = furnitureType !== 'chair' ? {
+          shape: 'round' as const,
+          chairCount: 6,
+          tableWidth: 60,
+          tableHeight: 60,
+        } : undefined;
+        
+        const newSeats = generateSeatsInsidePolygon(
+          newVertices,
+          s.id,
+          12, // seatSize
+          4,  // spacing
+          'alpha',
+          'numeric',
+          '',
+          furnitureType,
+          tableConf,
+          s.shape === 'arc',
+          s.curvature || 0
+        );
+        
+        return { ...s, bounds: newBounds, vertices: newVertices, seats: newSeats };
       });
       pushHistory(newSectors);
       return newSectors;
@@ -732,6 +780,7 @@ export const MapStudio: React.FC = () => {
           onUpdateSector={handleUpdateSector}
           onUpdateSeats={handleUpdateSeats}
           onRegenerateSeats={handleRegenerateSeats}
+          onResizeSector={handleResizeSector}
         />
 
         {/* Background Image Panel */}
@@ -789,7 +838,17 @@ export const MapStudio: React.FC = () => {
             const col = i % 2;
             const x = 100 + col * 500;
             const y = 200 + row * 350;
-            const bounds = { x, y, width: 450, height: 280 };
+            
+            // Calcula tamanho do setor baseado nos parâmetros configurados
+            const isTable = shapeConfig.furnitureType === 'table' || shapeConfig.furnitureType === 'bistro';
+            const itemSize = isTable ? 80 : shapeConfig.seatSize;
+            const step = itemSize + (isTable ? shapeConfig.colSpacing * 2 : shapeConfig.colSpacing);
+            const rowStep = itemSize + (isTable ? shapeConfig.rowSpacing * 2 : shapeConfig.rowSpacing);
+            
+            // Expande o setor para caber todos os itens
+            const width = Math.max(450, shapeConfig.cols * step + 40);
+            const height = Math.max(280, shapeConfig.rows * rowStep + 40);
+            const bounds = { x, y, width, height };
             
             // Gera vértices considerando a curvatura
             const vertices = generateVerticesWithCurvature(shapeConfig.shape, bounds, shapeConfig.curvature || 0);

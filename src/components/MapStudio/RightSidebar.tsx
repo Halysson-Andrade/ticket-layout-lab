@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3, CircleDot } from 'lucide-react';
+import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3, CircleDot, Maximize2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ interface RightSidebarProps {
   onUpdateSector: (id: string, updates: Partial<Sector>) => void;
   onUpdateSeats: (ids: string[], updates: Partial<Seat>) => void;
   onRegenerateSeats?: (sectorId: string) => void;
+  onResizeSector?: (sectorId: string, width: number, height: number) => void;
 }
 
 export const RightSidebar: React.FC<RightSidebarProps> = ({
@@ -22,17 +23,22 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   onUpdateSector,
   onUpdateSeats,
   onRegenerateSeats,
+  onResizeSector,
 }) => {
   // Local state para edição em tempo real
   const [localRotation, setLocalRotation] = useState(0);
   const [localCurvature, setLocalCurvature] = useState(0);
+  const [localWidth, setLocalWidth] = useState(450);
+  const [localHeight, setLocalHeight] = useState(280);
 
   useEffect(() => {
     if (selectedSector) {
       setLocalRotation(selectedSector.rotation);
       setLocalCurvature(selectedSector.curvature || 0);
+      setLocalWidth(selectedSector.bounds.width);
+      setLocalHeight(selectedSector.bounds.height);
     }
-  }, [selectedSector?.id, selectedSector?.rotation, selectedSector?.curvature]);
+  }, [selectedSector?.id, selectedSector?.rotation, selectedSector?.curvature, selectedSector?.bounds.width, selectedSector?.bounds.height]);
 
   const handleRotationChange = (value: number) => {
     setLocalRotation(value);
@@ -45,6 +51,20 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
     setLocalCurvature(value);
     if (selectedSector) {
       onUpdateSector(selectedSector.id, { curvature: value });
+    }
+  };
+
+  const handleWidthChange = (value: number) => {
+    setLocalWidth(value);
+    if (selectedSector && onResizeSector) {
+      onResizeSector(selectedSector.id, value, localHeight);
+    }
+  };
+
+  const handleHeightChange = (value: number) => {
+    setLocalHeight(value);
+    if (selectedSector && onResizeSector) {
+      onResizeSector(selectedSector.id, localWidth, value);
     }
   };
 
@@ -97,7 +117,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                   <Palette className="h-3 w-3" />
                   Cor do Setor
                 </Label>
-                <div className="grid grid-cols-4 gap-1.5">
+                <div className="grid grid-cols-5 gap-1.5">
                   {SECTOR_COLORS.map((color) => (
                     <button
                       key={color}
@@ -144,31 +164,41 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-xs">Dimensões</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
+              {/* Dimensões com sliders */}
+              <div className="space-y-3">
+                <Label className="text-xs flex items-center gap-2">
+                  <Maximize2 className="h-3 w-3" />
+                  Dimensões
+                </Label>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
                     <Label className="text-[10px] text-muted-foreground">Largura</Label>
-                    <Input
-                      type="number"
-                      value={Math.round(selectedSector.bounds.width)}
-                      onChange={(e) => onUpdateSector(selectedSector.id, {
-                        bounds: { ...selectedSector.bounds, width: parseInt(e.target.value) || 100 }
-                      })}
-                      className="h-7 text-xs"
-                    />
+                    <span className="text-xs text-muted-foreground">{localWidth}px</span>
                   </div>
-                  <div>
+                  <Slider
+                    value={[localWidth]}
+                    onValueChange={([value]) => handleWidthChange(value)}
+                    min={100}
+                    max={1000}
+                    step={10}
+                    className="w-full"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
                     <Label className="text-[10px] text-muted-foreground">Altura</Label>
-                    <Input
-                      type="number"
-                      value={Math.round(selectedSector.bounds.height)}
-                      onChange={(e) => onUpdateSector(selectedSector.id, {
-                        bounds: { ...selectedSector.bounds, height: parseInt(e.target.value) || 100 }
-                      })}
-                      className="h-7 text-xs"
-                    />
+                    <span className="text-xs text-muted-foreground">{localHeight}px</span>
                   </div>
+                  <Slider
+                    value={[localHeight]}
+                    onValueChange={([value]) => handleHeightChange(value)}
+                    min={100}
+                    max={800}
+                    step={10}
+                    className="w-full"
+                  />
                 </div>
               </div>
 
