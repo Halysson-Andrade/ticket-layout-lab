@@ -261,71 +261,82 @@ export function generateVerticesWithCurvature(
   return generateVerticesForShape(shape, bounds);
 }
 
-// Gera vértices de arco baseado no nível de curvatura
+// Gera vértices de arco baseado no nível de curvatura - usa largura e altura completas
 function generateArcVertices(bounds: Bounds, curvature: number): Vertex[] {
   const { x, y, width, height } = bounds;
   const cx = x + width / 2;
-  const cy = y + height / 2;
+  const cy = y + height; // Centro na base para arco voltado para cima
   
-  const arcPoints = 16;
+  const arcPoints = 20;
   const vertices: Vertex[] = [];
   
-  const outerR = Math.min(width, height) * 0.45;
-  const innerRatio = curvature >= 80 ? 0.35 : Math.max(0.2, 0.6 - curvature / 150);
-  const innerR = outerR * innerRatio;
+  // Usa dimensões completas do bounds
+  const outerRx = width / 2; // Raio X externo = metade da largura
+  const outerRy = height; // Raio Y externo = altura completa
+  
+  const innerRatio = curvature >= 80 ? 0.35 : Math.max(0.25, 0.6 - curvature / 150);
+  const innerRx = outerRx * innerRatio;
+  const innerRy = outerRy * innerRatio;
   
   // Ângulo do arco baseado na curvatura
   const angleSpread = curvature >= 80 
     ? Math.PI  // 180° para arco completo
     : Math.PI * (0.5 + (curvature - 40) / 80);
   
-  const startAngle = -Math.PI / 2 - angleSpread / 2;
-  const endAngle = -Math.PI / 2 + angleSpread / 2;
+  const startAngle = Math.PI + (Math.PI - angleSpread) / 2;
+  const endAngle = startAngle + angleSpread;
   
-  // Arco externo (sentido horário)
+  // Arco externo (de esquerda para direita)
   for (let i = 0; i <= arcPoints; i++) {
     const angle = startAngle + (i * (endAngle - startAngle) / arcPoints);
     vertices.push({
-      x: cx + outerR * Math.cos(angle),
-      y: cy + outerR * Math.sin(angle)
+      x: cx + outerRx * Math.cos(angle),
+      y: cy + outerRy * Math.sin(angle)
     });
   }
   
-  // Arco interno (sentido anti-horário)
+  // Arco interno (de direita para esquerda)
   for (let i = arcPoints; i >= 0; i--) {
     const angle = startAngle + (i * (endAngle - startAngle) / arcPoints);
     vertices.push({
-      x: cx + innerR * Math.cos(angle),
-      y: cy + innerR * Math.sin(angle)
+      x: cx + innerRx * Math.cos(angle),
+      y: cy + innerRy * Math.sin(angle)
     });
   }
   
   return vertices;
 }
 
-// Aplica curvatura aos vértices existentes
+// Aplica curvatura aos vértices existentes - proporcional às dimensões
 function applyCurvatureToVertices(vertices: Vertex[], bounds: Bounds, curvature: number): Vertex[] {
   const cx = bounds.x + bounds.width / 2;
+  const cy = bounds.y + bounds.height;
   const curvedVertices: Vertex[] = [];
-  const numPoints = 16; // Adiciona pontos intermediários para suavizar
+  const numPointsPerEdge = 4;
   
   for (let i = 0; i < vertices.length; i++) {
     const current = vertices[i];
     const next = vertices[(i + 1) % vertices.length];
     
-    // Adiciona pontos ao longo de cada aresta com curvatura
-    for (let j = 0; j < numPoints / vertices.length; j++) {
-      const t = j / (numPoints / vertices.length);
+    for (let j = 0; j < numPointsPerEdge; j++) {
+      const t = j / numPointsPerEdge;
       const px = current.x + (next.x - current.x) * t;
       const py = current.y + (next.y - current.y) * t;
       
-      // Aplica curvatura baseada na posição X
+      // Normaliza posição X relativa ao centro
       const normalizedX = (px - cx) / (bounds.width / 2);
-      const curveOffset = (1 - normalizedX * normalizedX) * curvature * 0.5;
+      
+      // Curvatura proporcional à altura e posição
+      const curveFactor = (curvature / 100) * bounds.height * 0.3;
+      const curveOffset = (1 - normalizedX * normalizedX) * curveFactor;
+      
+      // Aplica curvatura mais forte no topo
+      const normalizedY = (py - bounds.y) / bounds.height;
+      const yFactor = 1 - normalizedY;
       
       curvedVertices.push({
         x: px,
-        y: py - curveOffset
+        y: py - curveOffset * yFactor
       });
     }
   }
