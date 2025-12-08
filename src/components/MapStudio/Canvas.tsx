@@ -36,6 +36,7 @@ interface CanvasProps {
   onUpdateSectorVertices: (id: string, vertices: Vertex[]) => void;
   onApplySeatType: (ids: string[], type: SeatType) => void;
   onMoveSeat: (seatId: string, sectorId: string, x: number, y: number) => void;
+  onSeatMoveEnd?: () => void; // Chamado ao finalizar movimento de assento para salvar histórico
 }
 
 const HANDLE_SIZE = 10;
@@ -66,6 +67,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   onUpdateSectorVertices,
   onApplySeatType,
   onMoveSeat,
+  onSeatMoveEnd,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -792,6 +794,11 @@ export const Canvas: React.FC<CanvasProps> = ({
       }
     }
 
+    // Salva histórico se estava arrastando assento
+    if (isDraggingSeat && onSeatMoveEnd) {
+      onSeatMoveEnd();
+    }
+
     setIsPanning(false);
     setIsDrawing(false);
     setIsDragging(false);
@@ -803,7 +810,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     setActiveVertexIndex(null);
     setIsResizingElement(false);
     setResizeCorner(null);
-  }, [isDrawing, activeTool, drawStart, drawCurrent, onCreateSector, isBoxSelecting, boxSelectStart, boxSelectCurrent, sectors, onSelectSeats, activeSeatType, onApplySeatType]);
+  }, [isDrawing, isDraggingSeat, activeTool, drawStart, drawCurrent, onCreateSector, isBoxSelecting, boxSelectStart, boxSelectCurrent, sectors, onSelectSeats, activeSeatType, onApplySeatType, onSeatMoveEnd]);
 
   return (
     <div 

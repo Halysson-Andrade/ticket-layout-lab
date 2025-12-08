@@ -450,7 +450,7 @@ export const MapStudio: React.FC = () => {
     }));
   }, []);
 
-  // Move assento dentro do setor
+  // Move assento dentro do setor (sem salvar histórico durante o arraste)
   const handleMoveSeat = useCallback((seatId: string, sectorId: string, x: number, y: number) => {
     setSectors(prev => prev.map(s => {
       if (s.id !== sectorId) return s;
@@ -462,6 +462,11 @@ export const MapStudio: React.FC = () => {
       };
     }));
   }, []);
+
+  // Salva histórico após finalizar movimento de assento
+  const handleSeatMoveEnd = useCallback(() => {
+    pushHistory(sectors);
+  }, [sectors, pushHistory]);
 
   // Importa imagem de fundo
   const handleImportImage = useCallback(() => {
@@ -752,6 +757,7 @@ export const MapStudio: React.FC = () => {
           onUpdateSectorVertices={handleUpdateSectorVertices}
           onApplySeatType={handleApplySeatType}
           onMoveSeat={handleMoveSeat}
+          onSeatMoveEnd={handleSeatMoveEnd}
         />
 
         {/* Toolbar */}
