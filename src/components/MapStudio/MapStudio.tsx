@@ -468,6 +468,41 @@ export const MapStudio: React.FC = () => {
     pushHistory(sectors);
   }, [sectors, pushHistory]);
 
+  // Adiciona vértice em uma aresta do polígono
+  const handleAddVertex = useCallback((sectorId: string, edgeIndex: number, position: { x: number; y: number }) => {
+    pushHistory(sectors);
+    setSectors(prev => prev.map(s => {
+      if (s.id !== sectorId) return s;
+      const newVertices = [...s.vertices];
+      // Insere o novo vértice após a aresta selecionada
+      newVertices.splice(edgeIndex + 1, 0, { x: position.x, y: position.y });
+      return {
+        ...s,
+        vertices: newVertices,
+      };
+    }));
+    toast.success('Ponto adicionado ao polígono');
+  }, [sectors, pushHistory]);
+
+  // Remove vértice do polígono
+  const handleRemoveVertex = useCallback((sectorId: string, vertexIndex: number) => {
+    const sector = sectors.find(s => s.id === sectorId);
+    if (!sector || sector.vertices.length <= 3) {
+      toast.error('Não é possível remover - mínimo de 3 pontos');
+      return;
+    }
+    pushHistory(sectors);
+    setSectors(prev => prev.map(s => {
+      if (s.id !== sectorId) return s;
+      const newVertices = s.vertices.filter((_, i) => i !== vertexIndex);
+      return {
+        ...s,
+        vertices: newVertices,
+      };
+    }));
+    toast.success('Ponto removido do polígono');
+  }, [sectors, pushHistory]);
+
   // Importa imagem de fundo
   const handleImportImage = useCallback(() => {
     const input = document.createElement('input');
@@ -758,6 +793,10 @@ export const MapStudio: React.FC = () => {
           onApplySeatType={handleApplySeatType}
           onMoveSeat={handleMoveSeat}
           onSeatMoveEnd={handleSeatMoveEnd}
+          onAddVertex={handleAddVertex}
+          onRemoveVertex={handleRemoveVertex}
+          onDuplicateSector={handleDuplicate}
+          onDeleteSector={handleDelete}
         />
 
         {/* Toolbar */}
