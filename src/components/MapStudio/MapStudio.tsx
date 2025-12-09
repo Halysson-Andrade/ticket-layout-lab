@@ -867,7 +867,7 @@ export const MapStudio: React.FC = () => {
           onSelectSector={handleSelectSector}
           onSelectSeats={handleSelectSeats}
           onSelectElements={handleSelectElements}
-          onCreateSector={handleCreateShape}
+          onCreateSector={handleCreateSector}
           onMoveSector={handleMoveSector}
           onMoveElement={handleMoveElement}
           onResizeElement={handleResizeElement}
