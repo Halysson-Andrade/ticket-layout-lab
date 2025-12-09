@@ -24,6 +24,7 @@ import {
   ElementType,
   FurnitureType,
   TableConfig,
+  GeometricShape,
   SECTOR_COLORS,
   GridGeneratorParams,
   ELEMENT_ICONS
@@ -49,8 +50,10 @@ export const MapStudio: React.FC = () => {
   });
 
   const [sectors, setSectors] = useState<Sector[]>([]);
+  const [geometricShapes, setGeometricShapes] = useState<GeometricShape[]>([]);
   const [elements, setElements] = useState<VenueElement[]>([]);
   const [selectedSectorIds, setSelectedSectorIds] = useState<string[]>([]);
+  const [selectedShapeIds, setSelectedShapeIds] = useState<string[]>([]);
   const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([]);
   const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
   
@@ -104,7 +107,69 @@ export const MapStudio: React.FC = () => {
     }
   }, [historyIndex, history]);
 
-  // Cria setor
+  // Cria forma geométrica (não vinculada a setor)
+  const handleCreateShape = useCallback((bounds: { x: number; y: number; width: number; height: number }) => {
+    const shape: SectorShape = 'rectangle';
+    const newShape: GeometricShape = {
+      id: generateId(),
+      name: `Forma ${geometricShapes.length + 1}`,
+      color: SECTOR_COLORS[geometricShapes.length % SECTOR_COLORS.length],
+      bounds,
+      vertices: generateVerticesForShape(shape, bounds),
+      shape,
+      rotation: 0,
+      curvature: 0,
+    };
+    setGeometricShapes(prev => [...prev, newShape]);
+    setSelectedShapeIds([newShape.id]);
+    setSelectedSectorIds([]);
+    toast.success(`Forma "${newShape.name}" criada! Vincule a um setor nas propriedades.`);
+  }, [geometricShapes.length]);
+
+  // Vincula forma geométrica a um setor (converte em setor)
+  const handleLinkShapeToSector = useCallback((shapeId: string, sectorId?: string) => {
+    const shape = geometricShapes.find(s => s.id === shapeId);
+    if (!shape) return;
+    
+    // Cria um novo setor a partir da forma
+    const newSector: Sector = {
+      id: sectorId || generateId(),
+      name: shape.name.replace('Forma', 'Setor'),
+      color: shape.color,
+      bounds: shape.bounds,
+      vertices: shape.vertices,
+      shape: shape.shape,
+      rotation: shape.rotation,
+      curvature: shape.curvature,
+      seats: [],
+      visible: true,
+      locked: false,
+    };
+    
+    // Remove a forma e adiciona o setor
+    setGeometricShapes(prev => prev.filter(s => s.id !== shapeId));
+    const newSectors = [...sectors, newSector];
+    setSectors(newSectors);
+    pushHistory(newSectors);
+    setSelectedShapeIds([]);
+    setSelectedSectorIds([newSector.id]);
+    toast.success(`Forma convertida para setor "${newSector.name}"!`);
+  }, [geometricShapes, sectors, pushHistory]);
+
+  // Seleciona forma geométrica
+  const handleSelectShape = useCallback((id: string, additive: boolean) => {
+    if (additive) {
+      setSelectedShapeIds(prev => 
+        prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+      );
+    } else {
+      setSelectedShapeIds([id]);
+    }
+    setSelectedSectorIds([]);
+    setSelectedSeatIds([]);
+  }, []);
+
+  // Cria setor diretamente (usado por templates/onboarding)
   const handleCreateSector = useCallback((bounds: { x: number; y: number; width: number; height: number }) => {
     const shape: SectorShape = 'rectangle';
     const newSector: Sector = {
@@ -127,7 +192,7 @@ export const MapStudio: React.FC = () => {
     toast.success(`Setor "${newSector.name}" criado!`);
   }, [sectors, pushHistory]);
 
-  // Seleciona setor
+  
   const handleSelectSector = useCallback((id: string, additive: boolean) => {
     if (additive) {
       setSelectedSectorIds(prev => 
@@ -798,7 +863,7 @@ export const MapStudio: React.FC = () => {
           onSelectSector={handleSelectSector}
           onSelectSeats={handleSelectSeats}
           onSelectElements={handleSelectElements}
-          onCreateSector={handleCreateSector}
+          onCreateSector={handleCreateShape}
           onMoveSector={handleMoveSector}
           onMoveElement={handleMoveElement}
           onResizeElement={handleResizeElement}
@@ -903,6 +968,7 @@ export const MapStudio: React.FC = () => {
         onClose={() => setShowGridGenerator(false)}
         onGenerate={handleGenerateGrid}
         sectorId={selectedSectorIds[0] || ''}
+        sector={selectedSector}
       />
 
       <OnboardingWizard
