@@ -187,6 +187,23 @@ export const SECTOR_COLORS = [
   'hsl(172, 66%, 50%)',
 ];
 
+// Lista de setores predefinidos para vincular formas geométricas
+export const PREDEFINED_SECTORS = [
+  { id: 'premium', name: 'Premium', color: 'hsl(340, 82%, 52%)' },
+  { id: 'vip', name: 'VIP', color: 'hsl(262, 83%, 58%)' },
+  { id: 'gold', name: 'Gold', color: 'hsl(45, 93%, 47%)' },
+  { id: 'prata', name: 'Prata', color: 'hsl(0, 0%, 65%)' },
+  { id: 'mezanino', name: 'Mezanino', color: 'hsl(199, 89%, 48%)' },
+  { id: 'arquibancada', name: 'Arquibancada', color: 'hsl(142, 71%, 45%)' },
+  { id: 'impar', name: 'Ímpar', color: 'hsl(24, 95%, 53%)' },
+  { id: 'par', name: 'Par', color: 'hsl(280, 68%, 60%)' },
+  { id: 'bronze', name: 'Bronze', color: 'hsl(30, 60%, 45%)' },
+  { id: 'rosa', name: 'Rosa', color: 'hsl(330, 70%, 65%)' },
+  { id: 'verde', name: 'Verde', color: 'hsl(142, 71%, 45%)' },
+  { id: 'azul', name: 'Azul', color: 'hsl(199, 89%, 48%)' },
+  { id: 'laranja', name: 'Laranja', color: 'hsl(24, 95%, 53%)' },
+];
+
 export const ELEMENT_ICONS: Record<ElementType, string> = {
   stage: '🎭',
   bar: '🍺',

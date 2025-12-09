@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
-import { Sector, Seat, SeatType, SEAT_COLORS, SECTOR_COLORS, SHAPE_NAMES, GeometricShape } from '@/types/mapStudio';
+import { Sector, Seat, SeatType, SEAT_COLORS, SECTOR_COLORS, SHAPE_NAMES, GeometricShape, PREDEFINED_SECTORS } from '@/types/mapStudio';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 
 interface RightSidebarProps {
@@ -13,11 +14,13 @@ interface RightSidebarProps {
   selectedSeats: Seat[];
   selectedShape?: GeometricShape | null;
   sectors?: Sector[];
+  selectedSectorIds?: string[];
   onUpdateSector: (id: string, updates: Partial<Sector>) => void;
   onUpdateSeats: (ids: string[], updates: Partial<Seat>) => void;
   onRegenerateSeats?: (sectorId: string) => void;
   onResizeSector?: (sectorId: string, width: number, height: number) => void;
-  onLinkShapeToSector?: (shapeId: string) => void;
+  onLinkShapeToSector?: (shapeId: string, sectorCategory: string) => void;
+  onGroupSectors?: (sectorIds: string[], targetCategory: string) => void;
 }
 
 const SEAT_TYPE_LABELS: Record<SeatType, string> = {
@@ -34,11 +37,13 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   selectedSeats,
   selectedShape,
   sectors = [],
+  selectedSectorIds = [],
   onUpdateSector,
   onUpdateSeats,
   onRegenerateSeats,
   onResizeSector,
   onLinkShapeToSector,
+  onGroupSectors,
 }) => {
   // Local state para edição em tempo real com debounce
   const [localRotation, setLocalRotation] = useState(0);
@@ -167,17 +172,28 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                   <Link className="h-3 w-3" />
                   Vincular a Setor
                 </Label>
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => onLinkShapeToSector?.(selectedShape.id)}
+                <Select
+                  onValueChange={(categoryId) => onLinkShapeToSector?.(selectedShape.id, categoryId)}
                 >
-                  <Link className="h-4 w-4 mr-2" />
-                  Converter para Setor
-                </Button>
+                  <SelectTrigger className="w-full h-8 text-xs">
+                    <SelectValue placeholder="Selecione um setor..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PREDEFINED_SECTORS.map((sector) => (
+                      <SelectItem key={sector.id} value={sector.id}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full border border-border" 
+                            style={{ backgroundColor: sector.color }}
+                          />
+                          {sector.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <p className="text-[10px] text-muted-foreground">
-                  Ao vincular, você poderá adicionar assentos a esta forma.
+                  Selecione o setor para vincular esta forma. Após vincular, você poderá adicionar assentos.
                 </p>
               </div>
 
@@ -218,6 +234,79 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                     />
                   ))}
                 </div>
+              </div>
+            </div>
+          </ScrollArea>
+        </div>
+      </TooltipProvider>
+    );
+  }
+
+  // Múltiplos setores selecionados - opção de agrupar
+  if (selectedSectorIds.length > 1) {
+    const selectedSectors = sectors.filter(s => selectedSectorIds.includes(s.id));
+    
+    return (
+      <TooltipProvider delayDuration={300}>
+        <div className="absolute right-4 top-20 bottom-4 w-72 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg z-10 flex flex-col overflow-hidden">
+          <div className="px-4 py-3 border-b border-border">
+            <h2 className="font-semibold text-sm flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              {selectedSectorIds.length} Setores Selecionados
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Use Shift+Clique para selecionar múltiplos setores
+            </p>
+          </div>
+          
+          <ScrollArea className="flex-1">
+            <div className="p-4 space-y-4">
+              {/* Lista de setores selecionados */}
+              <div className="space-y-2">
+                <Label className="text-xs">Setores selecionados:</Label>
+                <div className="space-y-1">
+                  {selectedSectors.map(sector => (
+                    <div key={sector.id} className="flex items-center gap-2 p-2 bg-muted/50 rounded text-xs">
+                      <div 
+                        className="w-3 h-3 rounded" 
+                        style={{ backgroundColor: sector.color }}
+                      />
+                      <span className="flex-1">{sector.name}</span>
+                      <span className="text-muted-foreground">{sector.seats.length} assentos</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Opção de agrupar */}
+              <div className="space-y-2 pt-2 border-t border-border">
+                <Label className="text-xs flex items-center gap-2">
+                  <Link className="h-3 w-3" />
+                  Agrupar em Setor
+                </Label>
+                <Select
+                  onValueChange={(categoryId) => onGroupSectors?.(selectedSectorIds, categoryId)}
+                >
+                  <SelectTrigger className="w-full h-8 text-xs">
+                    <SelectValue placeholder="Selecione um setor para agrupar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PREDEFINED_SECTORS.map((sector) => (
+                      <SelectItem key={sector.id} value={sector.id}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full border border-border" 
+                            style={{ backgroundColor: sector.color }}
+                          />
+                          {sector.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">
+                  Ao agrupar, todos os {selectedSectorIds.length} setores serão vinculados à mesma categoria.
+                </p>
               </div>
             </div>
           </ScrollArea>

@@ -26,6 +26,7 @@ import {
   TableConfig,
   GeometricShape,
   SECTOR_COLORS,
+  PREDEFINED_SECTORS,
   GridGeneratorParams,
   ELEMENT_ICONS
 } from '@/types/mapStudio';
@@ -923,10 +924,24 @@ export const MapStudio: React.FC = () => {
         <RightSidebar
           selectedSector={selectedSector}
           selectedSeats={selectedSeats}
+          sectors={sectors}
+          selectedSectorIds={selectedSectorIds}
           onUpdateSector={handleUpdateSector}
           onUpdateSeats={handleUpdateSeats}
           onRegenerateSeats={handleRegenerateSeats}
           onResizeSector={handleResizeSector}
+          onGroupSectors={(sectorIds, categoryId) => {
+            // Agrupa setores na mesma categoria
+            const category = PREDEFINED_SECTORS.find(s => s.id === categoryId);
+            if (category) {
+              setSectors(prev => prev.map(s => 
+                sectorIds.includes(s.id) 
+                  ? { ...s, categoryId: categoryId, name: `${category.name} - ${s.name}`, color: category.color }
+                  : s
+              ));
+              toast.success(`${sectorIds.length} setores agrupados em "${category.name}"`);
+            }
+          }}
         />
 
         {/* Background Image Panel */}
