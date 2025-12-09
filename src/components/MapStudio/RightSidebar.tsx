@@ -1,20 +1,23 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3, CircleDot, Maximize2, Info } from 'lucide-react';
+import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3, CircleDot, Maximize2, Info, Link } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
-import { Sector, Seat, SeatType, SEAT_COLORS, SECTOR_COLORS, SHAPE_NAMES } from '@/types/mapStudio';
+import { Sector, Seat, SeatType, SEAT_COLORS, SECTOR_COLORS, SHAPE_NAMES, GeometricShape } from '@/types/mapStudio';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 
 interface RightSidebarProps {
   selectedSector: Sector | null;
   selectedSeats: Seat[];
+  selectedShape?: GeometricShape | null;
+  sectors?: Sector[];
   onUpdateSector: (id: string, updates: Partial<Sector>) => void;
   onUpdateSeats: (ids: string[], updates: Partial<Seat>) => void;
   onRegenerateSeats?: (sectorId: string) => void;
   onResizeSector?: (sectorId: string, width: number, height: number) => void;
+  onLinkShapeToSector?: (shapeId: string) => void;
 }
 
 const SEAT_TYPE_LABELS: Record<SeatType, string> = {
@@ -29,10 +32,13 @@ const SEAT_TYPE_LABELS: Record<SeatType, string> = {
 export const RightSidebar: React.FC<RightSidebarProps> = ({
   selectedSector,
   selectedSeats,
+  selectedShape,
+  sectors = [],
   onUpdateSector,
   onUpdateSeats,
   onRegenerateSeats,
   onResizeSector,
+  onLinkShapeToSector,
 }) => {
   // Local state para edição em tempo real com debounce
   const [localRotation, setLocalRotation] = useState(0);
@@ -95,7 +101,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
     };
   }, []);
 
-  if (!selectedSector && selectedSeats.length === 0) {
+  if (!selectedSector && selectedSeats.length === 0 && !selectedShape) {
     return (
       <div className="absolute right-4 top-20 bottom-4 w-72 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg z-10 flex flex-col overflow-hidden">
         <div className="px-4 py-3 border-b border-border">
@@ -116,6 +122,98 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Propriedades de forma geométrica (não vinculada a setor)
+  if (selectedShape) {
+    return (
+      <TooltipProvider delayDuration={300}>
+        <div className="absolute right-4 top-20 bottom-4 w-72 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg z-10 flex flex-col overflow-hidden">
+          <div className="px-4 py-3 border-b border-border">
+            <h2 className="font-semibold text-sm flex items-center gap-2">
+              <div 
+                className="w-3 h-3 rounded" 
+                style={{ backgroundColor: selectedShape.color }}
+              />
+              {selectedShape.name}
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {SHAPE_NAMES[selectedShape.shape]} • Forma geométrica
+            </p>
+          </div>
+          
+          <ScrollArea className="flex-1">
+            <div className="p-4 space-y-5">
+              {/* Info */}
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  Esta forma não está vinculada a um setor. Vincule para adicionar assentos.
+                </p>
+              </div>
+
+              {/* Vincular a setor */}
+              <div className="space-y-2">
+                <Label className="text-xs flex items-center gap-2">
+                  <Link className="h-3 w-3" />
+                  Vincular a Setor
+                </Label>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => onLinkShapeToSector?.(selectedShape.id)}
+                >
+                  <Link className="h-4 w-4 mr-2" />
+                  Converter para Setor
+                </Button>
+                <p className="text-[10px] text-muted-foreground">
+                  Ao vincular, você poderá adicionar assentos a esta forma.
+                </p>
+              </div>
+
+              {/* Dimensões */}
+              <div className="space-y-2">
+                <Label className="text-xs flex items-center gap-2">
+                  <Maximize2 className="h-3 w-3" />
+                  Dimensões
+                </Label>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="p-2 bg-muted/50 rounded">
+                    <span className="text-muted-foreground">Largura:</span>
+                    <span className="ml-1 font-medium">{Math.round(selectedShape.bounds.width)}px</span>
+                  </div>
+                  <div className="p-2 bg-muted/50 rounded">
+                    <span className="text-muted-foreground">Altura:</span>
+                    <span className="ml-1 font-medium">{Math.round(selectedShape.bounds.height)}px</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cor */}
+              <div className="space-y-2">
+                <Label className="text-xs flex items-center gap-2">
+                  <Palette className="h-3 w-3" />
+                  Cor
+                </Label>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {SECTOR_COLORS.map((color) => (
+                    <button
+                      key={color}
+                      className={`w-full aspect-square rounded-md border-2 transition-all hover:scale-110 ${
+                        selectedShape.color === color 
+                          ? 'border-primary ring-2 ring-primary/30 scale-105' 
+                          : 'border-transparent hover:border-primary/50'
+                      }`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </ScrollArea>
+        </div>
+      </TooltipProvider>
     );
   }
 

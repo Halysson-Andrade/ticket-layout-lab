@@ -101,6 +101,19 @@ export interface VenueElement {
   color?: string;
 }
 
+// Forma geométrica independente (não vinculada a setor)
+export interface GeometricShape {
+  id: string;
+  name: string;
+  color: string;
+  bounds: Bounds;
+  vertices: Vertex[];
+  shape: SectorShape;
+  rotation: number;
+  curvature: number;
+  linkedSectorId?: string; // ID do setor vinculado (opcional)
+}
+
 export interface Layer {
   id: string;
   name: string;
