@@ -128,16 +128,20 @@ export const MapStudio: React.FC = () => {
     toast.success(`Forma "${newShape.name}" criada! Vincule a um setor nas propriedades.`);
   }, [geometricShapes.length]);
 
-  // Vincula forma geométrica a um setor (converte em setor)
-  const handleLinkShapeToSector = useCallback((shapeId: string, sectorId?: string) => {
+  // Vincula forma geométrica a um setor da lista predefinida
+  const handleLinkShapeToSector = useCallback((shapeId: string, categoryId: string) => {
     const shape = geometricShapes.find(s => s.id === shapeId);
     if (!shape) return;
     
-    // Cria um novo setor a partir da forma
+    // Busca categoria da lista predefinida
+    const category = PREDEFINED_SECTORS.find(s => s.id === categoryId);
+    if (!category) return;
+    
+    // Cria um novo setor a partir da forma com nome/cor da categoria
     const newSector: Sector = {
-      id: sectorId || generateId(),
-      name: shape.name.replace('Forma', 'Setor'),
-      color: shape.color,
+      id: generateId(),
+      name: category.name,
+      color: category.color,
       opacity: shape.opacity,
       bounds: shape.bounds,
       vertices: shape.vertices,
@@ -147,6 +151,7 @@ export const MapStudio: React.FC = () => {
       seats: [],
       visible: true,
       locked: false,
+      categoryId: categoryId,
     };
     
     // Remove a forma e adiciona o setor
@@ -156,7 +161,7 @@ export const MapStudio: React.FC = () => {
     pushHistory(newSectors);
     setSelectedShapeIds([]);
     setSelectedSectorIds([newSector.id]);
-    toast.success(`Forma convertida para setor "${newSector.name}"!`);
+    toast.success(`Forma vinculada ao setor "${category.name}"!`);
   }, [geometricShapes, sectors, pushHistory]);
 
   // Seleciona forma geométrica
@@ -868,7 +873,7 @@ export const MapStudio: React.FC = () => {
           onSelectSector={handleSelectSector}
           onSelectSeats={handleSelectSeats}
           onSelectElements={handleSelectElements}
-          onCreateSector={handleCreateSector}
+          onCreateSector={handleCreateShape}
           onMoveSector={handleMoveSector}
           onMoveElement={handleMoveElement}
           onResizeElement={handleResizeElement}
@@ -881,6 +886,9 @@ export const MapStudio: React.FC = () => {
           onRemoveVertex={handleRemoveVertex}
           onDuplicateSector={handleDuplicate}
           onDeleteSector={handleDelete}
+          geometricShapes={geometricShapes}
+          selectedShapeIds={selectedShapeIds}
+          onSelectShape={handleSelectShape}
         />
 
         {/* Toolbar */}
@@ -924,12 +932,14 @@ export const MapStudio: React.FC = () => {
         <RightSidebar
           selectedSector={selectedSector}
           selectedSeats={selectedSeats}
+          selectedShape={geometricShapes.find(s => selectedShapeIds.includes(s.id)) || null}
           sectors={sectors}
           selectedSectorIds={selectedSectorIds}
           onUpdateSector={handleUpdateSector}
           onUpdateSeats={handleUpdateSeats}
           onRegenerateSeats={handleRegenerateSeats}
           onResizeSector={handleResizeSector}
+          onLinkShapeToSector={handleLinkShapeToSector}
           onGroupSectors={(sectorIds, categoryId) => {
             // Agrupa setores na mesma categoria
             const category = PREDEFINED_SECTORS.find(s => s.id === categoryId);

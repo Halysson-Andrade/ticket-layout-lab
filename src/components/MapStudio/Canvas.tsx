@@ -524,6 +524,73 @@ export const Canvas: React.FC<CanvasProps> = ({
       ctx.restore();
     });
 
+    // Desenha formas geométricas (não vinculadas a setores)
+    geometricShapes.forEach(shape => {
+      const isSelected = selectedShapeIds.includes(shape.id);
+      const bounds = getBoundsFromVertices(shape.vertices);
+      const centerX = bounds.x + bounds.width / 2;
+      const centerY = bounds.y + bounds.height / 2;
+      
+      ctx.save();
+      
+      // Aplica rotação se existir
+      if (shape.rotation && shape.rotation !== 0) {
+        ctx.translate(centerX, centerY);
+        ctx.rotate((shape.rotation * Math.PI) / 180);
+        ctx.translate(-centerX, -centerY);
+      }
+      
+      // Desenha polígono
+      if (shape.vertices && shape.vertices.length > 2) {
+        ctx.beginPath();
+        ctx.moveTo(shape.vertices[0].x, shape.vertices[0].y);
+        for (let i = 1; i < shape.vertices.length; i++) {
+          ctx.lineTo(shape.vertices[i].x, shape.vertices[i].y);
+        }
+        ctx.closePath();
+        
+        // Fill com opacidade
+        const shapeColor = shape.color || '#6366f1';
+        const shapeOpacity = shape.opacity !== undefined ? shape.opacity : 60;
+        
+        if (shapeColor.startsWith('hsl')) {
+          ctx.fillStyle = shapeColor.replace(')', `, ${shapeOpacity / 100})`).replace('hsl(', 'hsla(');
+        } else if (shapeColor.startsWith('#')) {
+          const r = parseInt(shapeColor.slice(1, 3), 16) || 100;
+          const g = parseInt(shapeColor.slice(3, 5), 16) || 102;
+          const b = parseInt(shapeColor.slice(5, 7), 16) || 241;
+          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${shapeOpacity / 100})`;
+        } else {
+          ctx.fillStyle = shapeColor;
+          ctx.globalAlpha = shapeOpacity / 100;
+        }
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        
+        // Stroke - borda tracejada para indicar que não está vinculada
+        ctx.strokeStyle = isSelected ? '#3b82f6' : shape.color;
+        ctx.lineWidth = isSelected ? 3 / zoom : 2 / zoom;
+        ctx.setLineDash([8 / zoom, 4 / zoom]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      
+      // Nome da forma
+      ctx.fillStyle = '#fff';
+      ctx.font = `${12}px sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText(shape.name, bounds.x + 4, bounds.y + 4);
+      
+      // Indicador de "não vinculada"
+      ctx.fillStyle = 'rgba(255, 200, 0, 0.9)';
+      ctx.font = `${10}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('⚠ Não vinculada', centerX, centerY);
+      
+      ctx.restore();
+    });
+
     // Retângulo de seleção/criação de setor
     if (isDrawing && activeTool === 'sector') {
       const x = Math.min(drawStart.x, drawCurrent.x);
@@ -557,7 +624,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     }
 
     ctx.restore();
-  }, [sectors, elements, selectedSectorIds, selectedSeatIds, selectedElementIds, zoom, pan, width, height, isDrawing, drawStart, drawCurrent, activeTool, isBoxSelecting, boxSelectStart, boxSelectCurrent, renderTableWithChairs, bgConfig]);
+  }, [sectors, elements, geometricShapes, selectedSectorIds, selectedSeatIds, selectedElementIds, selectedShapeIds, zoom, pan, width, height, isDrawing, drawStart, drawCurrent, activeTool, isBoxSelecting, boxSelectStart, boxSelectCurrent, renderTableWithChairs, bgConfig]);
 
   // Atualiza canvas
   useEffect(() => {
@@ -784,6 +851,18 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
       }
 
+      // Verifica click em forma geométrica (não vinculada)
+      for (const shape of geometricShapes) {
+        if (shape.vertices && shape.vertices.length > 2) {
+          if (isPointInPolygon(pos, shape.vertices)) {
+            onSelectShape?.(shape.id, e.shiftKey);
+            setIsDragging(true);
+            setDragStart(pos);
+            return;
+          }
+        }
+      }
+
       // Verifica click em setor (usando polígono) - comportamento padrão
       for (const sector of sectors) {
         if (!sector.visible || sector.locked) continue;
@@ -807,7 +886,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       setBoxSelectStart(pos);
       setBoxSelectCurrent(pos);
     }
-  }, [activeTool, screenToCanvas, pan, sectors, elements, selectedSectorIds, selectedElementIds, selectedSeatIds, onSelectSeats, onSelectSector, onSelectElements, onApplySeatType, activeSeatType, getVertexAtPoint, zoom, contextMenu]);
+  }, [activeTool, screenToCanvas, pan, sectors, elements, geometricShapes, selectedSectorIds, selectedElementIds, selectedSeatIds, selectedShapeIds, onSelectSeats, onSelectSector, onSelectElements, onSelectShape, onApplySeatType, activeSeatType, getVertexAtPoint, zoom, contextMenu]);
 
   // Mouse move
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
