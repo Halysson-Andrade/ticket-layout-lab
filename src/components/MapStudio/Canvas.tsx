@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
-import { Sector, Seat, VenueElement, ToolType, SeatType, SEAT_COLORS, ELEMENT_ICONS, Vertex, TableConfig } from '@/types/mapStudio';
+import { Sector, Seat, VenueElement, ToolType, SeatType, SEAT_COLORS, ELEMENT_ICONS, Vertex, TableConfig, GeometricShape } from '@/types/mapStudio';
 import { isPointInBounds, isPointInPolygon, getBoundsFromVertices } from '@/lib/mapUtils';
 import { CanvasContextMenu } from './CanvasContextMenu';
 
@@ -43,6 +43,11 @@ interface CanvasProps {
   onRemoveVertex?: (sectorId: string, vertexIndex: number) => void;
   onDuplicateSector?: () => void;
   onDeleteSector?: () => void;
+  onZoomToSector?: (sectorId: string) => void;
+  geometricShapes?: GeometricShape[];
+  selectedShapeIds?: string[];
+  onSelectShape?: (id: string, additive: boolean) => void;
+  onGroupShapesToSector?: (shapeIds: string[]) => void;
 }
 
 const HANDLE_SIZE = 10;
@@ -79,6 +84,11 @@ export const Canvas: React.FC<CanvasProps> = ({
   onRemoveVertex,
   onDuplicateSector,
   onDeleteSector,
+  onZoomToSector,
+  geometricShapes = [],
+  selectedShapeIds = [],
+  onSelectShape,
+  onGroupShapesToSector,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -400,15 +410,28 @@ export const Canvas: React.FC<CanvasProps> = ({
           ctx.closePath();
         }
         
-        // Fill - sempre usa cor sólida preenchida (com opacidade)
-        const hex = sector.color || '#6366f1';
-        const r = parseInt(hex.slice(1, 3), 16);
-        const g = parseInt(hex.slice(3, 5), 16);
-        const b = parseInt(hex.slice(5, 7), 16);
-        // Opacidade maior quando zoom baixo, menor quando zoom alto para ver assentos
-        const fillOpacity = showSolidColor ? 0.85 : 0.35;
-        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${fillOpacity})`;
+        // Fill - usa opacidade configurada no setor
+        const sectorColor = sector.color || '#6366f1';
+        const sectorOpacity = sector.opacity !== undefined ? sector.opacity : 60;
+        // Quando zoom baixo, aumenta ligeiramente a opacidade
+        const fillOpacity = showSolidColor 
+          ? Math.min(95, sectorOpacity + 20) / 100 
+          : sectorOpacity / 100;
+        
+        // Converte cor para formato com alpha
+        if (sectorColor.startsWith('hsl')) {
+          ctx.fillStyle = sectorColor.replace(')', `, ${fillOpacity})`).replace('hsl(', 'hsla(');
+        } else if (sectorColor.startsWith('#')) {
+          const r = parseInt(sectorColor.slice(1, 3), 16) || 100;
+          const g = parseInt(sectorColor.slice(3, 5), 16) || 102;
+          const b = parseInt(sectorColor.slice(5, 7), 16) || 241;
+          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${fillOpacity})`;
+        } else {
+          ctx.fillStyle = sectorColor;
+          ctx.globalAlpha = fillOpacity;
+        }
         ctx.fill();
+        ctx.globalAlpha = 1;
         
         // Stroke
         ctx.strokeStyle = isSelected ? '#3b82f6' : sector.color;
