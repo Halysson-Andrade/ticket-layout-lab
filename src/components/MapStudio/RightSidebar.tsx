@@ -45,6 +45,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   const [localCurvature, setLocalCurvature] = useState(0);
   const [localWidth, setLocalWidth] = useState(450);
   const [localHeight, setLocalHeight] = useState(280);
+  const [localOpacity, setLocalOpacity] = useState(60);
   
   const debounceRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
@@ -55,8 +56,9 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
       setLocalCurvature(selectedSector.curvature || 0);
       setLocalWidth(selectedSector.bounds.width);
       setLocalHeight(selectedSector.bounds.height);
+      setLocalOpacity(selectedSector.opacity ?? 60);
     }
-  }, [selectedSector?.id, selectedSector?.rotation, selectedSector?.curvature, selectedSector?.bounds.width, selectedSector?.bounds.height]);
+  }, [selectedSector?.id, selectedSector?.rotation, selectedSector?.curvature, selectedSector?.bounds.width, selectedSector?.bounds.height, selectedSector?.opacity]);
 
   // Debounced update helper
   const debouncedUpdate = useCallback((key: string, fn: () => void, delay: number = 150) => {
@@ -93,6 +95,13 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
       debouncedUpdate('height', () => onResizeSector(selectedSector.id, localWidth, value), 100);
     }
   }, [selectedSector, onResizeSector, localWidth, debouncedUpdate]);
+
+  const handleOpacityChange = useCallback((value: number) => {
+    setLocalOpacity(value);
+    if (selectedSector) {
+      debouncedUpdate('opacity', () => onUpdateSector(selectedSector.id, { opacity: value }), 100);
+    }
+  }, [selectedSector, onUpdateSector, debouncedUpdate]);
 
   // Cleanup debounce timers
   useEffect(() => {
@@ -458,7 +467,38 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                       <span className="text-muted-foreground">Reto</span>
                       <span className="font-mono bg-muted px-2 py-0.5 rounded">{localCurvature}%</span>
                       <span className="text-muted-foreground">Curvo</span>
+                </div>
+
+                {/* Opacidade */}
+                <div className="space-y-3">
+                  <Label className="text-xs flex items-center gap-2">
+                    <Palette className="h-3 w-3" />
+                    Opacidade do Preenchimento
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="max-w-[200px] text-xs">
+                        Ajuste a transparência para visualizar mapas de fundo importados.
+                      </TooltipContent>
+                    </Tooltip>
+                  </Label>
+                  <div className="space-y-2">
+                    <Slider
+                      value={[localOpacity]}
+                      onValueChange={([value]) => handleOpacityChange(value)}
+                      min={0}
+                      max={100}
+                      step={5}
+                      className="w-full"
+                    />
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-muted-foreground">Transparente</span>
+                      <span className="font-mono bg-muted px-2 py-0.5 rounded">{localOpacity}%</span>
+                      <span className="text-muted-foreground">Sólido</span>
                     </div>
+                  </div>
+                </div>
                   </div>
                 </div>
 

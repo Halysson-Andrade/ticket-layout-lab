@@ -80,6 +80,7 @@ export interface Sector {
   id: string;
   name: string;
   color: string;
+  opacity: number; // Opacidade do preenchimento (0-100)
   bounds: Bounds;
   vertices: Vertex[];
   shape: SectorShape;
@@ -106,6 +107,7 @@ export interface GeometricShape {
   id: string;
   name: string;
   color: string;
+  opacity: number; // Opacidade do preenchimento (0-100)
   bounds: Bounds;
   vertices: Vertex[];
   shape: SectorShape;

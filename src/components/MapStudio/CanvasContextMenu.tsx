@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Trash2, Copy, Scissors } from 'lucide-react';
+import { Plus, Trash2, Copy, Link2 } from 'lucide-react';
 
 interface ContextMenuProps {
   x: number;
@@ -9,9 +9,12 @@ interface ContextMenuProps {
   onRemoveVertex?: () => void;
   onDuplicate?: () => void;
   onDelete?: () => void;
+  onGroupToSector?: () => void;
   showVertexOptions: boolean;
   showElementOptions: boolean;
+  showGroupOption?: boolean;
   canRemoveVertex: boolean;
+  selectedCount?: number;
 }
 
 export const CanvasContextMenu: React.FC<ContextMenuProps> = ({
@@ -22,9 +25,12 @@ export const CanvasContextMenu: React.FC<ContextMenuProps> = ({
   onRemoveVertex,
   onDuplicate,
   onDelete,
+  onGroupToSector,
   showVertexOptions,
   showElementOptions,
+  showGroupOption = false,
   canRemoveVertex,
+  selectedCount = 1,
 }) => {
   return (
     <>
@@ -83,8 +89,25 @@ export const CanvasContextMenu: React.FC<ContextMenuProps> = ({
             </button>
           </>
         )}
+
+        {/* Opção de agrupar formas em um setor */}
+        {showGroupOption && onGroupToSector && (
+          <>
+            {showElementOptions && <div className="border-t border-border my-1" />}
+            <button
+              onClick={() => { onGroupToSector(); onClose(); }}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors"
+            >
+              <Link2 className="w-4 h-4 text-primary" />
+              {selectedCount > 1 
+                ? `Agrupar ${selectedCount} formas em setor`
+                : 'Converter para setor'
+              }
+            </button>
+          </>
+        )}
         
-        {!showVertexOptions && !showElementOptions && (
+        {!showVertexOptions && !showElementOptions && !showGroupOption && (
           <div className="px-3 py-2 text-sm text-muted-foreground">
             Nenhuma ação disponível
           </div>
