@@ -12,7 +12,7 @@ export type FurnitureType = 'chair' | 'table' | 'bistro';
 export type TableShape = 'round' | 'square' | 'rectangular';
 
 export type RowLabelType = 'alpha' | 'numeric' | 'roman';
-export type SeatLabelType = 'numeric' | 'odd-left' | 'even-left' | 'reverse';
+export type SeatLabelType = 'numeric' | 'odd-left' | 'even-left' | 'reverse' | 'custom';
 
 export interface Point {
   x: number;
@@ -74,6 +74,7 @@ export interface Seat {
   categoryId?: string;
   furnitureType?: FurnitureType;
   tableConfig?: TableConfig;
+  rowDescription?: string; // Descrição customizada da fileira
 }
 
 export interface Sector {
@@ -154,6 +155,8 @@ export interface GridGeneratorParams {
   tableConfig?: TableConfig;
   tableShape?: TableShape;
   chairsPerTable?: number;
+  customNumbers?: number[]; // Numeração customizada (ex: 2, 7, 10...)
+  rowDescriptions?: Record<string, string>; // Descrições por fileira (ex: { A: 'Primeira fila' })
 }
 
 export interface Template {

@@ -335,14 +335,35 @@ export const MapStudio: React.FC = () => {
     });
   }, [pushHistory]);
 
-  // Redimensiona setor - apenas atualiza vértices e bounds, sem regenerar assentos
+  // Redimensiona setor - escala proporcionalmente formas customizadas (Melhoria 6)
   const handleResizeSector = useCallback((sectorId: string, width: number, height: number) => {
     setSectors(prev => {
       const newSectors = prev.map(s => {
         if (s.id !== sectorId) return s;
         
+        const oldBounds = s.bounds;
         const newBounds = { ...s.bounds, width, height };
-        const newVertices = generateVerticesWithCurvature(s.shape, newBounds, s.curvature || 0);
+        
+        // Detecta se é forma customizada comparando número de vértices com padrão
+        const standardVertexCount = getStandardVertexCount(s.shape);
+        const isCustomShape = s.vertices.length !== standardVertexCount;
+        
+        let newVertices: Vertex[];
+        if (isCustomShape) {
+          // Forma customizada: escala proporcionalmente os vértices existentes
+          const scaleX = width / oldBounds.width;
+          const scaleY = height / oldBounds.height;
+          const centerX = oldBounds.x + oldBounds.width / 2;
+          const centerY = oldBounds.y + oldBounds.height / 2;
+          
+          newVertices = s.vertices.map(v => ({
+            x: centerX + (v.x - centerX) * scaleX,
+            y: centerY + (v.y - centerY) * scaleY,
+          }));
+        } else {
+          // Forma padrão: regenera vértices normalmente
+          newVertices = generateVerticesWithCurvature(s.shape, newBounds, s.curvature || 0);
+        }
         
         // Apenas atualiza bounds e vértices, mantém assentos existentes
         return { ...s, bounds: newBounds, vertices: newVertices };
@@ -351,6 +372,31 @@ export const MapStudio: React.FC = () => {
       return newSectors;
     });
   }, [pushHistory]);
+  
+  // Função auxiliar para obter contagem padrão de vértices por forma
+  const getStandardVertexCount = (shape: SectorShape): number => {
+    switch (shape) {
+      case 'rectangle': return 4;
+      case 'parallelogram': return 4;
+      case 'trapezoid': return 4;
+      case 'triangle': return 3;
+      case 'pentagon': return 5;
+      case 'hexagon': return 6;
+      case 'octagon': return 8;
+      case 'diamond': return 4;
+      case 'star': return 10;
+      case 'l-shape': return 6;
+      case 'u-shape': return 8;
+      case 't-shape': return 8;
+      case 'z-shape': return 12;
+      case 'cross': return 12;
+      case 'arrow': return 7;
+      case 'wave': return 26;
+      case 'arc': return 26;
+      case 'circle': return 16;
+      default: return 4;
+    }
+  };
 
   // Atualiza assentos
   const handleUpdateSeats = useCallback((ids: string[], updates: Partial<Seat>) => {
@@ -476,6 +522,34 @@ export const MapStudio: React.FC = () => {
     });
     toast.success('Assentos regenerados!');
   }, [pushHistory]);
+
+  // Adiciona mobília manualmente dentro de um setor (Melhoria 2)
+  const handleAddFurnitureToSector = useCallback((sectorId: string, position: { x: number; y: number }) => {
+    setSectors(prev => {
+      const newSectors = prev.map(s => {
+        if (s.id !== sectorId) return s;
+        
+        const newSeat: Seat = {
+          id: generateId(),
+          sectorId,
+          row: '',
+          number: String(s.seats.length + 1),
+          type: activeSeatType,
+          status: 'available',
+          x: position.x,
+          y: position.y,
+          rotation: 0,
+          furnitureType: activeFurnitureType,
+          tableConfig: activeFurnitureType !== 'chair' ? { ...tableConfig } : undefined,
+        };
+        
+        return { ...s, seats: [...s.seats, newSeat] };
+      });
+      pushHistory(newSectors);
+      return newSectors;
+    });
+    toast.success(`${activeFurnitureType === 'chair' ? 'Cadeira' : activeFurnitureType === 'table' ? 'Mesa' : 'Bistrô'} adicionado(a)!`);
+  }, [activeFurnitureType, activeSeatType, tableConfig, pushHistory]);
 
   // Adiciona elemento de venue
   const handleAddElement = useCallback((type: ElementType) => {
@@ -769,6 +843,7 @@ export const MapStudio: React.FC = () => {
           break;
         case 's': setActiveTool('seat-single'); break;
         case 'e': setActiveTool('element'); break;
+        case 't': setActiveTool('table'); break; // Atalho para ferramenta de mobília (Melhoria 2)
         case 'delete':
         case 'backspace': handleDelete(); break;
         case 'd':
@@ -889,6 +964,7 @@ export const MapStudio: React.FC = () => {
           geometricShapes={geometricShapes}
           selectedShapeIds={selectedShapeIds}
           onSelectShape={handleSelectShape}
+          onAddFurniture={handleAddFurnitureToSector}
         />
 
         {/* Toolbar */}
