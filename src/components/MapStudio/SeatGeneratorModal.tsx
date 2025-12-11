@@ -27,13 +27,14 @@ import {
   Vertex
 } from '@/types/mapStudio';
 import { cn } from '@/lib/utils';
+import { isPointInPolygon, getBoundsFromVertices } from '@/lib/mapUtils';
 
 interface SeatGeneratorModalProps {
   open: boolean;
   onClose: () => void;
   onGenerate: (params: GridGeneratorParams) => void;
   sectorId: string;
-  sector?: Sector | null; // Setor selecionado para usar geometria
+  sector?: Sector | null;
 }
 
 interface GeneratorConfig {
@@ -52,6 +53,7 @@ interface GeneratorConfig {
   tableShape: TableShape;
   chairsPerTable: number;
   seatType: SeatType;
+  customNumbers: string; // String de números separados por vírgula
 }
 
 const seatTypeOptions: { type: SeatType; label: string }[] = [
@@ -68,7 +70,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
   sectorId,
   sector,
 }) => {
-  const [step, setStep] = useState<'type' | 'config' | 'preview'>('type');
+  const [step, setStep] = useState<'type' | 'config'>('type');
   const [config, setConfig] = useState<GeneratorConfig>({
     rows: 10,
     cols: 20,
@@ -85,29 +87,29 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     tableShape: 'round',
     chairsPerTable: 6,
     seatType: 'normal',
+    customNumbers: '',
   });
 
-  // Calcula totais
-  const totalItems = config.rows * config.cols;
   const isTable = config.furnitureType === 'table' || config.furnitureType === 'bistro';
-  const totalSeats = isTable ? totalItems * config.chairsPerTable : totalItems;
+
+  // Parse custom numbers
+  const parsedCustomNumbers = useMemo(() => {
+    if (config.seatLabelType !== 'custom' || !config.customNumbers.trim()) return null;
+    return config.customNumbers.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+  }, [config.seatLabelType, config.customNumbers]);
 
   // Preview dimensions - usa geometria do setor se disponível
   const previewDimensions = useMemo(() => {
-    // Se temos o setor, usa suas dimensões reais
     const sectorWidth = sector?.bounds.width || 450;
     const sectorHeight = sector?.bounds.height || 280;
     
-    // Escala para caber no preview mantendo proporção
-    const maxPreviewWidth = 500;
-    const maxPreviewHeight = 300;
+    const maxPreviewWidth = 320;
+    const maxPreviewHeight = 200;
     const scale = Math.min(maxPreviewWidth / sectorWidth, maxPreviewHeight / sectorHeight, 1);
     
     const width = sectorWidth * scale;
     const height = sectorHeight * scale;
     
-    // Calcula tamanho do item baseado no espaço disponível
-    const isTable = config.furnitureType === 'table' || config.furnitureType === 'bistro';
     const baseSize = isTable ? 24 : 8;
     const scaledSeatSize = baseSize * scale;
     const scaledRowSpacing = Math.max(2, config.rowSpacing * scale / 2);
@@ -123,40 +125,12 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
       sectorWidth,
       sectorHeight
     };
-  }, [config, sector]);
-
-  // Gera preview dos assentos/mesas
-  const previewSeats = useMemo(() => {
-    const seats: { x: number; y: number; row: number; col: number }[] = [];
-    const { width, height, seatSize, rowSpacing, colSpacing, scale } = previewDimensions;
-    
-    const isTable = config.furnitureType === 'table' || config.furnitureType === 'bistro';
-    const itemSize = isTable ? seatSize * 2 : seatSize;
-    const spacing = isTable ? colSpacing * 2 : colSpacing;
-    const rSpacing = isTable ? rowSpacing * 2 : rowSpacing;
-    
-    const gridWidth = config.cols * (itemSize + spacing);
-    const gridHeight = config.rows * (itemSize + rSpacing);
-    const offsetX = (width - gridWidth) / 2 + itemSize / 2;
-    const offsetY = (height - gridHeight) / 2 + itemSize / 2;
-    
-    for (let r = 0; r < config.rows; r++) {
-      for (let c = 0; c < config.cols; c++) {
-        seats.push({
-          x: offsetX + c * (itemSize + spacing),
-          y: offsetY + r * (itemSize + rSpacing),
-          row: r,
-          col: c,
-        });
-      }
-    }
-    return seats;
-  }, [config.rows, config.cols, config.furnitureType, previewDimensions]);
+  }, [config, sector, isTable]);
 
   // Gera vértices do polígono para preview (escalados)
   const previewVertices = useMemo(() => {
     if (!sector?.vertices) return null;
-    const { scale, sectorWidth, sectorHeight, width, height } = previewDimensions;
+    const { scale } = previewDimensions;
     const minX = Math.min(...sector.vertices.map(v => v.x));
     const minY = Math.min(...sector.vertices.map(v => v.y));
     
@@ -166,8 +140,52 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     }));
   }, [sector?.vertices, previewDimensions]);
 
+  // Gera preview dos assentos/mesas com verificação de polígono
+  const previewData = useMemo(() => {
+    const seats: { x: number; y: number; row: number; col: number; isInside: boolean }[] = [];
+    const { width, height, seatSize, rowSpacing, colSpacing } = previewDimensions;
+    
+    const itemSize = isTable ? seatSize * 2 : seatSize;
+    const spacing = isTable ? colSpacing * 2 : colSpacing;
+    const rSpacing = isTable ? rowSpacing * 2 : rowSpacing;
+    
+    const gridWidth = config.cols * (itemSize + spacing);
+    const gridHeight = config.rows * (itemSize + rSpacing);
+    const offsetX = (width - gridWidth) / 2 + itemSize / 2;
+    const offsetY = (height - gridHeight) / 2 + itemSize / 2;
+    
+    let insideCount = 0;
+    let outsideCount = 0;
+    
+    for (let r = 0; r < config.rows; r++) {
+      for (let c = 0; c < config.cols; c++) {
+        const x = offsetX + c * (itemSize + spacing);
+        const y = offsetY + r * (itemSize + rSpacing);
+        
+        // Verifica se está dentro do polígono
+        let isInside = true;
+        if (previewVertices) {
+          isInside = isPointInPolygon({ x, y }, previewVertices);
+        }
+        
+        if (isInside) insideCount++;
+        else outsideCount++;
+        
+        seats.push({ x, y, row: r, col: c, isInside });
+      }
+    }
+    
+    return { 
+      seats, 
+      insideCount, 
+      outsideCount,
+      totalItems: config.rows * config.cols,
+      totalSeats: isTable ? insideCount * config.chairsPerTable : insideCount
+    };
+  }, [config.rows, config.cols, config.furnitureType, config.chairsPerTable, previewDimensions, previewVertices, isTable]);
+
   const handleGenerate = () => {
-    const tableConf = (config.furnitureType === 'table' || config.furnitureType === 'bistro') ? {
+    const tableConf = isTable ? {
       shape: config.tableShape,
       chairCount: config.chairsPerTable,
       tableWidth: 60,
@@ -189,6 +207,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
       prefix: config.prefix,
       furnitureType: config.furnitureType,
       tableConfig: tableConf,
+      customNumbers: parsedCustomNumbers || undefined,
     });
     onClose();
     setStep('type');
@@ -201,7 +220,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Grid3X3 className="h-5 w-5 text-primary" />
@@ -209,270 +228,285 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
           </DialogTitle>
           <DialogDescription>
             {step === 'type' && 'Selecione o tipo de mobília para o setor'}
-            {step === 'config' && 'Configure os parâmetros de geração'}
-            {step === 'preview' && `Preview: ${totalItems} ${isTable ? 'mesas' : 'assentos'} (${totalSeats} lugares)`}
+            {step === 'config' && `Configuração - ${previewData.insideCount} ${isTable ? 'mesas' : 'assentos'} dentro do setor (${previewData.totalSeats} lugares)`}
           </DialogDescription>
         </DialogHeader>
 
         {/* Steps indicator */}
         <div className="flex items-center justify-center gap-2 py-2">
-          {['type', 'config', 'preview'].map((s, i) => (
+          {['type', 'config'].map((s, i) => (
             <React.Fragment key={s}>
               <div 
                 className={cn(
                   "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors",
                   step === s ? "bg-primary text-primary-foreground" : 
-                  ['type', 'config', 'preview'].indexOf(step) > i ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                  ['type', 'config'].indexOf(step) > i ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
                 )}
               >
                 {i + 1}
               </div>
-              {i < 2 && <div className="w-8 h-0.5 bg-muted" />}
+              {i < 1 && <div className="w-8 h-0.5 bg-muted" />}
             </React.Fragment>
           ))}
         </div>
 
-        <ScrollArea className="flex-1 pr-4">
-          {/* Step 1: Type Selection */}
-          {step === 'type' && (
-            <div className="space-y-4 py-4">
-              <Label className="text-sm font-medium">Tipo de Mobília</Label>
-              <div className="grid grid-cols-3 gap-3">
-                {(['chair', 'table', 'bistro'] as FurnitureType[]).map(type => (
-                  <button
-                    key={type}
-                    onClick={() => setConfig(prev => ({ ...prev, furnitureType: type }))}
-                    className={cn(
-                      "p-4 rounded-lg border-2 flex flex-col items-center gap-2 transition-all hover:border-primary/50",
-                      config.furnitureType === type ? "border-primary bg-primary/10" : "border-border"
-                    )}
-                  >
-                    {type === 'chair' && <Armchair className="h-8 w-8" />}
-                    {type === 'table' && <Square className="h-8 w-8" />}
-                    {type === 'bistro' && <Circle className="h-8 w-8" />}
-                    <span className="text-sm font-medium">{FURNITURE_LABELS[type]}</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Table config */}
-              {(config.furnitureType === 'table' || config.furnitureType === 'bistro') && (
-                <div className="space-y-4 pt-4 border-t">
-                  <div className="space-y-2">
-                    <Label className="text-xs">Forma da Mesa</Label>
-                    <div className="flex gap-2">
-                      {(['round', 'square', 'rectangular'] as TableShape[]).map(shape => (
-                        <button
-                          key={shape}
-                          onClick={() => setConfig(prev => ({ ...prev, tableShape: shape }))}
-                          className={cn(
-                            "flex-1 p-3 rounded-lg border-2 flex flex-col items-center gap-1 transition-all",
-                            config.tableShape === shape ? "border-primary bg-primary/10" : "border-border"
-                          )}
-                        >
-                          {shape === 'round' && <Circle className="h-5 w-5" />}
-                          {shape === 'square' && <Square className="h-5 w-5" />}
-                          {shape === 'rectangular' && <div className="w-6 h-4 border-2 rounded" />}
-                          <span className="text-xs capitalize">{shape === 'round' ? 'Redonda' : shape === 'square' ? 'Quadrada' : 'Retangular'}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs">Cadeiras por Mesa: {config.chairsPerTable}</Label>
-                    <Slider
-                      value={[config.chairsPerTable]}
-                      onValueChange={([v]) => setConfig(prev => ({ ...prev, chairsPerTable: v }))}
-                      min={2}
-                      max={12}
-                      step={1}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Seat type */}
-              <div className="space-y-2 pt-4 border-t">
-                <Label className="text-xs">Tipo de Assento</Label>
-                <div className="flex gap-2 flex-wrap">
-                  {seatTypeOptions.map(opt => (
+        <div className="flex gap-4 flex-1 overflow-hidden">
+          {/* Left side - Configuration */}
+          <ScrollArea className="flex-1 pr-4">
+            {/* Step 1: Type Selection */}
+            {step === 'type' && (
+              <div className="space-y-4 py-4">
+                <Label className="text-sm font-medium">Tipo de Mobília</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  {(['chair', 'table', 'bistro'] as FurnitureType[]).map(type => (
                     <button
-                      key={opt.type}
-                      onClick={() => setConfig(prev => ({ ...prev, seatType: opt.type }))}
+                      key={type}
+                      onClick={() => setConfig(prev => ({ ...prev, furnitureType: type }))}
                       className={cn(
-                        "px-3 py-2 rounded-lg border-2 flex items-center gap-2 transition-all",
-                        config.seatType === opt.type ? "border-primary bg-primary/10" : "border-border"
+                        "p-4 rounded-lg border-2 flex flex-col items-center gap-2 transition-all hover:border-primary/50",
+                        config.furnitureType === type ? "border-primary bg-primary/10" : "border-border"
                       )}
                     >
-                      <div 
-                        className="w-4 h-4 rounded-full" 
-                        style={{ backgroundColor: SEAT_COLORS[opt.type] }}
-                      />
-                      <span className="text-sm">{opt.label}</span>
+                      {type === 'chair' && <Armchair className="h-8 w-8" />}
+                      {type === 'table' && <Square className="h-8 w-8" />}
+                      {type === 'bistro' && <Circle className="h-8 w-8" />}
+                      <span className="text-sm font-medium">{FURNITURE_LABELS[type]}</span>
                     </button>
                   ))}
                 </div>
-              </div>
-            </div>
-          )}
 
-          {/* Step 2: Configuration */}
-          {step === 'config' && (
-            <div className="space-y-4 py-4">
-              {/* Dimensions */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs">Filas (Linhas)</Label>
-                  <Input
-                    type="number"
-                    value={config.rows}
-                    onChange={(e) => setConfig(prev => ({ ...prev, rows: Math.max(1, parseInt(e.target.value) || 1) }))}
-                    min={1}
-                    max={100}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs">{isTable ? 'Mesas por Fila' : 'Assentos por Fila'}</Label>
-                  <Input
-                    type="number"
-                    value={config.cols}
-                    onChange={(e) => setConfig(prev => ({ ...prev, cols: Math.max(1, parseInt(e.target.value) || 1) }))}
-                    min={1}
-                    max={200}
-                  />
-                </div>
-              </div>
+                {/* Table config */}
+                {isTable && (
+                  <div className="space-y-4 pt-4 border-t">
+                    <div className="space-y-2">
+                      <Label className="text-xs">Forma da Mesa</Label>
+                      <div className="flex gap-2">
+                        {(['round', 'square', 'rectangular'] as TableShape[]).map(shape => (
+                          <button
+                            key={shape}
+                            onClick={() => setConfig(prev => ({ ...prev, tableShape: shape }))}
+                            className={cn(
+                              "flex-1 p-3 rounded-lg border-2 flex flex-col items-center gap-1 transition-all",
+                              config.tableShape === shape ? "border-primary bg-primary/10" : "border-border"
+                            )}
+                          >
+                            {shape === 'round' && <Circle className="h-5 w-5" />}
+                            {shape === 'square' && <Square className="h-5 w-5" />}
+                            {shape === 'rectangular' && <div className="w-6 h-4 border-2 rounded" />}
+                            <span className="text-xs capitalize">{shape === 'round' ? 'Redonda' : shape === 'square' ? 'Quadrada' : 'Retangular'}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs">Cadeiras por Mesa: {config.chairsPerTable}</Label>
+                      <Slider
+                        value={[config.chairsPerTable]}
+                        onValueChange={([v]) => setConfig(prev => ({ ...prev, chairsPerTable: v }))}
+                        min={2}
+                        max={12}
+                        step={1}
+                      />
+                    </div>
+                  </div>
+                )}
 
-              {/* Spacing */}
-              <div className="space-y-2">
-                <Label className="text-xs">Espaçamento entre Filas: {config.rowSpacing}px</Label>
-                <Slider
-                  value={[config.rowSpacing]}
-                  onValueChange={([v]) => setConfig(prev => ({ ...prev, rowSpacing: v }))}
-                  min={0}
-                  max={30}
-                  step={1}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Espaçamento entre {isTable ? 'Mesas' : 'Assentos'}: {config.colSpacing}px</Label>
-                <Slider
-                  value={[config.colSpacing]}
-                  onValueChange={([v]) => setConfig(prev => ({ ...prev, colSpacing: v }))}
-                  min={0}
-                  max={30}
-                  step={1}
-                />
-              </div>
-
-              {/* Size */}
-              <div className="space-y-2">
-                <Label className="text-xs">Tamanho do {isTable ? 'Item' : 'Assento'}: {config.seatSize}px</Label>
-                <Slider
-                  value={[config.seatSize]}
-                  onValueChange={([v]) => setConfig(prev => ({ ...prev, seatSize: v }))}
-                  min={8}
-                  max={40}
-                  step={2}
-                />
-              </div>
-
-              {/* Labeling */}
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                <div className="space-y-2">
-                  <Label className="text-xs">Tipo de Fila</Label>
-                  <Select
-                    value={config.rowLabelType}
-                    onValueChange={(v: RowLabelType) => setConfig(prev => ({ ...prev, rowLabelType: v }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="alpha">Letras (A, B, C...)</SelectItem>
-                      <SelectItem value="numeric">Números (1, 2, 3...)</SelectItem>
-                      <SelectItem value="roman">Romano (I, II, III...)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs">Início da Fila</Label>
-                  <Input
-                    value={config.rowLabelStart}
-                    onChange={(e) => setConfig(prev => ({ ...prev, rowLabelStart: e.target.value }))}
-                    placeholder={config.rowLabelType === 'alpha' ? 'A' : '1'}
-                  />
+                {/* Seat type */}
+                <div className="space-y-2 pt-4 border-t">
+                  <Label className="text-xs">Tipo de Assento</Label>
+                  <div className="flex gap-2 flex-wrap">
+                    {seatTypeOptions.map(opt => (
+                      <button
+                        key={opt.type}
+                        onClick={() => setConfig(prev => ({ ...prev, seatType: opt.type }))}
+                        className={cn(
+                          "px-3 py-2 rounded-lg border-2 flex items-center gap-2 transition-all",
+                          config.seatType === opt.type ? "border-primary bg-primary/10" : "border-border"
+                        )}
+                      >
+                        <div 
+                          className="w-4 h-4 rounded-full" 
+                          style={{ backgroundColor: SEAT_COLORS[opt.type] }}
+                        />
+                        <span className="text-sm">{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
+            )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs">Numeração do Assento</Label>
-                  <Select
-                    value={config.seatLabelType}
-                    onValueChange={(v: SeatLabelType) => setConfig(prev => ({ ...prev, seatLabelType: v }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="numeric">Sequencial (1, 2, 3...)</SelectItem>
-                      <SelectItem value="reverse">Reverso (N...3, 2, 1)</SelectItem>
-                      <SelectItem value="odd-left">Ímpares à Esquerda</SelectItem>
-                      <SelectItem value="even-left">Pares à Esquerda</SelectItem>
-                    </SelectContent>
-                  </Select>
+            {/* Step 2: Configuration with real-time preview */}
+            {step === 'config' && (
+              <div className="space-y-4 py-4">
+                {/* Dimensions */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Filas (Linhas)</Label>
+                    <Input
+                      type="number"
+                      value={config.rows}
+                      onChange={(e) => setConfig(prev => ({ ...prev, rows: Math.max(1, parseInt(e.target.value) || 1) }))}
+                      min={1}
+                      max={100}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">{isTable ? 'Mesas por Fila' : 'Assentos por Fila'}</Label>
+                    <Input
+                      type="number"
+                      value={config.cols}
+                      onChange={(e) => setConfig(prev => ({ ...prev, cols: Math.max(1, parseInt(e.target.value) || 1) }))}
+                      min={1}
+                      max={200}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-xs">Número Inicial</Label>
-                  <Input
-                    type="number"
-                    value={config.seatLabelStart}
-                    onChange={(e) => setConfig(prev => ({ ...prev, seatLabelStart: parseInt(e.target.value) || 1 }))}
-                    min={1}
-                  />
-                </div>
-              </div>
 
-              {/* Rotation & Prefix */}
-              <div className="grid grid-cols-2 gap-4">
+                {/* Spacing */}
                 <div className="space-y-2">
-                  <Label className="text-xs flex items-center gap-1">
-                    <RotateCw className="h-3 w-3" />
-                    Rotação: {config.rotation}°
-                  </Label>
+                  <Label className="text-xs">Espaçamento entre Filas: {config.rowSpacing}px</Label>
                   <Slider
-                    value={[config.rotation]}
-                    onValueChange={([v]) => setConfig(prev => ({ ...prev, rotation: v }))}
+                    value={[config.rowSpacing]}
+                    onValueChange={([v]) => setConfig(prev => ({ ...prev, rowSpacing: v }))}
                     min={0}
-                    max={360}
-                    step={5}
+                    max={30}
+                    step={1}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs">Prefixo (opcional)</Label>
-                  <Input
-                    value={config.prefix}
-                    onChange={(e) => setConfig(prev => ({ ...prev, prefix: e.target.value }))}
-                    placeholder="Ex: A-, SETOR1-"
+                  <Label className="text-xs">Espaçamento entre {isTable ? 'Mesas' : 'Assentos'}: {config.colSpacing}px</Label>
+                  <Slider
+                    value={[config.colSpacing]}
+                    onValueChange={([v]) => setConfig(prev => ({ ...prev, colSpacing: v }))}
+                    min={0}
+                    max={30}
+                    step={1}
                   />
                 </div>
-              </div>
-            </div>
-          )}
 
-          {/* Step 3: Preview */}
-          {step === 'preview' && (
-            <div className="space-y-4 py-4">
+                {/* Size */}
+                <div className="space-y-2">
+                  <Label className="text-xs">Tamanho do {isTable ? 'Item' : 'Assento'}: {config.seatSize}px</Label>
+                  <Slider
+                    value={[config.seatSize]}
+                    onValueChange={([v]) => setConfig(prev => ({ ...prev, seatSize: v }))}
+                    min={8}
+                    max={40}
+                    step={2}
+                  />
+                </div>
+
+                {/* Labeling */}
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Tipo de Fila</Label>
+                    <Select
+                      value={config.rowLabelType}
+                      onValueChange={(v: RowLabelType) => setConfig(prev => ({ ...prev, rowLabelType: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="alpha">Letras (A, B, C...)</SelectItem>
+                        <SelectItem value="numeric">Números (1, 2, 3...)</SelectItem>
+                        <SelectItem value="roman">Romano (I, II, III...)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Início da Fila</Label>
+                    <Input
+                      value={config.rowLabelStart}
+                      onChange={(e) => setConfig(prev => ({ ...prev, rowLabelStart: e.target.value }))}
+                      placeholder={config.rowLabelType === 'alpha' ? 'A' : '1'}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs">Numeração do Assento</Label>
+                    <Select
+                      value={config.seatLabelType}
+                      onValueChange={(v: SeatLabelType) => setConfig(prev => ({ ...prev, seatLabelType: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="numeric">Sequencial (1, 2, 3...)</SelectItem>
+                        <SelectItem value="reverse">Reverso (N...3, 2, 1)</SelectItem>
+                        <SelectItem value="odd-left">Ímpares à Esquerda</SelectItem>
+                        <SelectItem value="even-left">Pares à Esquerda</SelectItem>
+                        <SelectItem value="custom">Customizada (2, 7, 10...)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">
+                      {config.seatLabelType === 'custom' ? 'Números (ex: 2, 4, 6, 8)' : 'Número Inicial'}
+                    </Label>
+                    {config.seatLabelType === 'custom' ? (
+                      <Input
+                        value={config.customNumbers}
+                        onChange={(e) => setConfig(prev => ({ ...prev, customNumbers: e.target.value }))}
+                        placeholder="2, 4, 6, 8, 10"
+                      />
+                    ) : (
+                      <Input
+                        type="number"
+                        value={config.seatLabelStart}
+                        onChange={(e) => setConfig(prev => ({ ...prev, seatLabelStart: parseInt(e.target.value) || 1 }))}
+                        min={1}
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Rotation & Prefix */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs flex items-center gap-1">
+                      <RotateCw className="h-3 w-3" />
+                      Rotação: {config.rotation}°
+                    </Label>
+                    <Slider
+                      value={[config.rotation]}
+                      onValueChange={([v]) => setConfig(prev => ({ ...prev, rotation: v }))}
+                      min={0}
+                      max={360}
+                      step={5}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs">Prefixo (opcional)</Label>
+                    <Input
+                      value={config.prefix}
+                      onChange={(e) => setConfig(prev => ({ ...prev, prefix: e.target.value }))}
+                      placeholder="Ex: A-, SETOR1-"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </ScrollArea>
+
+          {/* Right side - Real-time Preview (Melhoria 3, 5, 7) */}
+          {step === 'config' && (
+            <div className="w-[340px] flex flex-col gap-3 border-l pl-4">
+              <div className="text-sm font-medium">Preview em Tempo Real</div>
+              
               {/* Preview canvas */}
-              <div className="bg-muted/50 rounded-lg p-4 flex items-center justify-center">
+              <div className="bg-muted/50 rounded-lg p-3 flex items-center justify-center flex-1">
                 <svg 
-                  width={Math.min(previewDimensions.width, 500)} 
-                  height={Math.min(previewDimensions.height, 300)}
+                  width={previewDimensions.width} 
+                  height={previewDimensions.height}
                   viewBox={`0 0 ${previewDimensions.width} ${previewDimensions.height}`}
                   className="border rounded bg-background"
                 >
-                  {/* Polígono do setor se disponível */}
+                  {/* Polígono do setor se disponível (Melhoria 7) */}
                   {previewVertices ? (
                     <polygon
                       points={previewVertices.map(v => `${v.x},${v.y}`).join(' ')}
@@ -495,11 +529,11 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                     />
                   )}
                   
-                  {/* Seats/Tables */}
-                  {previewSeats.map((seat, i) => (
+                  {/* Seats/Tables com indicação de dentro/fora */}
+                  {previewData.seats.map((seat, i) => (
                     <React.Fragment key={i}>
                       {isTable ? (
-                        <g>
+                        <g opacity={seat.isInside ? 1 : 0.2}>
                           {/* Mesa */}
                           {config.tableShape === 'round' ? (
                             <circle
@@ -507,7 +541,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                               cy={seat.y}
                               r={previewDimensions.seatSize}
                               fill="hsl(var(--muted))"
-                              stroke="hsl(var(--border))"
+                              stroke={seat.isInside ? "hsl(var(--border))" : "hsl(var(--destructive))"}
                               strokeWidth="1"
                             />
                           ) : config.tableShape === 'rectangular' ? (
@@ -517,7 +551,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                               width={previewDimensions.seatSize * 2.4}
                               height={previewDimensions.seatSize * 1.4}
                               fill="hsl(var(--muted))"
-                              stroke="hsl(var(--border))"
+                              stroke={seat.isInside ? "hsl(var(--border))" : "hsl(var(--destructive))"}
                               strokeWidth="1"
                               rx="2"
                             />
@@ -528,7 +562,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                               width={previewDimensions.seatSize * 2}
                               height={previewDimensions.seatSize * 2}
                               fill="hsl(var(--muted))"
-                              stroke="hsl(var(--border))"
+                              stroke={seat.isInside ? "hsl(var(--border))" : "hsl(var(--destructive))"}
                               strokeWidth="1"
                               rx="2"
                             />
@@ -560,8 +594,9 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                           cy={seat.y}
                           r={previewDimensions.seatSize / 2}
                           fill={SEAT_COLORS[config.seatType]}
-                          stroke="hsl(var(--background))"
+                          stroke={seat.isInside ? "hsl(var(--background))" : "hsl(var(--destructive))"}
                           strokeWidth="0.5"
+                          opacity={seat.isInside ? 1 : 0.2}
                         />
                       )}
                     </React.Fragment>
@@ -569,53 +604,51 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                 </svg>
               </div>
 
+              {/* Warning for seats outside polygon */}
+              {previewData.outsideCount > 0 && (
+                <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  <p className="text-xs text-amber-600">
+                    {previewData.outsideCount} {isTable ? 'mesas' : 'assentos'} fora do setor (não serão gerados)
+                  </p>
+                </div>
+              )}
+
               {/* Info do setor */}
               {sector && (
-                <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg">
                   <p className="text-xs text-primary">
                     <strong>Setor:</strong> {sector.name} ({Math.round(sector.bounds.width)}x{Math.round(sector.bounds.height)}px)
                   </p>
                 </div>
               )}
 
-              {/* Summary */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="p-3 bg-muted/50 rounded-lg">
+              {/* Summary - Melhoria 5 */}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2 bg-muted/50 rounded-lg">
                   <span className="text-muted-foreground">Tipo:</span>
-                  <span className="ml-2 font-medium">{FURNITURE_LABELS[config.furnitureType]}</span>
+                  <span className="ml-1 font-medium">{FURNITURE_LABELS[config.furnitureType]}</span>
                 </div>
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <span className="text-muted-foreground">Total:</span>
-                  <span className="ml-2 font-medium">{totalItems} {isTable ? 'mesas' : 'assentos'}</span>
+                <div className="p-2 bg-muted/50 rounded-lg">
+                  <span className="text-muted-foreground">Grid:</span>
+                  <span className="ml-1 font-medium">{config.rows}x{config.cols}</span>
                 </div>
-                {isTable && (
-                  <>
-                    <div className="p-3 bg-muted/50 rounded-lg">
-                      <span className="text-muted-foreground">Cadeiras/mesa:</span>
-                      <span className="ml-2 font-medium">{config.chairsPerTable}</span>
-                    </div>
-                    <div className="p-3 bg-muted/50 rounded-lg">
-                      <span className="text-muted-foreground">Total lugares:</span>
-                      <span className="ml-2 font-medium">{totalSeats}</span>
-                    </div>
-                  </>
-                )}
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <span className="text-muted-foreground">Filas:</span>
-                  <span className="ml-2 font-medium">{config.rows}</span>
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <span className="text-primary">Dentro:</span>
+                  <span className="ml-1 font-medium text-primary">{previewData.insideCount}</span>
                 </div>
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <span className="text-muted-foreground">Por fila:</span>
-                  <span className="ml-2 font-medium">{config.cols}</span>
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <span className="text-primary">Lugares:</span>
+                  <span className="ml-1 font-medium text-primary">{previewData.totalSeats}</span>
                 </div>
               </div>
             </div>
           )}
-        </ScrollArea>
+        </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
           {step !== 'type' && (
-            <Button variant="outline" onClick={() => setStep(step === 'preview' ? 'config' : 'type')}>
+            <Button variant="outline" onClick={() => setStep('type')}>
               <ChevronLeft className="h-4 w-4 mr-1" />
               Voltar
             </Button>
@@ -625,14 +658,14 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
               Cancelar
             </Button>
           )}
-          {step !== 'preview' ? (
-            <Button onClick={() => setStep(step === 'type' ? 'config' : 'preview')}>
+          {step === 'type' ? (
+            <Button onClick={() => setStep('config')}>
               Próximo
               <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
             <Button onClick={handleGenerate}>
-              Gerar {totalItems} {isTable ? 'Mesas' : 'Assentos'}
+              Gerar {previewData.insideCount} {isTable ? 'Mesas' : 'Assentos'}
             </Button>
           )}
         </DialogFooter>

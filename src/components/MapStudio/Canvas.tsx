@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react'
 import { Sector, Seat, VenueElement, ToolType, SeatType, SEAT_COLORS, ELEMENT_ICONS, Vertex, TableConfig, GeometricShape } from '@/types/mapStudio';
 import { isPointInBounds, isPointInPolygon, getBoundsFromVertices } from '@/lib/mapUtils';
 import { CanvasContextMenu } from './CanvasContextMenu';
+import { toast } from 'sonner';
 
 interface BackgroundImageConfig {
   url: string;
@@ -48,6 +49,7 @@ interface CanvasProps {
   selectedShapeIds?: string[];
   onSelectShape?: (id: string, additive: boolean) => void;
   onGroupShapesToSector?: (shapeIds: string[]) => void;
+  onAddFurniture?: (sectorId: string, position: { x: number; y: number }) => void; // Melhoria 2
 }
 
 const HANDLE_SIZE = 10;
@@ -89,6 +91,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   selectedShapeIds = [],
   onSelectShape,
   onGroupShapesToSector,
+  onAddFurniture,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -751,6 +754,21 @@ export const Canvas: React.FC<CanvasProps> = ({
       setIsDrawing(true);
       setDrawStart(pos);
       setDrawCurrent(pos);
+      return;
+    }
+
+    // Ferramenta de mobília: clique dentro de setor adiciona mobília (Melhoria 2)
+    if (activeTool === 'table') {
+      for (const sector of sectors) {
+        if (!sector.visible || sector.locked) continue;
+        if (sector.vertices && sector.vertices.length > 2) {
+          if (isPointInPolygon(pos, sector.vertices)) {
+            onAddFurniture?.(sector.id, { x: pos.x - 30, y: pos.y - 30 });
+            return;
+          }
+        }
+      }
+      toast.error('Clique dentro de um setor para adicionar mobília');
       return;
     }
 

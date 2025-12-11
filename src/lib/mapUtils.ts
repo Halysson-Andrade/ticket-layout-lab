@@ -445,8 +445,14 @@ export function getSeatLabel(
   total: number,
   type: SeatLabelType,
   start: number,
-  isLeftSide?: boolean
+  isLeftSide?: boolean,
+  customNumbers?: number[]
 ): string {
+  // Se tiver numeração customizada, usa ela
+  if (type === 'custom' && customNumbers && customNumbers.length > 0) {
+    return String(customNumbers[index % customNumbers.length] || (start + index));
+  }
+  
   switch (type) {
     case 'numeric':
       return String(start + index);
@@ -697,7 +703,9 @@ export function generateSeatsInsidePolygon(
   isArcShape: boolean = false,
   curvature: number = 0,
   rows: number = 0,
-  cols: number = 0
+  cols: number = 0,
+  customNumbers?: number[],
+  rowDescriptions?: Record<string, string>
 ): Seat[] {
   if (vertices.length < 3) return [];
   
@@ -776,7 +784,8 @@ export function generateSeatsInsidePolygon(
         const isInside = isPointInPolygon(seatCenter, vertices);
         
         if (isInside) {
-          const seatLabel = getSeatLabel(c, cols, seatLabelType, 1);
+          const seatLabel = getSeatLabel(c, cols, seatLabelType, 1, undefined, customNumbers);
+          const rowLabel = getRowLabel(r, rowLabelType, 'A');
           
           const seat: Seat = {
             id: generateId(),
@@ -789,6 +798,7 @@ export function generateSeatsInsidePolygon(
             y: y - itemSize / 2,
             rotation: 0,
             furnitureType,
+            rowDescription: rowDescriptions?.[rowLabel],
           };
           
           if (isTable && tableConfig) {
@@ -820,7 +830,7 @@ export function generateSeatsInsidePolygon(
       const isInside = isPointInPolygon(seatCenter, vertices);
       
       if (isInside) {
-        const seatLabel = getSeatLabel(colIndex, 100, seatLabelType, 1);
+        const seatLabel = getSeatLabel(colIndex, 100, seatLabelType, 1, undefined, customNumbers);
         
         const seat: Seat = {
           id: generateId(),
@@ -833,6 +843,7 @@ export function generateSeatsInsidePolygon(
           y,
           rotation: 0,
           furnitureType,
+          rowDescription: rowDescriptions?.[rowLabel],
         };
         
         // Adiciona config de mesa se for mesa/bistro
@@ -856,7 +867,7 @@ export function generateSeatsInsidePolygon(
 }
 
 // Reposiciona assentos existentes para caber dentro de novos vértices
-// Se o número de assentos dentro diminuir muito, regenera
+// Exclui assentos que ficam fora do novo polígono (Melhoria 4)
 export function repositionSeatsInsidePolygon(
   existingSeats: Seat[],
   oldVertices: Vertex[],
@@ -892,14 +903,16 @@ export function repositionSeatsInsidePolygon(
     
     // Verifica se ainda está dentro do polígono
     const seatCenter = { x: newX + seatSize / 2, y: newY + seatSize / 2 };
+    const isInside = isPointInPolygon(seatCenter, newVertices);
     
-    // Sempre mantém o assento, mesmo se estiver fora (permite ajuste fino)
-    // Marca como dentro/fora para UI poder exibir diferente se necessário
-    repositionedSeats.push({
-      ...seat,
-      x: newX,
-      y: newY,
-    });
+    // Exclui assentos que caem fora da nova forma (Melhoria 4)
+    if (isInside) {
+      repositionedSeats.push({
+        ...seat,
+        x: newX,
+        y: newY,
+      });
+    }
   }
   
   return repositionedSeats;
