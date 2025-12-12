@@ -177,6 +177,25 @@ export const MapStudio: React.FC = () => {
     setSelectedSeatIds([]);
   }, []);
 
+  // Move forma geométrica (não vinculada)
+  const handleMoveShape = useCallback((id: string, dx: number, dy: number) => {
+    setGeometricShapes(prev => prev.map(s => {
+      if (s.id !== id) return s;
+      return {
+        ...s,
+        bounds: {
+          ...s.bounds,
+          x: s.bounds.x + dx,
+          y: s.bounds.y + dy,
+        },
+        vertices: s.vertices.map(v => ({
+          x: v.x + dx,
+          y: v.y + dy,
+        })),
+      };
+    }));
+  }, []);
+
   // Cria setor diretamente (usado por templates/onboarding)
   const handleCreateSector = useCallback((bounds: { x: number; y: number; width: number; height: number }) => {
     const shape: SectorShape = 'rectangle';
@@ -469,7 +488,11 @@ export const MapStudio: React.FC = () => {
       sector.shape === 'arc',
       sector.curvature || 0,
       params.rows,
-      params.cols
+      params.cols,
+      params.customNumbers, // Passa numeração customizada
+      params.rowDescriptions,
+      params.rotation, // Passa rotação
+      params.seatsPerRow // Quantidade de assentos por fileira
     );
 
     setSectors(prev => {
@@ -964,6 +987,7 @@ export const MapStudio: React.FC = () => {
           geometricShapes={geometricShapes}
           selectedShapeIds={selectedShapeIds}
           onSelectShape={handleSelectShape}
+          onMoveShape={handleMoveShape}
           onAddFurniture={handleAddFurnitureToSector}
         />
 

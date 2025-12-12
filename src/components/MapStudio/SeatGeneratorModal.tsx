@@ -54,6 +54,8 @@ interface GeneratorConfig {
   chairsPerTable: number;
   seatType: SeatType;
   customNumbers: string; // String de números separados por vírgula
+  seatsPerRowEnabled: boolean; // Habilita configuração de assentos por fileira
+  seatsPerRowConfig: string; // String de números separados por vírgula para cada fileira
 }
 
 const seatTypeOptions: { type: SeatType; label: string }[] = [
@@ -88,6 +90,8 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     chairsPerTable: 6,
     seatType: 'normal',
     customNumbers: '',
+    seatsPerRowEnabled: false,
+    seatsPerRowConfig: '',
   });
 
   const isTable = config.furnitureType === 'table' || config.furnitureType === 'bistro';
@@ -97,6 +101,12 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     if (config.seatLabelType !== 'custom' || !config.customNumbers.trim()) return null;
     return config.customNumbers.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
   }, [config.seatLabelType, config.customNumbers]);
+
+  // Parse seats per row
+  const parsedSeatsPerRow = useMemo(() => {
+    if (!config.seatsPerRowEnabled || !config.seatsPerRowConfig.trim()) return undefined;
+    return config.seatsPerRowConfig.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n > 0);
+  }, [config.seatsPerRowEnabled, config.seatsPerRowConfig]);
 
   // Preview dimensions - usa geometria do setor se disponível
   const previewDimensions = useMemo(() => {
@@ -140,10 +150,10 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     }));
   }, [sector?.vertices, previewDimensions]);
 
-  // Gera preview dos assentos/mesas com verificação de polígono
+  // Gera preview dos assentos/mesas com verificação de polígono e rotação
   const previewData = useMemo(() => {
     const seats: { x: number; y: number; row: number; col: number; isInside: boolean }[] = [];
-    const { width, height, seatSize, rowSpacing, colSpacing } = previewDimensions;
+    const { width, height, seatSize, rowSpacing, colSpacing, scale } = previewDimensions;
     
     const itemSize = isTable ? seatSize * 2 : seatSize;
     const spacing = isTable ? colSpacing * 2 : colSpacing;
@@ -154,13 +164,30 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     const offsetX = (width - gridWidth) / 2 + itemSize / 2;
     const offsetY = (height - gridHeight) / 2 + itemSize / 2;
     
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const rad = (config.rotation * Math.PI) / 180;
+    
     let insideCount = 0;
     let outsideCount = 0;
     
     for (let r = 0; r < config.rows; r++) {
-      for (let c = 0; c < config.cols; c++) {
-        const x = offsetX + c * (itemSize + spacing);
-        const y = offsetY + r * (itemSize + rSpacing);
+      // Quantidade de assentos nesta fileira
+      const colsInRow = parsedSeatsPerRow && parsedSeatsPerRow[r] !== undefined ? parsedSeatsPerRow[r] : config.cols;
+      const rowGridWidth = colsInRow * (itemSize + spacing);
+      const rowOffsetX = (width - rowGridWidth) / 2 + itemSize / 2;
+      
+      for (let c = 0; c < colsInRow; c++) {
+        let x = rowOffsetX + c * (itemSize + spacing);
+        let y = offsetY + r * (itemSize + rSpacing);
+        
+        // Aplica rotação
+        if (config.rotation !== 0) {
+          const dx = x - centerX;
+          const dy = y - centerY;
+          x = centerX + dx * Math.cos(rad) - dy * Math.sin(rad);
+          y = centerY + dx * Math.sin(rad) + dy * Math.cos(rad);
+        }
         
         // Verifica se está dentro do polígono
         let isInside = true;
@@ -182,7 +209,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
       totalItems: config.rows * config.cols,
       totalSeats: isTable ? insideCount * config.chairsPerTable : insideCount
     };
-  }, [config.rows, config.cols, config.furnitureType, config.chairsPerTable, previewDimensions, previewVertices, isTable]);
+  }, [config.rows, config.cols, config.rotation, config.furnitureType, config.chairsPerTable, previewDimensions, previewVertices, isTable, parsedSeatsPerRow]);
 
   const handleGenerate = () => {
     const tableConf = isTable ? {
@@ -208,6 +235,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
       furnitureType: config.furnitureType,
       tableConfig: tableConf,
       customNumbers: parsedCustomNumbers || undefined,
+      seatsPerRow: parsedSeatsPerRow,
     });
     onClose();
     setStep('type');
@@ -463,6 +491,30 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                       />
                     )}
                   </div>
+                </div>
+
+                {/* Seats per row config */}
+                <div className="space-y-2 pt-4 border-t">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="seatsPerRowEnabled"
+                      checked={config.seatsPerRowEnabled}
+                      onChange={(e) => setConfig(prev => ({ ...prev, seatsPerRowEnabled: e.target.checked }))}
+                      className="rounded"
+                    />
+                    <Label htmlFor="seatsPerRowEnabled" className="text-xs">Quantidade de assentos por fileira (customizada)</Label>
+                  </div>
+                  {config.seatsPerRowEnabled && (
+                    <div className="space-y-1">
+                      <Input
+                        value={config.seatsPerRowConfig}
+                        onChange={(e) => setConfig(prev => ({ ...prev, seatsPerRowConfig: e.target.value }))}
+                        placeholder="Ex: 10, 12, 14, 16 (um valor por fileira)"
+                      />
+                      <p className="text-xs text-muted-foreground">Informe a quantidade de assentos separados por vírgula. Ex: primeira fileira com 10, segunda com 12...</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Rotation & Prefix */}
