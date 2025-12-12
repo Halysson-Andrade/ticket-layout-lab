@@ -49,8 +49,9 @@ interface CanvasProps {
   selectedShapeIds?: string[];
   onSelectShape?: (id: string, additive: boolean) => void;
   onMoveShape?: (id: string, dx: number, dy: number) => void;
+  onDeleteShape?: (id: string) => void; // Excluir forma não vinculada
   onGroupShapesToSector?: (shapeIds: string[]) => void;
-  onAddFurniture?: (sectorId: string, position: { x: number; y: number }) => void; // Melhoria 2
+  onAddFurniture?: (sectorId: string, position: { x: number; y: number }) => void;
 }
 
 const HANDLE_SIZE = 10;
@@ -92,6 +93,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   selectedShapeIds = [],
   onSelectShape,
   onMoveShape,
+  onDeleteShape,
   onGroupShapesToSector,
   onAddFurniture,
 }) => {
