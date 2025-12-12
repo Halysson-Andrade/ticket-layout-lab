@@ -226,6 +226,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
   };
 
   // Gera preview dos assentos/mesas - MESMA LÓGICA de generateSeatsInsidePolygon
+  // IMPORTANTE: Não aplicamos rotação aqui pois o Canvas já aplica rotação do setor via ctx.rotate()
   const previewData = useMemo(() => {
     const seats: { 
       x: number; 
@@ -236,7 +237,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
       rowLabel: string;
       seatLabel: string;
     }[] = [];
-    const { width, height, scale } = previewDimensions;
+    const { width, height, scale, sectorWidth, sectorHeight } = previewDimensions;
     
     // Usa os mesmos valores de tamanho que a função real
     const baseItemSize = isTable ? 60 : config.seatSize;
@@ -254,21 +255,6 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     const offsetX = (width - gridWidth) / 2 + itemSize / 2;
     const offsetY = (height - gridHeight) / 2 + itemSize / 2;
     
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const rad = (config.rotation * Math.PI) / 180;
-    
-    // Função auxiliar para aplicar rotação
-    const applyRotation = (x: number, y: number): { x: number; y: number } => {
-      if (config.rotation === 0) return { x, y };
-      const dx = x - centerX;
-      const dy = y - centerY;
-      return {
-        x: centerX + dx * Math.cos(rad) - dy * Math.sin(rad),
-        y: centerY + dx * Math.sin(rad) + dy * Math.cos(rad),
-      };
-    };
-    
     let insideCount = 0;
     let outsideCount = 0;
     
@@ -278,27 +264,23 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
       // Quantidade de assentos nesta fileira
       const colsInRow = parsedSeatsPerRow && parsedSeatsPerRow[r] !== undefined ? parsedSeatsPerRow[r] : config.cols;
       
-      // Calcula offset X baseado no alinhamento
+      // Calcula offset X baseado no alinhamento - MESMA LÓGICA de generateSeatsInsidePolygon
       const rowGridWidth = colsInRow * step;
+      const padding = itemSize / 2 + 10 * scale;
       let rowOffsetX: number;
       if (config.seatsPerRowEnabled && config.rowAlignment === 'left') {
-        rowOffsetX = itemSize / 2 + 10; // Margem esquerda
+        rowOffsetX = padding;
       } else if (config.seatsPerRowEnabled && config.rowAlignment === 'right') {
-        rowOffsetX = width - rowGridWidth + itemSize / 2 - 10; // Margem direita
+        rowOffsetX = width - rowGridWidth + itemSize / 2 - 10 * scale;
       } else {
         rowOffsetX = (width - rowGridWidth) / 2 + itemSize / 2; // Centralizado (padrão)
       }
       
       for (let c = 0; c < colsInRow; c++) {
-        let x = rowOffsetX + c * step;
-        let y = offsetY + r * rowStep;
+        const x = rowOffsetX + c * step;
+        const y = offsetY + r * rowStep;
         
-        // Aplica rotação
-        const rotated = applyRotation(x, y);
-        x = rotated.x;
-        y = rotated.y;
-        
-        // Verifica se está dentro do polígono
+        // Verifica se está dentro do polígono (sem rotação - a rotação é visual no Canvas)
         let isInside = true;
         if (previewVertices) {
           isInside = isPointInPolygon({ x, y }, previewVertices);
@@ -322,7 +304,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
       totalItems: config.rows * config.cols,
       totalSeats: isTable ? insideCount * config.chairsPerTable : insideCount
     };
-  }, [config.rows, config.cols, config.rotation, config.furnitureType, config.chairsPerTable, config.seatSize, config.colSpacing, config.rowSpacing, config.rowLabelType, config.rowLabelStart, config.seatLabelType, config.seatLabelStart, config.seatsPerRowEnabled, config.rowAlignment, previewDimensions, previewVertices, isTable, parsedSeatsPerRow, parsedCustomNumbers, parsedCustomPerRowNumbers]);
+  }, [config.rows, config.cols, config.furnitureType, config.chairsPerTable, config.seatSize, config.colSpacing, config.rowSpacing, config.rowLabelType, config.rowLabelStart, config.seatLabelType, config.seatLabelStart, config.seatsPerRowEnabled, config.rowAlignment, previewDimensions, previewVertices, isTable, parsedSeatsPerRow, parsedCustomNumbers, parsedCustomPerRowNumbers]);
 
   const handleGenerate = () => {
     const tableConf = isTable ? {
