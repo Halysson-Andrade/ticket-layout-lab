@@ -77,7 +77,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
   sector,
 }) => {
   const [step, setStep] = useState<'type' | 'config'>('type');
-  const [config, setConfig] = useState<GeneratorConfig>(() => ({
+  const [config, setConfig] = useState<GeneratorConfig>({
     rows: 10,
     cols: 20,
     rowSpacing: 4,
@@ -97,9 +97,20 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     seatsPerRowEnabled: false,
     seatsPerRowConfig: '',
     resizeEnabled: false,
-    resizeWidth: sector?.bounds.width || 400,
-    resizeHeight: sector?.bounds.height || 300,
-  }));
+    resizeWidth: 400,
+    resizeHeight: 300,
+  });
+
+  // Sincroniza dimensões de resize quando o sector muda ou modal abre
+  React.useEffect(() => {
+    if (open && sector?.bounds) {
+      setConfig(prev => ({
+        ...prev,
+        resizeWidth: sector.bounds.width,
+        resizeHeight: sector.bounds.height,
+      }));
+    }
+  }, [open, sector?.bounds?.width, sector?.bounds?.height]);
 
   const isTable = config.furnitureType === 'table' || config.furnitureType === 'bistro';
 

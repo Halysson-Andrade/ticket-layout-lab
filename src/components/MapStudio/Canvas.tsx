@@ -128,16 +128,22 @@ export const Canvas: React.FC<CanvasProps> = ({
     sectorId: string | null;
   } | null>(null);
 
+  // Estado para forçar re-render quando imagem carrega
+  const [bgImageLoaded, setBgImageLoaded] = useState(false);
+
   // Carrega imagem de fundo
   useEffect(() => {
     if (backgroundImage) {
+      setBgImageLoaded(false);
       const img = new Image();
       img.src = backgroundImage;
       img.onload = () => {
         bgImageRef.current = img;
+        setBgImageLoaded(true); // Força re-render
       };
     } else {
       bgImageRef.current = null;
+      setBgImageLoaded(false);
     }
   }, [backgroundImage]);
 
@@ -680,7 +686,15 @@ export const Canvas: React.FC<CanvasProps> = ({
   // Atualiza canvas
   useEffect(() => {
     requestAnimationFrame(render);
-  }, [render]);
+  }, [render, bgImageLoaded]);
+
+  // Força render inicial após montagem
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      requestAnimationFrame(render);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Mouse wheel zoom - precisa usar listener nativo para passive: false
   useEffect(() => {
