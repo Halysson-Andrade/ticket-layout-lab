@@ -377,29 +377,58 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
             {/* Propriedades do Setor */}
             {selectedSector && selectedSeats.length === 0 && (
               <>
-                {/* Nome */}
+                {/* Setor (somente seleção, não editável) */}
                 <div className="space-y-2">
                   <Label className="text-xs flex items-center gap-2">
                     <Type className="h-3 w-3" />
-                    Nome do Setor
+                    Setor
                   </Label>
-                  <Input
-                    value={selectedSector.name}
-                    onChange={(e) => onUpdateSector(selectedSector.id, { name: e.target.value })}
-                    className="h-8 text-sm"
-                    placeholder="Digite o nome do setor"
-                  />
+                  <Select
+                    value={PREDEFINED_SECTORS.find(s => s.name === selectedSector.name)?.id || ''}
+                    onValueChange={(categoryId) => {
+                      const category = PREDEFINED_SECTORS.find(s => s.id === categoryId);
+                      if (category) {
+                        onUpdateSector(selectedSector.id, { 
+                          name: category.name, 
+                          color: category.color 
+                        });
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder={selectedSector.name} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PREDEFINED_SECTORS.map((sector) => (
+                        <SelectItem key={sector.id} value={sector.id}>
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-3 h-3 rounded-full border border-border" 
+                              style={{ backgroundColor: sector.color }}
+                            />
+                            {sector.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                {/* Cor */}
+                {/* Cor - paleta expandida */}
                 <div className="space-y-2">
                   <Label className="text-xs flex items-center gap-2">
                     <Palette className="h-3 w-3" />
                     Cor do Setor
                   </Label>
-                  <div className="grid grid-cols-5 gap-1.5">
-                    {SECTOR_COLORS.map((color) => (
-                      <Tooltip key={color}>
+                  <div className="grid grid-cols-6 gap-1.5">
+                    {[...SECTOR_COLORS, 
+                      'hsl(0, 75%, 50%)', 'hsl(15, 80%, 50%)', 'hsl(30, 85%, 50%)', 
+                      'hsl(60, 70%, 45%)', 'hsl(90, 60%, 45%)', 'hsl(120, 55%, 45%)',
+                      'hsl(150, 60%, 45%)', 'hsl(180, 65%, 45%)', 'hsl(210, 70%, 50%)',
+                      'hsl(240, 65%, 55%)', 'hsl(270, 60%, 55%)', 'hsl(300, 55%, 50%)',
+                      'hsl(0, 0%, 30%)', 'hsl(0, 0%, 50%)', 'hsl(0, 0%, 70%)', 'hsl(0, 0%, 85%)'
+                    ].map((color, idx) => (
+                      <Tooltip key={`${color}-${idx}`}>
                         <TooltipTrigger asChild>
                           <button
                             className={`w-full aspect-square rounded-md border-2 transition-all hover:scale-110 ${

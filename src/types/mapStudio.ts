@@ -26,6 +26,7 @@ export interface RowNumberingConfig {
   type: RowNumberingType; // Tipo de numeração: numérico, ímpar, par ou customizado
   startNumber: number; // Número inicial para numeric/odd/even
   numbers?: number[]; // Array de números para tipo 'custom'
+  direction?: SeatNumberDirection; // Direção da geração (ltr ou rtl) para esta fileira
 }
 
 export interface Point {
