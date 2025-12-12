@@ -694,7 +694,7 @@ export function generateSeatsInsidePolygon(
   vertices: Vertex[],
   sectorId: string,
   seatSize: number = 12,
-  spacing: number = 4,
+  colSpacing: number = 4,
   rowLabelType: RowLabelType = 'alpha',
   seatLabelType: SeatLabelType = 'numeric',
   prefix: string = '',
@@ -707,23 +707,25 @@ export function generateSeatsInsidePolygon(
   customNumbers?: number[],
   rowDescriptions?: Record<string, string>,
   rotation: number = 0,
-  seatsPerRow?: number[]
+  seatsPerRow?: number[],
+  rowSpacing?: number // Novo parâmetro para espaçamento entre filas
 ): Seat[] {
   if (vertices.length < 3) return [];
   
   const bounds = getBoundsFromVertices(vertices);
+  const effectiveRowSpacing = rowSpacing !== undefined ? rowSpacing : colSpacing;
   
   // Se tiver curvatura alta ou for arco, usa geração em arco
   if (isArcShape || curvature >= 40) {
-    const effectiveRows = rows > 0 ? rows : Math.floor(bounds.height / (seatSize + spacing));
-    const effectiveCols = cols > 0 ? cols : Math.floor(bounds.width / (seatSize + spacing));
+    const effectiveRows = rows > 0 ? rows : Math.floor(bounds.height / (seatSize + effectiveRowSpacing));
+    const effectiveCols = cols > 0 ? cols : Math.floor(bounds.width / (seatSize + colSpacing));
     return generateSeatsInArc(
       bounds,
       sectorId,
       effectiveRows,
       effectiveCols,
       seatSize,
-      spacing,
+      colSpacing,
       rowLabelType,
       seatLabelType,
       prefix,
@@ -735,8 +737,8 @@ export function generateSeatsInsidePolygon(
   
   // Se tiver curvatura leve, usa grid curvo
   if (curvature > 0) {
-    const effectiveRows = rows > 0 ? rows : Math.floor(bounds.height / (seatSize + spacing));
-    const effectiveCols = cols > 0 ? cols : Math.floor(bounds.width / (seatSize + spacing));
+    const effectiveRows = rows > 0 ? rows : Math.floor(bounds.height / (seatSize + effectiveRowSpacing));
+    const effectiveCols = cols > 0 ? cols : Math.floor(bounds.width / (seatSize + colSpacing));
     return generateSeatsWithCurvature(
       bounds,
       vertices,
@@ -744,7 +746,7 @@ export function generateSeatsInsidePolygon(
       effectiveRows,
       effectiveCols,
       seatSize,
-      spacing,
+      colSpacing,
       curvature,
       rowLabelType,
       seatLabelType,
@@ -762,7 +764,8 @@ export function generateSeatsInsidePolygon(
   const itemSize = isTable 
     ? (tableConfig?.tableWidth || 60) + 20 // Mesa + espaço para cadeiras
     : seatSize;
-  const step = itemSize + spacing;
+  const colStep = itemSize + colSpacing;
+  const rowStep = itemSize + effectiveRowSpacing;
   
   const centerX = bounds.x + bounds.width / 2;
   const centerY = bounds.y + bounds.height / 2;
@@ -782,8 +785,8 @@ export function generateSeatsInsidePolygon(
   // Se rows e cols foram especificados, usa geração baseada em grid exato
   if (rows > 0 && cols > 0) {
     // Calcula o tamanho total do grid
-    const gridWidth = cols * step;
-    const gridHeight = rows * step;
+    const gridWidth = cols * colStep;
+    const gridHeight = rows * rowStep;
     
     // Centraliza o grid dentro do polígono
     const offsetX = bounds.x + (bounds.width - gridWidth) / 2 + itemSize / 2;
@@ -796,12 +799,12 @@ export function generateSeatsInsidePolygon(
       const colsInRow = seatsPerRow && seatsPerRow[r] !== undefined ? seatsPerRow[r] : cols;
       
       // Recalcula offset X para centralizar fileira com quantidade customizada
-      const rowGridWidth = colsInRow * step;
+      const rowGridWidth = colsInRow * colStep;
       const rowOffsetX = bounds.x + (bounds.width - rowGridWidth) / 2 + itemSize / 2;
       
       for (let c = 0; c < colsInRow; c++) {
-        let x = rowOffsetX + c * step;
-        let y = offsetY + r * step;
+        let x = rowOffsetX + c * colStep;
+        let y = offsetY + r * rowStep;
         
         // Aplica rotação
         const rotated = applyRotation(x, y);
@@ -846,12 +849,12 @@ export function generateSeatsInsidePolygon(
   
   let rowIndex = 0;
   
-  for (let y = bounds.y + padding; y < bounds.y + bounds.height - padding; y += step) {
+  for (let y = bounds.y + padding; y < bounds.y + bounds.height - padding; y += rowStep) {
     let colIndex = 0;
     const rowLabel = getRowLabel(rowIndex, rowLabelType, 'A');
     let hasSeatsInRow = false;
     
-    for (let xBase = bounds.x + padding; xBase < bounds.x + bounds.width - padding; xBase += step) {
+    for (let xBase = bounds.x + padding; xBase < bounds.x + bounds.width - padding; xBase += colStep) {
       // Aplica rotação
       const rotated = applyRotation(xBase + itemSize / 2, y + itemSize / 2);
       

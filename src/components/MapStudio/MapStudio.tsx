@@ -196,6 +196,13 @@ export const MapStudio: React.FC = () => {
     }));
   }, []);
 
+  // Exclui forma geométrica não vinculada
+  const handleDeleteShape = useCallback((id: string) => {
+    setGeometricShapes(prev => prev.filter(s => s.id !== id));
+    setSelectedShapeIds([]);
+    toast.success('Forma excluída');
+  }, []);
+
   // Cria setor diretamente (usado por templates/onboarding)
   const handleCreateSector = useCallback((bounds: { x: number; y: number; width: number; height: number }) => {
     const shape: SectorShape = 'rectangle';
@@ -515,7 +522,8 @@ export const MapStudio: React.FC = () => {
       params.customNumbers,
       params.rowDescriptions,
       params.rotation,
-      params.seatsPerRow
+      params.seatsPerRow,
+      params.rowSpacing // Passa rowSpacing separado
     );
 
     setSectors(prev => {
@@ -828,6 +836,14 @@ export const MapStudio: React.FC = () => {
 
   // Delete selecionados
   const handleDelete = useCallback(() => {
+    // Deleta formas geométricas selecionadas
+    if (selectedShapeIds.length > 0) {
+      setGeometricShapes(prev => prev.filter(s => !selectedShapeIds.includes(s.id)));
+      setSelectedShapeIds([]);
+      toast.success('Formas excluídas');
+      return;
+    }
+    
     if (selectedSectorIds.length > 0) {
       const newSectors = sectors.filter(s => !selectedSectorIds.includes(s.id));
       setSectors(newSectors);
@@ -846,7 +862,7 @@ export const MapStudio: React.FC = () => {
       setSelectedSeatIds([]);
       toast.success('Assentos excluídos');
     }
-  }, [selectedSectorIds, selectedSeatIds, sectors, pushHistory]);
+  }, [selectedShapeIds, selectedSectorIds, selectedSeatIds, sectors, pushHistory]);
 
   // Duplicar selecionados
   const handleDuplicate = useCallback(() => {
@@ -1020,6 +1036,7 @@ export const MapStudio: React.FC = () => {
           selectedShapeIds={selectedShapeIds}
           onSelectShape={handleSelectShape}
           onMoveShape={handleMoveShape}
+          onDeleteShape={handleDeleteShape}
           onAddFurniture={handleAddFurnitureToSector}
         />
 
