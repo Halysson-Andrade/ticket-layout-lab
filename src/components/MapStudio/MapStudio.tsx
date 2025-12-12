@@ -462,8 +462,31 @@ export const MapStudio: React.FC = () => {
 
   // Gera assentos em grade (dentro do polígono)
   const handleGenerateGrid = useCallback((params: GridGeneratorParams) => {
-    const sector = sectors.find(s => s.id === params.sectorId);
+    let sector = sectors.find(s => s.id === params.sectorId);
     if (!sector) return;
+
+    // Se redimensionamento foi solicitado, atualiza o setor primeiro
+    if (params.resizeWidth && params.resizeHeight) {
+      const originalWidth = sector.bounds.width;
+      const originalHeight = sector.bounds.height;
+      const scaleX = params.resizeWidth / originalWidth;
+      const scaleY = params.resizeHeight / originalHeight;
+      
+      // Escala vértices proporcionalmente
+      const newVertices = sector.vertices.map(v => ({
+        x: sector!.bounds.x + (v.x - sector!.bounds.x) * scaleX,
+        y: sector!.bounds.y + (v.y - sector!.bounds.y) * scaleY,
+      }));
+      
+      const newBounds = getBoundsFromVertices(newVertices);
+      
+      // Atualiza o setor com novas dimensões
+      sector = {
+        ...sector,
+        vertices: newVertices,
+        bounds: newBounds,
+      };
+    }
 
     // Monta configuração de mesa se necessário
     const furnitureType = params.furnitureType || 'chair';
@@ -489,16 +512,25 @@ export const MapStudio: React.FC = () => {
       sector.curvature || 0,
       params.rows,
       params.cols,
-      params.customNumbers, // Passa numeração customizada
+      params.customNumbers,
       params.rowDescriptions,
-      params.rotation, // Passa rotação
-      params.seatsPerRow // Quantidade de assentos por fileira
+      params.rotation,
+      params.seatsPerRow
     );
 
     setSectors(prev => {
       const newSectors = prev.map(s => 
         s.id === params.sectorId 
-          ? { ...s, seats: newSeats, furnitureType } // Substitui assentos e atualiza tipo
+          ? { 
+              ...s, 
+              seats: newSeats, 
+              furnitureType,
+              // Aplica redimensionamento se solicitado
+              ...(params.resizeWidth && params.resizeHeight ? {
+                vertices: sector!.vertices,
+                bounds: sector!.bounds,
+              } : {})
+            }
           : s
       );
       pushHistory(newSectors);
