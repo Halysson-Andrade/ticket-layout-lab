@@ -107,6 +107,7 @@ export interface Sector {
   gridCols?: number;
   rowAlignment?: RowAlignment;
   seatsPerRow?: number[];
+  customNumbers?: number[]; // Numeração custom usada no gerador
 }
 
 export interface VenueElement {

@@ -934,7 +934,8 @@ export function generateSeatsInsidePolygonSimple(
   furnitureType: FurnitureType = 'chair',
   tableConfig?: TableConfig,
   seatsPerRow?: number[],
-  rowAlignment?: RowAlignment
+  rowAlignment?: RowAlignment,
+  customNumbers?: number[]
 ): Seat[] {
   if (vertices.length < 3) return [];
   
@@ -983,7 +984,7 @@ export function generateSeatsInsidePolygonSimple(
       
       if (isInside) {
         const isLeftSide = c < colsInRow / 2;
-        const seatLabel = getSeatLabel(c, colsInRow, seatLabelType, seatLabelStart, isLeftSide);
+        const seatLabel = getSeatLabel(c, colsInRow, seatLabelType, seatLabelStart, isLeftSide, customNumbers);
         
         const seat: Seat = {
           id: generateId(),
