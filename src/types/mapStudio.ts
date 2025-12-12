@@ -14,6 +14,9 @@ export type TableShape = 'round' | 'square' | 'rectangular';
 export type RowLabelType = 'alpha' | 'numeric' | 'roman';
 export type SeatLabelType = 'numeric' | 'odd-left' | 'even-left' | 'odd-only' | 'even-only' | 'reverse' | 'custom' | 'custom-per-row';
 
+// Direção da numeração dos assentos
+export type SeatNumberDirection = 'ltr' | 'rtl' | 'center-out';
+
 // Tipo de numeração por fileira
 export type RowNumberingType = 'numeric' | 'odd' | 'even' | 'custom';
 
@@ -120,6 +123,8 @@ export interface Sector {
   seatsPerRow?: number[];
   customNumbers?: number[]; // Numeração custom usada no gerador
   customPerRowNumbers?: Record<string, RowNumberingConfig>; // Configuração de numeração por fileira
+  rowLabelPosition?: 'left' | 'right' | 'both'; // Posição do nome da fileira
+  seatNumberDirection?: SeatNumberDirection; // Direção da numeração dos assentos
 }
 
 export interface VenueElement {
@@ -192,6 +197,8 @@ export interface GridGeneratorParams {
   rowAlignment?: RowAlignment; // Alinhamento dos assentos na fileira
   resizeWidth?: number; // Nova largura do setor (opcional)
   resizeHeight?: number; // Nova altura do setor (opcional)
+  rowLabelPosition?: 'left' | 'right' | 'both'; // Posição do nome da fileira no mapa
+  seatNumberDirection?: SeatNumberDirection; // Direção da numeração dos assentos
 }
 
 export interface Template {

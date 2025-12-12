@@ -65,7 +65,11 @@ interface GeneratorConfig {
   resizeHeight: number;
   // Numeração customizada por fileira
   customPerRowEnabled: boolean;
-  customPerRowConfig: Record<string, { type: RowNumberingType; startNumber: number; customNumbers: string }>; 
+  customPerRowConfig: Record<string, { type: RowNumberingType; startNumber: number; customNumbers: string }>;
+  // Posição do nome da fileira
+  rowLabelPosition: 'left' | 'right' | 'both';
+  // Direção da numeração dos assentos
+  seatNumberDirection: RowNumberingType | 'rtl' | 'center-out';
 }
 
 const seatTypeOptions: { type: SeatType; label: string }[] = [
@@ -108,6 +112,8 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     resizeHeight: 300,
     customPerRowEnabled: false,
     customPerRowConfig: {},
+    rowLabelPosition: 'left',
+    seatNumberDirection: 'numeric',
   });
 
   // Sincroniza dimensões de resize quando o sector muda ou modal abre

@@ -980,7 +980,8 @@ export function generateSeatsInsidePolygonSimple(
   tableConfig?: TableConfig,
   seatsPerRow?: number[],
   rowAlignment?: RowAlignment,
-  customNumbers?: number[]
+  customNumbers?: number[],
+  customPerRowNumbers?: Record<string, RowNumberingConfig>
 ): Seat[] {
   if (vertices.length < 3) return [];
   
@@ -1029,7 +1030,10 @@ export function generateSeatsInsidePolygonSimple(
       
       if (isInside) {
         const isLeftSide = c < colsInRow / 2;
-        const seatLabel = getSeatLabel(c, colsInRow, seatLabelType, seatLabelStart, isLeftSide, customNumbers);
+        const rowConfig = seatLabelType === 'custom-per-row' && customPerRowNumbers?.[rowLabel]
+          ? customPerRowNumbers[rowLabel]
+          : undefined;
+        const seatLabel = getSeatLabel(c, colsInRow, seatLabelType, seatLabelStart, isLeftSide, customNumbers, rowConfig);
         
         const seat: Seat = {
           id: generateId(),
