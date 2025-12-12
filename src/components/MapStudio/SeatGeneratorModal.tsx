@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Grid3X3, RotateCw, Square, Circle, Armchair, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Grid3X3, RotateCw, Square, Circle, Armchair, AlertTriangle, ChevronLeft, ChevronRight, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -56,6 +56,7 @@ interface GeneratorConfig {
   customNumbers: string;
   seatsPerRowEnabled: boolean;
   seatsPerRowConfig: string;
+  rowAlignment: 'left' | 'center' | 'right';
   // Redimensionamento da forma
   resizeEnabled: boolean;
   resizeWidth: number;
@@ -96,6 +97,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     customNumbers: '',
     seatsPerRowEnabled: false,
     seatsPerRowConfig: '',
+    rowAlignment: 'center',
     resizeEnabled: false,
     resizeWidth: 400,
     resizeHeight: 300,
@@ -240,9 +242,16 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
       // Quantidade de assentos nesta fileira
       const colsInRow = parsedSeatsPerRow && parsedSeatsPerRow[r] !== undefined ? parsedSeatsPerRow[r] : config.cols;
       
-      // Recalcula offset X para centralizar fileira com quantidade customizada
+      // Calcula offset X baseado no alinhamento
       const rowGridWidth = colsInRow * step;
-      const rowOffsetX = (width - rowGridWidth) / 2 + itemSize / 2;
+      let rowOffsetX: number;
+      if (config.seatsPerRowEnabled && config.rowAlignment === 'left') {
+        rowOffsetX = itemSize / 2 + 10; // Margem esquerda
+      } else if (config.seatsPerRowEnabled && config.rowAlignment === 'right') {
+        rowOffsetX = width - rowGridWidth + itemSize / 2 - 10; // Margem direita
+      } else {
+        rowOffsetX = (width - rowGridWidth) / 2 + itemSize / 2; // Centralizado (padrão)
+      }
       
       for (let c = 0; c < colsInRow; c++) {
         let x = rowOffsetX + c * step;
@@ -302,6 +311,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
       tableConfig: tableConf,
       customNumbers: parsedCustomNumbers || undefined,
       seatsPerRow: parsedSeatsPerRow,
+      rowAlignment: config.seatsPerRowEnabled ? config.rowAlignment : undefined,
       resizeWidth: config.resizeEnabled ? config.resizeWidth : undefined,
       resizeHeight: config.resizeEnabled ? config.resizeHeight : undefined,
     });
@@ -562,7 +572,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                 </div>
 
                 {/* Seats per row config */}
-                <div className="space-y-2 pt-4 border-t">
+                <div className="space-y-3 pt-4 border-t">
                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -574,13 +584,55 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                     <Label htmlFor="seatsPerRowEnabled" className="text-xs">Quantidade de assentos por fileira (customizada)</Label>
                   </div>
                   {config.seatsPerRowEnabled && (
-                    <div className="space-y-1">
-                      <Input
-                        value={config.seatsPerRowConfig}
-                        onChange={(e) => setConfig(prev => ({ ...prev, seatsPerRowConfig: e.target.value }))}
-                        placeholder="Ex: 10, 12, 14, 16 (um valor por fileira)"
-                      />
-                      <p className="text-xs text-muted-foreground">Informe a quantidade de assentos separados por vírgula. Ex: primeira fileira com 10, segunda com 12...</p>
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <Input
+                          value={config.seatsPerRowConfig}
+                          onChange={(e) => setConfig(prev => ({ ...prev, seatsPerRowConfig: e.target.value }))}
+                          placeholder="Ex: 10, 12, 14, 16 (um valor por fileira)"
+                        />
+                        <p className="text-xs text-muted-foreground">Informe a quantidade de assentos separados por vírgula. Ex: primeira fileira com 10, segunda com 12...</p>
+                      </div>
+                      
+                      {/* Alinhamento dos assentos */}
+                      <div className="space-y-2">
+                        <Label className="text-xs">Alinhamento dos assentos</Label>
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setConfig(prev => ({ ...prev, rowAlignment: 'left' }))}
+                            className={cn(
+                              "flex-1 p-2 rounded-lg border-2 flex items-center justify-center gap-1 transition-all text-xs",
+                              config.rowAlignment === 'left' ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+                            )}
+                          >
+                            <AlignLeft className="h-4 w-4" />
+                            Esquerda
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfig(prev => ({ ...prev, rowAlignment: 'center' }))}
+                            className={cn(
+                              "flex-1 p-2 rounded-lg border-2 flex items-center justify-center gap-1 transition-all text-xs",
+                              config.rowAlignment === 'center' ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+                            )}
+                          >
+                            <AlignCenter className="h-4 w-4" />
+                            Centro
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfig(prev => ({ ...prev, rowAlignment: 'right' }))}
+                            className={cn(
+                              "flex-1 p-2 rounded-lg border-2 flex items-center justify-center gap-1 transition-all text-xs",
+                              config.rowAlignment === 'right' ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+                            )}
+                          >
+                            <AlignRight className="h-4 w-4" />
+                            Direita
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>

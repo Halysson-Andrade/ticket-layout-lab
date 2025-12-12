@@ -1,4 +1,4 @@
-import { Seat, GridGeneratorParams, RowLabelType, SeatLabelType, SEAT_COLORS, Vertex, SectorShape, Bounds, FurnitureType, TableConfig, TableShape } from '@/types/mapStudio';
+import { Seat, GridGeneratorParams, RowLabelType, SeatLabelType, RowAlignment, SEAT_COLORS, Vertex, SectorShape, Bounds, FurnitureType, TableConfig, TableShape } from '@/types/mapStudio';
 
 // Gera ID único
 export function generateId(): string {
@@ -708,7 +708,8 @@ export function generateSeatsInsidePolygon(
   rowDescriptions?: Record<string, string>,
   rotation: number = 0,
   seatsPerRow?: number[],
-  rowSpacing?: number // Novo parâmetro para espaçamento entre filas
+  rowSpacing?: number,
+  rowAlignment?: RowAlignment
 ): Seat[] {
   if (vertices.length < 3) return [];
   
@@ -798,9 +799,17 @@ export function generateSeatsInsidePolygon(
       // Quantidade de assentos nesta fileira
       const colsInRow = seatsPerRow && seatsPerRow[r] !== undefined ? seatsPerRow[r] : cols;
       
-      // Recalcula offset X para centralizar fileira com quantidade customizada
+      // Calcula offset X baseado no alinhamento
       const rowGridWidth = colsInRow * colStep;
-      const rowOffsetX = bounds.x + (bounds.width - rowGridWidth) / 2 + itemSize / 2;
+      const padding = itemSize / 2 + 10;
+      let rowOffsetX: number;
+      if (rowAlignment === 'left') {
+        rowOffsetX = bounds.x + padding;
+      } else if (rowAlignment === 'right') {
+        rowOffsetX = bounds.x + bounds.width - rowGridWidth + itemSize / 2 - 10;
+      } else {
+        rowOffsetX = bounds.x + (bounds.width - rowGridWidth) / 2 + itemSize / 2; // center (default)
+      }
       
       for (let c = 0; c < colsInRow; c++) {
         let x = rowOffsetX + c * colStep;
@@ -913,7 +922,9 @@ export function generateSeatsInsidePolygonSimple(
   seatLabelStart: number = 1,
   prefix: string = '',
   furnitureType: FurnitureType = 'chair',
-  tableConfig?: TableConfig
+  tableConfig?: TableConfig,
+  seatsPerRow?: number[],
+  rowAlignment?: RowAlignment
 ): Seat[] {
   if (vertices.length < 3) return [];
   
@@ -932,22 +943,36 @@ export function generateSeatsInsidePolygonSimple(
   const gridWidth = cols * colStep;
   const gridHeight = rows * rowStep;
   
-  // Centraliza o grid dentro do polígono
-  const offsetX = bounds.x + (bounds.width - gridWidth) / 2 + itemSize / 2;
+  // Centraliza o grid dentro do polígono (offset Y)
   const offsetY = bounds.y + (bounds.height - gridHeight) / 2 + itemSize / 2;
   
   for (let r = 0; r < rows; r++) {
     const rowLabel = getRowLabel(r, rowLabelType, rowLabelStart);
     
-    for (let c = 0; c < cols; c++) {
-      const x = offsetX + c * colStep;
+    // Quantidade de assentos nesta fileira
+    const colsInRow = seatsPerRow && seatsPerRow[r] !== undefined ? seatsPerRow[r] : cols;
+    
+    // Calcula offset X baseado no alinhamento
+    const rowGridWidth = colsInRow * colStep;
+    const padding = itemSize / 2 + 10;
+    let rowOffsetX: number;
+    if (rowAlignment === 'left') {
+      rowOffsetX = bounds.x + padding;
+    } else if (rowAlignment === 'right') {
+      rowOffsetX = bounds.x + bounds.width - rowGridWidth + itemSize / 2 - 10;
+    } else {
+      rowOffsetX = bounds.x + (bounds.width - rowGridWidth) / 2 + itemSize / 2; // center (default)
+    }
+    
+    for (let c = 0; c < colsInRow; c++) {
+      const x = rowOffsetX + c * colStep;
       const y = offsetY + r * rowStep;
       
       // Verifica se está dentro do polígono
       const isInside = isPointInPolygon({ x, y }, vertices);
       
       if (isInside) {
-        const seatLabel = getSeatLabel(c, cols, seatLabelType, seatLabelStart);
+        const seatLabel = getSeatLabel(c, colsInRow, seatLabelType, seatLabelStart);
         
         const seat: Seat = {
           id: generateId(),
