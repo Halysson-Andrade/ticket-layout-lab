@@ -439,7 +439,7 @@ export function getRowLabel(index: number, type: RowLabelType, start: string): s
   }
 }
 
-// Gera label do assento
+// Gera label do assento com suporte a direção de numeração
 export function getSeatLabel(
   index: number,
   total: number,
@@ -447,38 +447,72 @@ export function getSeatLabel(
   start: number,
   isLeftSide?: boolean,
   customNumbers?: number[],
-  rowNumberingConfig?: { type: 'numeric' | 'odd' | 'even' | 'custom'; startNumber: number; numbers?: number[] }
+  rowNumberingConfig?: { type: 'numeric' | 'odd' | 'even' | 'custom'; startNumber: number; numbers?: number[] },
+  seatNumberDirection?: 'ltr' | 'rtl' | 'center-out'
 ): string {
   // Se tiver configuração de numeração por fileira
   if (type === 'custom-per-row' && rowNumberingConfig) {
     const { type: rowType, startNumber, numbers } = rowNumberingConfig;
     
+    // Aplica direção à numeração por fileira
+    let effectiveIndex = index;
+    if (seatNumberDirection === 'rtl') {
+      effectiveIndex = total - 1 - index;
+    } else if (seatNumberDirection === 'center-out') {
+      // Centro para fora: menores no centro, crescendo para as pontas
+      effectiveIndex = getCenterOutIndex(index, total);
+    }
+    
     switch (rowType) {
       case 'numeric':
-        return String(startNumber + index);
+        return String(startNumber + effectiveIndex);
       case 'odd': {
         const oddStart = startNumber % 2 === 1 ? startNumber : startNumber + 1;
-        return String(oddStart + (index * 2));
+        return String(oddStart + (effectiveIndex * 2));
       }
       case 'even': {
         const evenStart = startNumber % 2 === 0 ? startNumber : startNumber + 1;
-        return String(evenStart + (index * 2));
+        return String(evenStart + (effectiveIndex * 2));
       }
       case 'custom':
         if (numbers && numbers.length > 0) {
-          return String(numbers[index] ?? (startNumber + index));
+          return String(numbers[effectiveIndex] ?? (startNumber + effectiveIndex));
         }
-        return String(startNumber + index);
+        return String(startNumber + effectiveIndex);
       default:
-        return String(startNumber + index);
+        return String(startNumber + effectiveIndex);
     }
   }
   
   // Se tiver numeração customizada, usa ela
   if (type === 'custom' && customNumbers && customNumbers.length > 0) {
-    return String(customNumbers[index % customNumbers.length] || (start + index));
+    let effectiveIndex = index;
+    if (seatNumberDirection === 'rtl') {
+      effectiveIndex = total - 1 - index;
+    } else if (seatNumberDirection === 'center-out') {
+      effectiveIndex = getCenterOutIndex(index, total);
+    }
+    return String(customNumbers[effectiveIndex % customNumbers.length] || (start + effectiveIndex));
   }
   
+  // Aplica direção de numeração para tipos padrão
+  if (seatNumberDirection === 'rtl') {
+    // Direita para esquerda: inverte a posição
+    return String(start + total - 1 - index);
+  }
+  
+  if (seatNumberDirection === 'center-out') {
+    // Centro para as pontas: menores no centro, crescendo para fora
+    // Para odd-left/even-left: ímpares para um lado, pares para outro
+    if (type === 'odd-left' || type === 'even-left') {
+      return getCenterOutOddEvenLabel(index, total, start, type === 'odd-left');
+    }
+    // Para outros tipos: simplesmente aplica sequência do centro para fora
+    const centerOutIndex = getCenterOutIndex(index, total);
+    return String(start + centerOutIndex);
+  }
+  
+  // LTR (padrão) ou sem direção especificada
   switch (type) {
     case 'numeric':
       return String(start + index);
@@ -516,6 +550,84 @@ export function getSeatLabel(
     }
     default:
       return String(start + index);
+  }
+}
+
+// Calcula índice do centro para fora (0 no centro, crescendo para as pontas)
+function getCenterOutIndex(index: number, total: number): number {
+  const center = Math.floor(total / 2);
+  const distanceFromCenter = Math.abs(index - center);
+  
+  // Se total é par: posições 4,5 são centro (índices 4,5 para total 10)
+  // Se total é ímpar: posição central é o meio exato
+  if (total % 2 === 0) {
+    // Par: dois assentos centrais (center-1 e center)
+    if (index < center) {
+      // Lado esquerdo: distance cresce para esquerda
+      return center - 1 - index;
+    } else {
+      // Lado direito: distance cresce para direita
+      return index - center;
+    }
+  } else {
+    // Ímpar: assento central único
+    return distanceFromCenter;
+  }
+}
+
+// Numeração centro para fora com pares/ímpares separados
+// oddToRight=true: ímpares vão para direita, pares para esquerda
+// oddToRight=false: pares vão para direita, ímpares para esquerda
+function getCenterOutOddEvenLabel(
+  index: number,
+  total: number,
+  start: number,
+  oddToRight: boolean
+): string {
+  const center = Math.floor(total / 2);
+  const isRightSide = index >= center;
+  
+  // Calcula distância do centro (0-based)
+  let distanceFromCenter: number;
+  if (total % 2 === 0) {
+    // Total par: dois assentos no centro
+    if (index < center) {
+      distanceFromCenter = center - 1 - index;
+    } else {
+      distanceFromCenter = index - center;
+    }
+  } else {
+    // Total ímpar: assento central único (recebe número do meio)
+    if (index === center) {
+      // Assento central: recebe o menor número
+      const oddStart = start % 2 === 1 ? start : start + 1;
+      return String(oddStart);
+    }
+    distanceFromCenter = Math.abs(index - center) - 1; // -1 pq o central é o 0
+  }
+  
+  // Garante start adequado para ímpar/par
+  const oddStart = start % 2 === 1 ? start : start + 1;
+  const evenStart = start % 2 === 0 ? start : start + 1;
+  
+  if (oddToRight) {
+    // Ímpares à direita, pares à esquerda
+    if (isRightSide) {
+      // Direita = ímpares crescendo do centro (1, 3, 5, 7...)
+      return String(oddStart + (distanceFromCenter * 2));
+    } else {
+      // Esquerda = pares crescendo do centro (2, 4, 6, 8...)
+      return String(evenStart + (distanceFromCenter * 2));
+    }
+  } else {
+    // Pares à direita, ímpares à esquerda
+    if (isRightSide) {
+      // Direita = pares crescendo do centro
+      return String(evenStart + (distanceFromCenter * 2));
+    } else {
+      // Esquerda = ímpares crescendo do centro
+      return String(oddStart + (distanceFromCenter * 2));
+    }
   }
 }
 
@@ -758,7 +870,8 @@ export function generateSeatsInsidePolygon(
   rowAlignment?: RowAlignment,
   rowLabelStart: string = 'A',
   seatLabelStart: number = 1,
-  customPerRowNumbers?: Record<string, RowNumberingConfig>
+  customPerRowNumbers?: Record<string, RowNumberingConfig>,
+  seatNumberDirection?: 'ltr' | 'rtl' | 'center-out'
 ): Seat[] {
   if (vertices.length < 3) return [];
   
@@ -868,7 +981,7 @@ export function generateSeatsInsidePolygon(
           const rowConfig = seatLabelType === 'custom-per-row' && customPerRowNumbers?.[rowLabel] 
             ? customPerRowNumbers[rowLabel] 
             : undefined;
-          const seatLabel = getSeatLabel(c, colsInRow, seatLabelType, seatLabelStart, isLeftSide, customNumbers, rowConfig);
+          const seatLabel = getSeatLabel(c, colsInRow, seatLabelType, seatLabelStart, isLeftSide, customNumbers, rowConfig, seatNumberDirection);
           
           const seat: Seat = {
             id: generateId(),
@@ -970,7 +1083,8 @@ export function generateSeatsInsidePolygonSimple(
   seatsPerRow?: number[],
   rowAlignment?: RowAlignment,
   customNumbers?: number[],
-  customPerRowNumbers?: Record<string, RowNumberingConfig>
+  customPerRowNumbers?: Record<string, RowNumberingConfig>,
+  seatNumberDirection?: 'ltr' | 'rtl' | 'center-out'
 ): Seat[] {
   if (vertices.length < 3) return [];
   
@@ -1022,7 +1136,7 @@ export function generateSeatsInsidePolygonSimple(
         const rowConfig = seatLabelType === 'custom-per-row' && customPerRowNumbers?.[rowLabel]
           ? customPerRowNumbers[rowLabel]
           : undefined;
-        const seatLabel = getSeatLabel(c, colsInRow, seatLabelType, seatLabelStart, isLeftSide, customNumbers, rowConfig);
+        const seatLabel = getSeatLabel(c, colsInRow, seatLabelType, seatLabelStart, isLeftSide, customNumbers, rowConfig, seatNumberDirection);
         
         const seat: Seat = {
           id: generateId(),

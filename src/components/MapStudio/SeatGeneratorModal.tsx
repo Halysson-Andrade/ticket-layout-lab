@@ -221,9 +221,9 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     // Se for customização por fileira, usa a configuração da fileira específica
     if (config.seatLabelType === 'custom-per-row' && rowLabel && parsedCustomPerRowNumbers?.[rowLabel]) {
       const rowConfig = parsedCustomPerRowNumbers[rowLabel];
-      return getSeatLabel(colIndex, totalCols, config.seatLabelType, config.seatLabelStart, isLeftSide, parsedCustomNumbers || undefined, rowConfig);
+      return getSeatLabel(colIndex, totalCols, config.seatLabelType, config.seatLabelStart, isLeftSide, parsedCustomNumbers || undefined, rowConfig, config.seatNumberDirection);
     }
-    return getSeatLabel(colIndex, totalCols, config.seatLabelType, config.seatLabelStart, isLeftSide, parsedCustomNumbers || undefined);
+    return getSeatLabel(colIndex, totalCols, config.seatLabelType, config.seatLabelStart, isLeftSide, parsedCustomNumbers || undefined, undefined, config.seatNumberDirection);
   };
 
   // Gera preview dos assentos/mesas - MESMA LÓGICA de generateSeatsInsidePolygon
