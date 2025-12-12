@@ -586,7 +586,61 @@ export const MapStudio: React.FC = () => {
     toast.success('Assentos regenerados!');
   }, [pushHistory]);
 
-  // Adiciona mobília manualmente dentro de um setor (Melhoria 2)
+  // Atualiza espaçamento entre assentos e regenera automaticamente
+  const handleUpdateSpacing = useCallback((sectorId: string, rowSpacing: number, colSpacing: number, seatSize: number) => {
+    setSectors(prev => {
+      const newSectors = prev.map(s => {
+        if (s.id !== sectorId) return s;
+        
+        // Salva os novos parâmetros no setor
+        const updatedSector = { 
+          ...s, 
+          rowSpacing, 
+          colSpacing, 
+          seatSize 
+        };
+        
+        // Se o setor já tem assentos, regenera com os novos espaçamentos
+        if (s.seats.length > 0) {
+          // Determina número de filas e colunas atual baseado nos assentos existentes
+          const uniqueRows = new Set(s.seats.map(seat => seat.row));
+          const rowCount = uniqueRows.size || 10;
+          const colCount = Math.ceil(s.seats.length / rowCount);
+          
+          const furnitureType = s.furnitureType || 'chair';
+          const tableConf = furnitureType !== 'chair' ? {
+            shape: 'round' as const,
+            chairCount: 6,
+            tableWidth: 60,
+            tableHeight: 60,
+          } : undefined;
+          
+          const newSeats = generateSeatsInsidePolygon(
+            s.vertices,
+            s.id,
+            seatSize,
+            colSpacing,
+            'alpha',
+            'numeric',
+            '',
+            furnitureType,
+            tableConf,
+            s.shape === 'arc',
+            rowSpacing,
+            rowCount,
+            colCount
+          );
+          
+          return { ...updatedSector, seats: newSeats };
+        }
+        
+        return updatedSector;
+      });
+      pushHistory(newSectors);
+      return newSectors;
+    });
+  }, [pushHistory]);
+
   const handleAddFurnitureToSector = useCallback((sectorId: string, position: { x: number; y: number }) => {
     setSectors(prev => {
       const newSectors = prev.map(s => {
@@ -1089,6 +1143,7 @@ export const MapStudio: React.FC = () => {
           onRegenerateSeats={handleRegenerateSeats}
           onResizeSector={handleResizeSector}
           onLinkShapeToSector={handleLinkShapeToSector}
+          onUpdateSpacing={handleUpdateSpacing}
           onGroupSectors={(sectorIds, categoryId) => {
             // Agrupa setores na mesma categoria
             const category = PREDEFINED_SECTORS.find(s => s.id === categoryId);
