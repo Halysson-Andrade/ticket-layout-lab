@@ -1016,7 +1016,9 @@ export const Canvas: React.FC<CanvasProps> = ({
       const sector = sectors.find(s => s.id === selectedSectorIds[0]);
       if (sector && sector.vertices) {
         const newVertices = [...sector.vertices];
-        newVertices[activeVertexIndex] = { x: pos.x, y: pos.y };
+        // Aplica rotação inversa no ponto atual para atualizar o vértice corretamente
+        const transformedPos = transformPointForSector(pos, sector);
+        newVertices[activeVertexIndex] = { x: transformedPos.x, y: transformedPos.y };
         onUpdateSectorVertices(sector.id, newVertices);
       }
       return;
@@ -1095,7 +1097,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     if (isBoxSelecting) {
       setBoxSelectCurrent(pos);
     }
-  }, [isPanning, isDrawing, isDragging, isDraggingShape, isDraggingElement, isDraggingVertex, isDraggingSeat, draggingSeatInfo, isResizingElement, resizeCorner, activeVertexIndex, isBoxSelecting, activeTool, dragStart, screenToCanvas, selectedSectorIds, selectedShapeIds, selectedElementIds, sectors, elements, onPanChange, onMoveSector, onMoveShape, onMoveElement, onResizeElement, onMoveSeat, onUpdateSectorVertices, onMoveSelectedSeats, selectedSeatIds, isPointInSector]);
+  }, [isPanning, isDrawing, isDragging, isDraggingShape, isDraggingElement, isDraggingVertex, isDraggingSeat, draggingSeatInfo, isResizingElement, resizeCorner, activeVertexIndex, isBoxSelecting, activeTool, dragStart, screenToCanvas, selectedSectorIds, selectedShapeIds, selectedElementIds, sectors, elements, onPanChange, onMoveSector, onMoveShape, onMoveElement, onResizeElement, onMoveSeat, onUpdateSectorVertices, onMoveSelectedSeats, selectedSeatIds, isPointInSector, transformPointForSector]);
 
   // Mouse up
   const handleMouseUp = useCallback((e: React.MouseEvent) => {

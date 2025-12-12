@@ -659,7 +659,8 @@ export const MapStudio: React.FC = () => {
             tableConf,
             s.seatsPerRow,
             s.rowAlignment,
-            s.customNumbers
+            s.customNumbers,
+            s.customPerRowNumbers
           );
           
           return { ...updatedSector, seats: newSeats };

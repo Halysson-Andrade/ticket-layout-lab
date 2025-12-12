@@ -179,34 +179,50 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                 </p>
               ) : (
                 <div className="space-y-1">
-                  {sectors.map((sector) => (
+                  {Object.values(
+                    sectors.reduce<Record<string, { id: string; name: string; color: string; seatCount: number; sectorIds: string[] }>>((acc, sector) => {
+                      const key = sector.categoryId || sector.name;
+                      if (!acc[key]) {
+                        acc[key] = {
+                          id: key,
+                          name: sector.name,
+                          color: sector.color,
+                          seatCount: 0,
+                          sectorIds: [],
+                        };
+                      }
+                      acc[key].seatCount += sector.seats.length;
+                      acc[key].sectorIds.push(sector.id);
+                      return acc;
+                    }, {})
+                  ).map(group => (
                     <div
-                      key={sector.id}
+                      key={group.id}
                       className={cn(
                         "flex items-center gap-2 px-2 py-1.5 rounded text-sm cursor-pointer transition-all group",
-                        selectedIds.includes(sector.id)
+                        group.sectorIds.some(id => selectedIds.includes(id))
                           ? "bg-primary/20 text-primary"
                           : "hover:bg-muted"
                       )}
-                      onClick={() => onSelectSector(sector.id)}
+                      onClick={() => onSelectSector(group.sectorIds[0])}
                     >
                       <div
                         className="w-3 h-3 rounded-sm shrink-0"
-                        style={{ backgroundColor: sector.color }}
+                        style={{ backgroundColor: group.color }}
                       />
-                      <span className="flex-1 truncate text-xs">{sector.name}</span>
+                      <span className="flex-1 truncate text-xs">{group.name}</span>
                       <span className="text-[10px] text-muted-foreground">
-                        {sector.seats.length}
+                        {group.seatCount}
                       </span>
                       <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           className="p-0.5 hover:text-primary"
                           onClick={(e) => {
                             e.stopPropagation();
-                            onToggleSectorVisibility(sector.id);
+                            group.sectorIds.forEach(id => onToggleSectorVisibility(id));
                           }}
                         >
-                          {sector.visible ? (
+                          {group.sectorIds.some(id => sectors.find(s => s.id === id)?.visible) ? (
                             <Eye className="h-3 w-3" />
                           ) : (
                             <EyeOff className="h-3 w-3" />
@@ -216,10 +232,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                           className="p-0.5 hover:text-primary"
                           onClick={(e) => {
                             e.stopPropagation();
-                            onToggleSectorLock(sector.id);
+                            group.sectorIds.forEach(id => onToggleSectorLock(id));
                           }}
                         >
-                          {sector.locked ? (
+                          {group.sectorIds.some(id => sectors.find(s => s.id === id)?.locked) ? (
                             <Lock className="h-3 w-3" />
                           ) : (
                             <Unlock className="h-3 w-3" />
@@ -229,7 +245,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
                           className="p-0.5 hover:text-destructive"
                           onClick={(e) => {
                             e.stopPropagation();
-                            onDeleteSector(sector.id);
+                            group.sectorIds.forEach(id => onDeleteSector(id));
                           }}
                         >
                           <Trash2 className="h-3 w-3" />
