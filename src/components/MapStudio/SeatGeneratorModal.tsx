@@ -66,7 +66,7 @@ interface GeneratorConfig {
   resizeHeight: number;
   // Numeração customizada por fileira
   customPerRowEnabled: boolean;
-  customPerRowConfig: Record<string, { type: RowNumberingType; startNumber: number; customNumbers: string }>;
+  customPerRowConfig: Record<string, { type: RowNumberingType; startNumber: number; customNumbers: string; direction: SeatNumberDirection }>;
   // Posição do nome da fileira
   rowLabelPosition: 'left' | 'right' | 'both';
   // Direção da numeração dos assentos
@@ -154,7 +154,8 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
         rowLabel,
         type: rowConfig.type,
         startNumber: rowConfig.startNumber,
-        numbers
+        numbers,
+        direction: rowConfig.direction || 'ltr'
       };
     }
     return Object.keys(result).length > 0 ? result : undefined;
@@ -662,7 +663,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                         const colsInRow = parsedSeatsPerRow && parsedSeatsPerRow[i] !== undefined 
                           ? parsedSeatsPerRow[i] 
                           : config.cols;
-                        const rowConfig = config.customPerRowConfig[rowLabel] || { type: 'numeric' as RowNumberingType, startNumber: 1, customNumbers: '' };
+                        const rowConfig = config.customPerRowConfig[rowLabel] || { type: 'numeric' as RowNumberingType, startNumber: 1, customNumbers: '', direction: 'ltr' as SeatNumberDirection };
                         return (
                           <div key={rowLabel} className="p-2 border rounded-lg bg-muted/30 space-y-2">
                             <div className="flex items-center gap-2">
@@ -684,31 +685,51 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                                   }
                                 }))}
                               >
-                                <SelectTrigger className="w-[140px] h-7 text-xs">
+                                <SelectTrigger className="w-[100px] h-7 text-xs">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="numeric">Numérico</SelectItem>
-                                  <SelectItem value="odd">Somente Ímpares</SelectItem>
-                                  <SelectItem value="even">Somente Pares</SelectItem>
-                                  <SelectItem value="custom">Customizado</SelectItem>
+                                  <SelectItem value="odd">Ímpares</SelectItem>
+                                  <SelectItem value="even">Pares</SelectItem>
+                                  <SelectItem value="custom">Custom</SelectItem>
                                 </SelectContent>
                               </Select>
                               {rowConfig.type !== 'custom' && (
-                                <Input
-                                  type="number"
-                                  value={rowConfig.startNumber}
-                                  onChange={(e) => setConfig(prev => ({
-                                    ...prev,
-                                    customPerRowConfig: {
-                                      ...prev.customPerRowConfig,
-                                      [rowLabel]: { ...rowConfig, startNumber: parseInt(e.target.value) || 1 }
-                                    }
-                                  }))}
-                                  min={1}
-                                  placeholder="Início"
-                                  className="w-20 h-7 text-xs"
-                                />
+                                <>
+                                  <Input
+                                    type="number"
+                                    value={rowConfig.startNumber}
+                                    onChange={(e) => setConfig(prev => ({
+                                      ...prev,
+                                      customPerRowConfig: {
+                                        ...prev.customPerRowConfig,
+                                        [rowLabel]: { ...rowConfig, startNumber: parseInt(e.target.value) || 1 }
+                                      }
+                                    }))}
+                                    min={1}
+                                    placeholder="Início"
+                                    className="w-16 h-7 text-xs"
+                                  />
+                                  <Select
+                                    value={rowConfig.direction || 'ltr'}
+                                    onValueChange={(value: SeatNumberDirection) => setConfig(prev => ({
+                                      ...prev,
+                                      customPerRowConfig: {
+                                        ...prev.customPerRowConfig,
+                                        [rowLabel]: { ...rowConfig, direction: value }
+                                      }
+                                    }))}
+                                  >
+                                    <SelectTrigger className="w-[70px] h-7 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="ltr">E→D</SelectItem>
+                                      <SelectItem value="rtl">D→E</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </>
                               )}
                             </div>
                             {rowConfig.type === 'custom' && (

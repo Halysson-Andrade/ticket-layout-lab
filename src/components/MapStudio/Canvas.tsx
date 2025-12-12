@@ -503,6 +503,29 @@ export const Canvas: React.FC<CanvasProps> = ({
               ctx.fillText(String(i + 1), vertex.x, vertex.y);
             }
           });
+          
+          // Indicador de topo (triângulo no topo da forma)
+          const topY = Math.min(...sector.vertices.map(v => v.y));
+          const topVertices = sector.vertices.filter(v => Math.abs(v.y - topY) < 5);
+          const topCenterX = topVertices.length > 0 
+            ? topVertices.reduce((sum, v) => sum + v.x, 0) / topVertices.length 
+            : bounds.x + bounds.width / 2;
+          
+          const arrowSize = 12 / zoom;
+          ctx.fillStyle = '#22c55e';
+          ctx.beginPath();
+          ctx.moveTo(topCenterX, topY - arrowSize - 5 / zoom);
+          ctx.lineTo(topCenterX - arrowSize / 2, topY - 5 / zoom);
+          ctx.lineTo(topCenterX + arrowSize / 2, topY - 5 / zoom);
+          ctx.closePath();
+          ctx.fill();
+          
+          // Texto "TOPO"
+          ctx.fillStyle = '#22c55e';
+          ctx.font = `bold ${9 / zoom}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText('TOPO', topCenterX, topY - arrowSize - 8 / zoom);
         }
       }
 

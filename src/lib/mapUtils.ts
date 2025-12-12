@@ -1,4 +1,4 @@
-import { Seat, GridGeneratorParams, RowLabelType, SeatLabelType, RowAlignment, SEAT_COLORS, Vertex, SectorShape, Bounds, FurnitureType, TableConfig, TableShape, RowNumberingConfig } from '@/types/mapStudio';
+import { Seat, GridGeneratorParams, RowLabelType, SeatLabelType, RowAlignment, SEAT_COLORS, Vertex, SectorShape, Bounds, FurnitureType, TableConfig, TableShape, RowNumberingConfig, SeatNumberDirection } from '@/types/mapStudio';
 
 // Gera ID único
 export function generateId(): string {
@@ -447,18 +447,21 @@ export function getSeatLabel(
   start: number,
   isLeftSide?: boolean,
   customNumbers?: number[],
-  rowNumberingConfig?: { type: 'numeric' | 'odd' | 'even' | 'custom'; startNumber: number; numbers?: number[] },
+  rowNumberingConfig?: { type: 'numeric' | 'odd' | 'even' | 'custom'; startNumber: number; numbers?: number[]; direction?: SeatNumberDirection },
   seatNumberDirection?: 'ltr' | 'rtl' | 'center-out'
 ): string {
   // Se tiver configuração de numeração por fileira
   if (type === 'custom-per-row' && rowNumberingConfig) {
-    const { type: rowType, startNumber, numbers } = rowNumberingConfig;
+    const { type: rowType, startNumber, numbers, direction: rowDirection } = rowNumberingConfig;
+    
+    // Usa a direção da fileira se definida, senão usa a direção global
+    const effectiveDirection = rowDirection || seatNumberDirection || 'ltr';
     
     // Aplica direção à numeração por fileira
     let effectiveIndex = index;
-    if (seatNumberDirection === 'rtl') {
+    if (effectiveDirection === 'rtl') {
       effectiveIndex = total - 1 - index;
-    } else if (seatNumberDirection === 'center-out') {
+    } else if (effectiveDirection === 'center-out') {
       // Centro para fora: menores no centro, crescendo para as pontas
       effectiveIndex = getCenterOutIndex(index, total);
     }
