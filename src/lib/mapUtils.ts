@@ -898,6 +898,82 @@ export function generateSeatsInsidePolygon(
   return seats;
 }
 
+// Gera assentos em grid simples SEM curvatura - para ajuste de espaçamento
+export function generateSeatsInsidePolygonSimple(
+  vertices: Vertex[],
+  sectorId: string,
+  seatSize: number = 12,
+  colSpacing: number = 4,
+  rowSpacing: number = 4,
+  rows: number = 10,
+  cols: number = 20,
+  rowLabelType: RowLabelType = 'alpha',
+  seatLabelType: SeatLabelType = 'numeric',
+  rowLabelStart: string = 'A',
+  seatLabelStart: number = 1,
+  prefix: string = '',
+  furnitureType: FurnitureType = 'chair',
+  tableConfig?: TableConfig
+): Seat[] {
+  if (vertices.length < 3) return [];
+  
+  const bounds = getBoundsFromVertices(vertices);
+  const seats: Seat[] = [];
+  
+  // Ajusta tamanho baseado no tipo de mobília
+  const isTable = furnitureType === 'table' || furnitureType === 'bistro';
+  const itemSize = isTable 
+    ? (tableConfig?.tableWidth || 60) + 20
+    : seatSize;
+  const colStep = itemSize + colSpacing;
+  const rowStep = itemSize + rowSpacing;
+  
+  // Calcula o tamanho total do grid
+  const gridWidth = cols * colStep;
+  const gridHeight = rows * rowStep;
+  
+  // Centraliza o grid dentro do polígono
+  const offsetX = bounds.x + (bounds.width - gridWidth) / 2 + itemSize / 2;
+  const offsetY = bounds.y + (bounds.height - gridHeight) / 2 + itemSize / 2;
+  
+  for (let r = 0; r < rows; r++) {
+    const rowLabel = getRowLabel(r, rowLabelType, rowLabelStart);
+    
+    for (let c = 0; c < cols; c++) {
+      const x = offsetX + c * colStep;
+      const y = offsetY + r * rowStep;
+      
+      // Verifica se está dentro do polígono
+      const isInside = isPointInPolygon({ x, y }, vertices);
+      
+      if (isInside) {
+        const seatLabel = getSeatLabel(c, cols, seatLabelType, seatLabelStart);
+        
+        const seat: Seat = {
+          id: generateId(),
+          sectorId,
+          row: prefix + rowLabel,
+          number: seatLabel,
+          type: 'normal',
+          status: 'available',
+          x: x - itemSize / 2,
+          y: y - itemSize / 2,
+          rotation: 0,
+          furnitureType,
+        };
+        
+        if (isTable && tableConfig) {
+          seat.tableConfig = { ...tableConfig };
+        }
+        
+        seats.push(seat);
+      }
+    }
+  }
+  
+  return seats;
+}
+
 // Reposiciona assentos existentes para caber dentro de novos vértices
 // Exclui assentos que ficam fora do novo polígono (Melhoria 4)
 export function repositionSeatsInsidePolygon(
