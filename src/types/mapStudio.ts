@@ -92,6 +92,10 @@ export interface Sector {
   visible: boolean;
   locked: boolean;
   furnitureType?: FurnitureType;
+  // Espaçamento entre assentos
+  rowSpacing?: number;
+  colSpacing?: number;
+  seatSize?: number;
 }
 
 export interface VenueElement {

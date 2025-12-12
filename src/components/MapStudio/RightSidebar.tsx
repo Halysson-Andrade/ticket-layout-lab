@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3, CircleDot, Maximize2, Info, Link } from 'lucide-react';
+import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3, CircleDot, Maximize2, Info, Link, ArrowLeftRight, ArrowUpDown, Circle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ interface RightSidebarProps {
   onResizeSector?: (sectorId: string, width: number, height: number) => void;
   onLinkShapeToSector?: (shapeId: string, sectorCategory: string) => void;
   onGroupSectors?: (sectorIds: string[], targetCategory: string) => void;
+  onUpdateSpacing?: (sectorId: string, rowSpacing: number, colSpacing: number, seatSize: number) => void;
 }
 
 const SEAT_TYPE_LABELS: Record<SeatType, string> = {
@@ -44,6 +45,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   onResizeSector,
   onLinkShapeToSector,
   onGroupSectors,
+  onUpdateSpacing,
 }) => {
   // Local state para edição em tempo real com debounce
   const [localRotation, setLocalRotation] = useState(0);
@@ -51,6 +53,9 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   const [localWidth, setLocalWidth] = useState(450);
   const [localHeight, setLocalHeight] = useState(280);
   const [localOpacity, setLocalOpacity] = useState(60);
+  const [localRowSpacing, setLocalRowSpacing] = useState(4);
+  const [localColSpacing, setLocalColSpacing] = useState(2);
+  const [localSeatSize, setLocalSeatSize] = useState(14);
   
   const debounceRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
@@ -62,8 +67,11 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
       setLocalWidth(selectedSector.bounds.width);
       setLocalHeight(selectedSector.bounds.height);
       setLocalOpacity(selectedSector.opacity ?? 60);
+      setLocalRowSpacing(selectedSector.rowSpacing ?? 4);
+      setLocalColSpacing(selectedSector.colSpacing ?? 2);
+      setLocalSeatSize(selectedSector.seatSize ?? 14);
     }
-  }, [selectedSector?.id, selectedSector?.rotation, selectedSector?.curvature, selectedSector?.bounds.width, selectedSector?.bounds.height, selectedSector?.opacity]);
+  }, [selectedSector?.id, selectedSector?.rotation, selectedSector?.curvature, selectedSector?.bounds.width, selectedSector?.bounds.height, selectedSector?.opacity, selectedSector?.rowSpacing, selectedSector?.colSpacing, selectedSector?.seatSize]);
 
   // Debounced update helper
   const debouncedUpdate = useCallback((key: string, fn: () => void, delay: number = 150) => {
@@ -107,6 +115,27 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
       debouncedUpdate('opacity', () => onUpdateSector(selectedSector.id, { opacity: value }), 100);
     }
   }, [selectedSector, onUpdateSector, debouncedUpdate]);
+
+  const handleRowSpacingChange = useCallback((value: number) => {
+    setLocalRowSpacing(value);
+    if (selectedSector && onUpdateSpacing) {
+      debouncedUpdate('rowSpacing', () => onUpdateSpacing(selectedSector.id, value, localColSpacing, localSeatSize), 200);
+    }
+  }, [selectedSector, onUpdateSpacing, localColSpacing, localSeatSize, debouncedUpdate]);
+
+  const handleColSpacingChange = useCallback((value: number) => {
+    setLocalColSpacing(value);
+    if (selectedSector && onUpdateSpacing) {
+      debouncedUpdate('colSpacing', () => onUpdateSpacing(selectedSector.id, localRowSpacing, value, localSeatSize), 200);
+    }
+  }, [selectedSector, onUpdateSpacing, localRowSpacing, localSeatSize, debouncedUpdate]);
+
+  const handleSeatSizeChange = useCallback((value: number) => {
+    setLocalSeatSize(value);
+    if (selectedSector && onUpdateSpacing) {
+      debouncedUpdate('seatSize', () => onUpdateSpacing(selectedSector.id, localRowSpacing, localColSpacing, value), 200);
+    }
+  }, [selectedSector, onUpdateSpacing, localRowSpacing, localColSpacing, debouncedUpdate]);
 
   // Cleanup debounce timers
   useEffect(() => {
@@ -470,7 +499,80 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                   </div>
                 </div>
 
-                {/* Rotação */}
+                {/* Espaçamento entre assentos */}
+                {selectedSector.seats.length > 0 && onUpdateSpacing && (
+                  <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+                    <Label className="text-xs flex items-center gap-2">
+                      <Grid3X3 className="h-3 w-3" />
+                      Espaçamento
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Info className="h-3 w-3 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent side="left" className="max-w-[200px] text-xs">
+                          Ajuste o espaçamento entre assentos. A forma se ajusta automaticamente.
+                        </TooltipContent>
+                      </Tooltip>
+                    </Label>
+                    
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] text-muted-foreground flex items-center gap-1">
+                            <ArrowUpDown className="h-2.5 w-2.5" />
+                            Entre Filas
+                          </Label>
+                          <span className="text-xs font-mono bg-background px-1.5 py-0.5 rounded">{localRowSpacing}px</span>
+                        </div>
+                        <Slider
+                          value={[localRowSpacing]}
+                          onValueChange={([value]) => handleRowSpacingChange(value)}
+                          min={0}
+                          max={40}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] text-muted-foreground flex items-center gap-1">
+                            <ArrowLeftRight className="h-2.5 w-2.5" />
+                            Entre Assentos
+                          </Label>
+                          <span className="text-xs font-mono bg-background px-1.5 py-0.5 rounded">{localColSpacing}px</span>
+                        </div>
+                        <Slider
+                          value={[localColSpacing]}
+                          onValueChange={([value]) => handleColSpacingChange(value)}
+                          min={0}
+                          max={40}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] text-muted-foreground flex items-center gap-1">
+                            <Circle className="h-2.5 w-2.5" />
+                            Tamanho do Assento
+                          </Label>
+                          <span className="text-xs font-mono bg-background px-1.5 py-0.5 rounded">{localSeatSize}px</span>
+                        </div>
+                        <Slider
+                          value={[localSeatSize]}
+                          onValueChange={([value]) => handleSeatSizeChange(value)}
+                          min={8}
+                          max={30}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-3">
                   <Label className="text-xs flex items-center gap-2">
                     <RotateCw className="h-3 w-3" />
