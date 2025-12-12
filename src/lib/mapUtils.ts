@@ -715,7 +715,9 @@ export function generateSeatsInsidePolygon(
   rotation: number = 0,
   seatsPerRow?: number[],
   rowSpacing?: number,
-  rowAlignment?: RowAlignment
+  rowAlignment?: RowAlignment,
+  rowLabelStart: string = 'A',
+  seatLabelStart: number = 1
 ): Seat[] {
   if (vertices.length < 3) return [];
   
@@ -800,7 +802,7 @@ export function generateSeatsInsidePolygon(
     const offsetY = bounds.y + (bounds.height - gridHeight) / 2 + itemSize / 2;
     
     for (let r = 0; r < rows; r++) {
-      const rowLabel = getRowLabel(r, rowLabelType, 'A');
+      const rowLabel = getRowLabel(r, rowLabelType, rowLabelStart);
       
       // Quantidade de assentos nesta fileira
       const colsInRow = seatsPerRow && seatsPerRow[r] !== undefined ? seatsPerRow[r] : cols;
@@ -831,7 +833,8 @@ export function generateSeatsInsidePolygon(
         const isInside = isPointInPolygon(seatCenter, vertices);
         
         if (isInside) {
-          const seatLabel = getSeatLabel(c, colsInRow, seatLabelType, 1, undefined, customNumbers);
+          const isLeftSide = c < colsInRow / 2;
+          const seatLabel = getSeatLabel(c, colsInRow, seatLabelType, seatLabelStart, isLeftSide, customNumbers);
           
           const seat: Seat = {
             id: generateId(),
@@ -866,7 +869,7 @@ export function generateSeatsInsidePolygon(
   
   for (let y = bounds.y + padding; y < bounds.y + bounds.height - padding; y += rowStep) {
     let colIndex = 0;
-    const rowLabel = getRowLabel(rowIndex, rowLabelType, 'A');
+    const rowLabel = getRowLabel(rowIndex, rowLabelType, rowLabelStart);
     let hasSeatsInRow = false;
     
     for (let xBase = bounds.x + padding; xBase < bounds.x + bounds.width - padding; xBase += colStep) {
@@ -877,7 +880,8 @@ export function generateSeatsInsidePolygon(
       const isInside = isPointInPolygon(rotated, vertices);
       
       if (isInside) {
-        const seatLabel = getSeatLabel(colIndex, 100, seatLabelType, 1, undefined, customNumbers);
+        const isLeftSide = colIndex < 50; // metade para fallback
+        const seatLabel = getSeatLabel(colIndex, 100, seatLabelType, seatLabelStart, isLeftSide, customNumbers);
         
         const seat: Seat = {
           id: generateId(),
@@ -978,7 +982,8 @@ export function generateSeatsInsidePolygonSimple(
       const isInside = isPointInPolygon({ x, y }, vertices);
       
       if (isInside) {
-        const seatLabel = getSeatLabel(c, colsInRow, seatLabelType, seatLabelStart);
+        const isLeftSide = c < colsInRow / 2;
+        const seatLabel = getSeatLabel(c, colsInRow, seatLabelType, seatLabelStart, isLeftSide);
         
         const seat: Seat = {
           id: generateId(),
