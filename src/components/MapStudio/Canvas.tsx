@@ -43,8 +43,10 @@ interface CanvasProps {
   onAddVertex?: (sectorId: string, edgeIndex: number, position: { x: number; y: number }) => void;
   onRemoveVertex?: (sectorId: string, vertexIndex: number) => void;
   onDuplicateSector?: () => void;
+  onDuplicateSectorById?: (sectorId: string) => void;
   onDeleteSector?: () => void;
   onZoomToSector?: (sectorId: string) => void;
+  onEditRow?: (sectorId: string, rowLabel: string) => void;
   geometricShapes?: GeometricShape[];
   selectedShapeIds?: string[];
   onSelectShape?: (id: string, additive: boolean) => void;
@@ -87,8 +89,10 @@ export const Canvas: React.FC<CanvasProps> = ({
   onAddVertex,
   onRemoveVertex,
   onDuplicateSector,
+  onDuplicateSectorById,
   onDeleteSector,
   onZoomToSector,
+  onEditRow,
   geometricShapes = [],
   selectedShapeIds = [],
   onSelectShape,
@@ -1012,12 +1016,22 @@ export const Canvas: React.FC<CanvasProps> = ({
         if (!sector.visible || sector.locked) continue;
         if (sector.vertices && sector.vertices.length > 2) {
           if (isPointInSector(pos, sector)) {
+            // CTRL+Click em setor = duplicar setor com assentos
+            if ((e.ctrlKey || e.metaKey) && onDuplicateSectorById) {
+              onDuplicateSectorById(sector.id);
+              return;
+            }
             onSelectSector(sector.id, e.shiftKey);
             setIsDragging(true);
             setDragStart(pos);
             return;
           }
         } else if (isPointInBounds(pos, sector.bounds)) {
+          // CTRL+Click em setor = duplicar setor com assentos
+          if ((e.ctrlKey || e.metaKey) && onDuplicateSectorById) {
+            onDuplicateSectorById(sector.id);
+            return;
+          }
           onSelectSector(sector.id, e.shiftKey);
           setIsDragging(true);
           setDragStart(pos);
@@ -1030,7 +1044,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       setBoxSelectStart(pos);
       setBoxSelectCurrent(pos);
     }
-  }, [activeTool, screenToCanvas, pan, sectors, elements, geometricShapes, selectedSectorIds, selectedElementIds, selectedSeatIds, selectedShapeIds, onSelectSeats, onSelectSector, onSelectElements, onSelectShape, onApplySeatType, activeSeatType, getVertexAtPoint, zoom, contextMenu, isPointInSector, onAddFurniture]);
+  }, [activeTool, screenToCanvas, pan, sectors, elements, geometricShapes, selectedSectorIds, selectedElementIds, selectedSeatIds, selectedShapeIds, onSelectSeats, onSelectSector, onSelectElements, onSelectShape, onApplySeatType, activeSeatType, getVertexAtPoint, zoom, contextMenu, isPointInSector, onAddFurniture, onDuplicateSectorById]);
 
   // Mouse move
   const handleMouseMove = useCallback((e: React.MouseEvent) => {

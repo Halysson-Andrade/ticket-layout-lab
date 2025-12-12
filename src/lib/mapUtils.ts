@@ -499,46 +499,47 @@ export function getSeatLabel(
   }
   
   // Aplica direção de numeração para tipos padrão
-  if (seatNumberDirection === 'rtl') {
-    // Direita para esquerda: inverte a posição
-    return String(start + total - 1 - index);
-  }
+  // IMPORTANTE: Para tipos odd-only e even-only, a direção RTL apenas inverte a POSIÇÃO,
+  // mas mantém a sequência de números pares ou ímpares
   
-  if (seatNumberDirection === 'center-out') {
-    // Centro para as pontas: menores no centro, crescendo para fora
-    // Para odd-left/even-left: ímpares para um lado, pares para outro
+  // Calcula o índice efetivo baseado na direção
+  let effectiveIndex = index;
+  if (seatNumberDirection === 'rtl') {
+    effectiveIndex = total - 1 - index;
+  } else if (seatNumberDirection === 'center-out') {
+    // Para odd-left/even-left com center-out: usa função especial
     if (type === 'odd-left' || type === 'even-left') {
       return getCenterOutOddEvenLabel(index, total, start, type === 'odd-left');
     }
-    // Para outros tipos: simplesmente aplica sequência do centro para fora
-    const centerOutIndex = getCenterOutIndex(index, total);
-    return String(start + centerOutIndex);
+    effectiveIndex = getCenterOutIndex(index, total);
   }
   
-  // LTR (padrão) ou sem direção especificada
+  // LTR (padrão), RTL ou center-out - aplica o tipo de numeração com o índice efetivo
   switch (type) {
     case 'numeric':
-      return String(start + index);
+      return String(start + effectiveIndex);
     case 'reverse':
-      return String(start + total - 1 - index);
+      return String(start + total - 1 - effectiveIndex);
     case 'odd-only': {
       // Todos os assentos são ímpares sequenciais (23, 25, 27, 29...)
+      // RTL inverte a posição, mas mantém apenas ímpares
       const oddStart = start % 2 === 1 ? start : start + 1;
-      return String(oddStart + (index * 2));
+      return String(oddStart + (effectiveIndex * 2));
     }
     case 'even-only': {
       // Todos os assentos são pares sequenciais (24, 26, 28, 30...)
+      // RTL inverte a posição, mas mantém apenas pares
       const evenStart = start % 2 === 0 ? start : start + 1;
-      return String(evenStart + (index * 2));
+      return String(evenStart + (effectiveIndex * 2));
     }
     case 'odd-left': {
       // Lado esquerdo = ímpares, lado direito = pares
       const oddStart = start % 2 === 1 ? start : start + 1;
       const halfCols = Math.ceil(total / 2);
       if (isLeftSide) {
-        return String(oddStart + (index * 2));
+        return String(oddStart + (effectiveIndex * 2));
       }
-      const rightIndex = index - halfCols;
+      const rightIndex = effectiveIndex - halfCols;
       return String(oddStart + 1 + (rightIndex * 2));
     }
     case 'even-left': {
@@ -546,13 +547,13 @@ export function getSeatLabel(
       const evenStart = start % 2 === 0 ? start : start + 1;
       const halfColsEven = Math.ceil(total / 2);
       if (isLeftSide) {
-        return String(evenStart + (index * 2));
+        return String(evenStart + (effectiveIndex * 2));
       }
-      const rightIndexEven = index - halfColsEven;
+      const rightIndexEven = effectiveIndex - halfColsEven;
       return String(evenStart + 1 + (rightIndexEven * 2));
     }
     default:
-      return String(start + index);
+      return String(start + effectiveIndex);
   }
 }
 

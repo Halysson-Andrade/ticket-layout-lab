@@ -10,6 +10,7 @@ import { StatusBar } from './StatusBar';
 import { SeatGeneratorModal } from './SeatGeneratorModal';
 import { OnboardingWizard } from './OnboardingWizard';
 import { ExportModal } from './ExportModal';
+import { RowEditorModal } from './RowEditorModal';
 import { BackgroundImagePanel, BackgroundImageConfig } from './BackgroundImagePanel';
 import { 
   VenueMap, 
@@ -77,6 +78,7 @@ export const MapStudio: React.FC = () => {
   const [showGridGenerator, setShowGridGenerator] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [editingRow, setEditingRow] = useState<{ sectorId: string; rowLabel: string } | null>(null);
 
   // History for undo/redo
   const [history, setHistory] = useState<Sector[][]>([[]]);
@@ -970,13 +972,23 @@ export const MapStudio: React.FC = () => {
               x: sector.bounds.x + 50,
               y: sector.bounds.y + 50,
             },
+            vertices: sector.vertices.map(v => ({
+              x: v.x + 50,
+              y: v.y + 50,
+            })),
             seats: sector.seats.map(seat => ({
               ...seat,
               id: generateId(),
+              sectorId: '', // será atualizado abaixo
               x: seat.x + 50,
               y: seat.y + 50,
             })),
           };
+          // Atualiza sectorId dos assentos
+          newSector.seats = newSector.seats.map(seat => ({
+            ...seat,
+            sectorId: newSector.id,
+          }));
           newSectors.push(newSector);
         }
       });
@@ -987,6 +999,81 @@ export const MapStudio: React.FC = () => {
       toast.success('Setores duplicados');
     }
   }, [selectedSectorIds, sectors, pushHistory]);
+
+  // Duplicar setor específico por ID (Ctrl+Click)
+  const handleDuplicateSectorById = useCallback((sectorId: string) => {
+    const sector = sectors.find(s => s.id === sectorId);
+    if (!sector) return;
+    
+    const newSectorId = generateId();
+    const newSector: Sector = {
+      ...sector,
+      id: newSectorId,
+      name: `${sector.name} (cópia)`,
+      bounds: {
+        ...sector.bounds,
+        x: sector.bounds.x + 50,
+        y: sector.bounds.y + 50,
+      },
+      vertices: sector.vertices.map(v => ({
+        x: v.x + 50,
+        y: v.y + 50,
+      })),
+      seats: sector.seats.map(seat => ({
+        ...seat,
+        id: generateId(),
+        sectorId: newSectorId,
+        x: seat.x + 50,
+        y: seat.y + 50,
+      })),
+    };
+    
+    const updatedSectors = [...sectors, newSector];
+    setSectors(updatedSectors);
+    pushHistory(updatedSectors);
+    setSelectedSectorIds([newSector.id]);
+    toast.success(`Setor "${sector.name}" duplicado com ${newSector.seats.length} assentos`);
+  }, [sectors, pushHistory]);
+
+  // Atualiza configuração de numeração de uma fileira específica
+  const handleUpdateRowConfig = useCallback((sectorId: string, rowLabel: string, config: import('@/types/mapStudio').RowNumberingConfig) => {
+    setSectors(prev => {
+      const newSectors = prev.map(s => {
+        if (s.id !== sectorId) return s;
+        
+        const newCustomPerRowNumbers = { ...(s.customPerRowNumbers || {}), [rowLabel]: config };
+        
+        // Atualiza os números dos assentos da fileira
+        const updatedSeats = s.seats.map(seat => {
+          if (seat.row !== rowLabel) return seat;
+          
+          // Recalcula o número baseado na nova configuração
+          const rowSeats = s.seats.filter(rs => rs.row === rowLabel).sort((a, b) => a.x - b.x);
+          const seatIndex = rowSeats.findIndex(rs => rs.id === seat.id);
+          if (seatIndex === -1) return seat;
+          
+          const { getSeatLabel } = require('@/lib/mapUtils');
+          const newNumber = getSeatLabel(
+            seatIndex,
+            rowSeats.length,
+            'custom-per-row',
+            config.startNumber,
+            seatIndex < rowSeats.length / 2,
+            undefined,
+            config,
+            config.direction
+          );
+          
+          return { ...seat, number: newNumber };
+        });
+        
+        return { ...s, customPerRowNumbers: newCustomPerRowNumbers, seats: updatedSeats };
+      });
+      pushHistory(newSectors);
+      return newSectors;
+    });
+    toast.success(`Fileira ${rowLabel} atualizada`);
+  }, [pushHistory]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -1166,6 +1253,7 @@ export const MapStudio: React.FC = () => {
           onAddVertex={handleAddVertex}
           onRemoveVertex={handleRemoveVertex}
           onDuplicateSector={handleDuplicate}
+          onDuplicateSectorById={handleDuplicateSectorById}
           onDeleteSector={handleDelete}
           geometricShapes={geometricShapes}
           selectedShapeIds={selectedShapeIds}
@@ -1365,6 +1453,17 @@ export const MapStudio: React.FC = () => {
         onClose={() => setShowExport(false)}
         data={exportData}
       />
+
+      {/* Row Editor Modal */}
+      {editingRow && (
+        <RowEditorModal
+          open={!!editingRow}
+          onClose={() => setEditingRow(null)}
+          sector={sectors.find(s => s.id === editingRow.sectorId)!}
+          rowLabel={editingRow.rowLabel}
+          onUpdateRow={handleUpdateRowConfig}
+        />
+      )}
     </div>
   );
 };
