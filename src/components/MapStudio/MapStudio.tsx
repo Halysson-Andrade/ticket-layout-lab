@@ -552,6 +552,8 @@ export const MapStudio: React.FC = () => {
               rowAlignment: params.rowAlignment,
               seatsPerRow: params.seatsPerRow,
               customPerRowNumbers: params.customPerRowNumbers,
+              rowLabelPosition: params.rowLabelPosition,
+              seatNumberDirection: params.seatNumberDirection,
               // Aplica redimensionamento se solicitado
               ...(params.resizeWidth && params.resizeHeight ? {
                 vertices: sector!.vertices,

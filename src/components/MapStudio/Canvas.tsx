@@ -506,30 +506,38 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
       }
 
-      // Nome do setor
-      ctx.fillStyle = '#fff';
-      ctx.font = '12px sans-serif';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillText(sector.name, bounds.x + 4, bounds.y + 4);
-
       // Mostra contagem de assentos no centro quando zoom baixo
       if (showSolidColor) {
+        const seatCounts: Record<string, number> = {};
+        sector.seats.forEach(seat => {
+          seatCounts[seat.type] = (seatCounts[seat.type] || 0) + 1;
+        });
+        
         ctx.fillStyle = '#fff';
         ctx.font = `bold ${16 / zoom}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(
-          `${sector.seats.length}`,
-          bounds.x + bounds.width / 2,
-          bounds.y + bounds.height / 2
-        );
+        
+        const centerX = bounds.x + bounds.width / 2;
+        const centerY = bounds.y + bounds.height / 2;
+        
+        // Total de assentos
+        ctx.fillText(`${sector.seats.length}`, centerX, centerY - 10 / zoom);
         ctx.font = `${10 / zoom}px sans-serif`;
-        ctx.fillText(
-          'assentos',
-          bounds.x + bounds.width / 2,
-          bounds.y + bounds.height / 2 + 18 / zoom
-        );
+        ctx.fillText('assentos', centerX, centerY + 6 / zoom);
+        
+        // Resumo por tipo (exceto normal)
+        const typeLabels: Record<string, string> = { pcd: 'PCD', vip: 'VIP', obeso: 'Obeso', companion: 'Acomp.', blocked: 'Bloq.' };
+        const specialTypes = Object.entries(seatCounts)
+          .filter(([type, count]) => type !== 'normal' && count > 0)
+          .map(([type, count]) => `${count} ${typeLabels[type] || type}`)
+          .join(' • ');
+        
+        if (specialTypes) {
+          ctx.font = `${9 / zoom}px sans-serif`;
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+          ctx.fillText(specialTypes, centerX, centerY + 20 / zoom);
+        }
       } else {
         // Zoom próximo: mostra assentos individuais
         
@@ -541,6 +549,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         });
         
         // Renderiza labels de fileira nas laterais (quando zoom > 0.6)
+        const rowLabelPos = sector.rowLabelPosition || 'left';
         if (zoom > 0.6) {
           Object.entries(seatsByRow).forEach(([rowLabel, rowSeats]) => {
             if (rowSeats.length === 0) return;
@@ -553,24 +562,28 @@ export const Canvas: React.FC<CanvasProps> = ({
             const seatSize = leftMost.tableConfig?.tableWidth || 14;
             
             // Label à esquerda
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-            ctx.font = `bold ${11}px sans-serif`;
-            ctx.textAlign = 'right';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(rowLabel, leftMost.x - 8, leftMost.y + seatSize / 2);
-            
-            // Descrição da fileira (se houver) abaixo do label
-            if (leftMost.rowDescription && zoom > 0.8) {
-              ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-              ctx.font = `italic ${9}px sans-serif`;
-              ctx.fillText(leftMost.rowDescription, leftMost.x - 8, leftMost.y + seatSize / 2 + 12);
+            if (rowLabelPos === 'left' || rowLabelPos === 'both') {
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+              ctx.font = `bold ${11}px sans-serif`;
+              ctx.textAlign = 'right';
+              ctx.textBaseline = 'middle';
+              ctx.fillText(rowLabel, leftMost.x - 8, leftMost.y + seatSize / 2);
+              
+              // Descrição da fileira (se houver) abaixo do label
+              if (leftMost.rowDescription && zoom > 0.8) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.font = `italic ${9}px sans-serif`;
+                ctx.fillText(leftMost.rowDescription, leftMost.x - 8, leftMost.y + seatSize / 2 + 12);
+              }
             }
             
-            // Label à direita (opcional - espelha à esquerda)
-            ctx.textAlign = 'left';
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-            ctx.font = `bold ${11}px sans-serif`;
-            ctx.fillText(rowLabel, rightMost.x + seatSize + 8, rightMost.y + seatSize / 2);
+            // Label à direita
+            if (rowLabelPos === 'right' || rowLabelPos === 'both') {
+              ctx.textAlign = 'left';
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+              ctx.font = `bold ${11}px sans-serif`;
+              ctx.fillText(rowLabel, rightMost.x + seatSize + 8, rightMost.y + seatSize / 2);
+            }
           });
         }
         

@@ -827,7 +827,10 @@ export function generateSeatsInsidePolygon(
     const gridWidth = cols * colStep;
     const gridHeight = rows * rowStep;
     
-    // Centraliza o grid dentro do polígono
+    // Para setores rotacionados ou com geometria não-retangular, usa padding maior
+    const safetyPadding = itemSize / 2 + 10;
+    
+    // Centraliza o grid dentro do polígono com margem de segurança
     const offsetX = bounds.x + (bounds.width - gridWidth) / 2 + itemSize / 2;
     const offsetY = bounds.y + (bounds.height - gridHeight) / 2 + itemSize / 2;
     
@@ -839,14 +842,16 @@ export function generateSeatsInsidePolygon(
       
       // Calcula offset X baseado no alinhamento
       const rowGridWidth = colsInRow * colStep;
-      const padding = itemSize / 2 + 10;
       let rowOffsetX: number;
       if (rowAlignment === 'left') {
-        rowOffsetX = bounds.x + padding;
+        // Para esquerda, começa do limite esquerdo com padding de segurança
+        rowOffsetX = bounds.x + safetyPadding;
       } else if (rowAlignment === 'right') {
-        rowOffsetX = bounds.x + bounds.width - rowGridWidth + itemSize / 2 - 10;
+        // Para direita, começa do limite direito
+        rowOffsetX = bounds.x + bounds.width - rowGridWidth - safetyPadding + itemSize;
       } else {
-        rowOffsetX = bounds.x + (bounds.width - rowGridWidth) / 2 + itemSize / 2; // center (default)
+        // Centralizado (padrão)
+        rowOffsetX = bounds.x + (bounds.width - rowGridWidth) / 2 + itemSize / 2;
       }
       
       for (let c = 0; c < colsInRow; c++) {

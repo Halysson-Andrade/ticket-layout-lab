@@ -26,7 +26,8 @@ import {
   Sector,
   Vertex,
   RowNumberingConfig,
-  RowNumberingType
+  RowNumberingType,
+  SeatNumberDirection
 } from '@/types/mapStudio';
 import { cn } from '@/lib/utils';
 import { isPointInPolygon, getBoundsFromVertices, getRowLabel, getSeatLabel } from '@/lib/mapUtils';
@@ -69,7 +70,7 @@ interface GeneratorConfig {
   // Posição do nome da fileira
   rowLabelPosition: 'left' | 'right' | 'both';
   // Direção da numeração dos assentos
-  seatNumberDirection: RowNumberingType | 'rtl' | 'center-out';
+  seatNumberDirection: SeatNumberDirection;
 }
 
 const seatTypeOptions: { type: SeatType; label: string }[] = [
@@ -113,7 +114,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     customPerRowEnabled: false,
     customPerRowConfig: {},
     rowLabelPosition: 'left',
-    seatNumberDirection: 'numeric',
+    seatNumberDirection: 'ltr',
   });
 
   // Sincroniza dimensões de resize quando o sector muda ou modal abre
@@ -266,12 +267,14 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
       
       // Calcula offset X baseado no alinhamento - MESMA LÓGICA de generateSeatsInsidePolygon
       const rowGridWidth = colsInRow * step;
-      const padding = itemSize / 2 + 10 * scale;
+      const safetyPadding = itemSize / 2 + 10 * scale;
       let rowOffsetX: number;
       if (config.seatsPerRowEnabled && config.rowAlignment === 'left') {
-        rowOffsetX = padding;
+        // Para esquerda, começa com padding de segurança
+        rowOffsetX = safetyPadding;
       } else if (config.seatsPerRowEnabled && config.rowAlignment === 'right') {
-        rowOffsetX = width - rowGridWidth + itemSize / 2 - 10 * scale;
+        // Para direita
+        rowOffsetX = width - rowGridWidth - safetyPadding + itemSize;
       } else {
         rowOffsetX = (width - rowGridWidth) / 2 + itemSize / 2; // Centralizado (padrão)
       }
@@ -335,6 +338,8 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
       rowAlignment: config.seatsPerRowEnabled ? config.rowAlignment : undefined,
       resizeWidth: config.resizeEnabled ? config.resizeWidth : undefined,
       resizeHeight: config.resizeEnabled ? config.resizeHeight : undefined,
+      rowLabelPosition: config.rowLabelPosition,
+      seatNumberDirection: config.seatNumberDirection,
     });
     onClose();
     setStep('type');
@@ -544,11 +549,27 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs">Início da Fila</Label>
-                    <Input
-                      value={config.rowLabelStart}
-                      onChange={(e) => setConfig(prev => ({ ...prev, rowLabelStart: e.target.value }))}
-                      placeholder={config.rowLabelType === 'alpha' ? 'A' : '1'}
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        value={config.rowLabelStart}
+                        onChange={(e) => setConfig(prev => ({ ...prev, rowLabelStart: e.target.value }))}
+                        placeholder={config.rowLabelType === 'alpha' ? 'A' : '1'}
+                        className="flex-1"
+                      />
+                      <Select
+                        value={config.rowLabelPosition}
+                        onValueChange={(v: 'left' | 'right' | 'both') => setConfig(prev => ({ ...prev, rowLabelPosition: v }))}
+                      >
+                        <SelectTrigger className="w-[90px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="left">← Esq.</SelectItem>
+                          <SelectItem value="right">Dir. →</SelectItem>
+                          <SelectItem value="both">Ambos</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
 
@@ -600,12 +621,28 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                         placeholder="Defina abaixo"
                       />
                     ) : (
-                      <Input
-                        type="number"
-                        value={config.seatLabelStart}
-                        onChange={(e) => setConfig(prev => ({ ...prev, seatLabelStart: parseInt(e.target.value) || 1 }))}
-                        min={1}
-                      />
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          value={config.seatLabelStart}
+                          onChange={(e) => setConfig(prev => ({ ...prev, seatLabelStart: parseInt(e.target.value) || 1 }))}
+                          min={1}
+                          className="flex-1"
+                        />
+                        <Select
+                          value={config.seatNumberDirection}
+                          onValueChange={(v: 'ltr' | 'rtl' | 'center-out') => setConfig(prev => ({ ...prev, seatNumberDirection: v }))}
+                        >
+                          <SelectTrigger className="w-[90px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ltr">E → D</SelectItem>
+                            <SelectItem value="rtl">D → E</SelectItem>
+                            <SelectItem value="center-out">Centro →</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     )}
                   </div>
                 </div>
