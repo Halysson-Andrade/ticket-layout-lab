@@ -12,7 +12,13 @@ export type FurnitureType = 'chair' | 'table' | 'bistro';
 export type TableShape = 'round' | 'square' | 'rectangular';
 
 export type RowLabelType = 'alpha' | 'numeric' | 'roman';
-export type SeatLabelType = 'numeric' | 'odd-left' | 'even-left' | 'reverse' | 'custom';
+export type SeatLabelType = 'numeric' | 'odd-left' | 'even-left' | 'odd-only' | 'even-only' | 'reverse' | 'custom' | 'custom-per-row';
+
+// Configuração de numeração customizada por fileira
+export interface RowNumberingConfig {
+  rowLabel: string;
+  numbers: number[]; // Array de números para cada assento na fileira
+}
 
 export interface Point {
   x: number;
@@ -174,6 +180,7 @@ export interface GridGeneratorParams {
   tableShape?: TableShape;
   chairsPerTable?: number;
   customNumbers?: number[]; // Numeração customizada (ex: 2, 7, 10...)
+  customPerRowNumbers?: Record<string, number[]>; // Numeração customizada por fileira (ex: { A: [1, 3, 5], B: [2, 4, 6] })
   rowDescriptions?: Record<string, string>; // Descrições por fileira (ex: { A: 'Primeira fila' })
   seatsPerRow?: number[]; // Quantidade de assentos por fileira (ex: [10, 12, 14, 16])
   rowAlignment?: RowAlignment; // Alinhamento dos assentos na fileira

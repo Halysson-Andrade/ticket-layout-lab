@@ -526,7 +526,8 @@ export const MapStudio: React.FC = () => {
       params.rowSpacing,
       params.rowAlignment,
       params.rowLabelStart,
-      params.seatLabelStart
+      params.seatLabelStart,
+      params.customPerRowNumbers
     );
 
     setSectors(prev => {

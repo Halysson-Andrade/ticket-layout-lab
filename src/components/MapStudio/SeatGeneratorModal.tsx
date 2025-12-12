@@ -24,7 +24,8 @@ import {
   SEAT_COLORS,
   SeatType,
   Sector,
-  Vertex
+  Vertex,
+  RowNumberingConfig
 } from '@/types/mapStudio';
 import { cn } from '@/lib/utils';
 import { isPointInPolygon, getBoundsFromVertices, getRowLabel, getSeatLabel } from '@/lib/mapUtils';
@@ -61,6 +62,9 @@ interface GeneratorConfig {
   resizeEnabled: boolean;
   resizeWidth: number;
   resizeHeight: number;
+  // Numeração customizada por fileira
+  customPerRowEnabled: boolean;
+  customPerRowNumbers: Record<string, string>; // { A: "1, 3, 5", B: "2, 4, 6" }
 }
 
 const seatTypeOptions: { type: SeatType; label: string }[] = [
@@ -101,6 +105,8 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     resizeEnabled: false,
     resizeWidth: 400,
     resizeHeight: 300,
+    customPerRowEnabled: false,
+    customPerRowNumbers: {},
   });
 
   // Sincroniza dimensões de resize quando o sector muda ou modal abre
@@ -127,6 +133,18 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     if (!config.seatsPerRowEnabled || !config.seatsPerRowConfig.trim()) return undefined;
     return config.seatsPerRowConfig.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n > 0);
   }, [config.seatsPerRowEnabled, config.seatsPerRowConfig]);
+
+  // Parse custom per row numbers
+  const parsedCustomPerRowNumbers = useMemo(() => {
+    if (config.seatLabelType !== 'custom-per-row' || !config.customPerRowEnabled) return undefined;
+    const result: Record<string, number[]> = {};
+    for (const [rowLabel, numbersStr] of Object.entries(config.customPerRowNumbers)) {
+      if (numbersStr.trim()) {
+        result[rowLabel] = numbersStr.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+      }
+    }
+    return Object.keys(result).length > 0 ? result : undefined;
+  }, [config.seatLabelType, config.customPerRowEnabled, config.customPerRowNumbers]);
 
   // Preview dimensions - usa geometria do setor (ou redimensionada)
   const previewDimensions = useMemo(() => {
@@ -185,7 +203,12 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     return getRowLabel(rowIndex, config.rowLabelType, config.rowLabelStart || (config.rowLabelType === 'alpha' ? 'A' : '1'));
   };
 
-  const getPreviewSeatLabel = (colIndex: number, totalCols: number, isLeftSide?: boolean): string => {
+  const getPreviewSeatLabel = (colIndex: number, totalCols: number, isLeftSide?: boolean, rowLabel?: string): string => {
+    // Se for customização por fileira, usa o array de números da fileira específica
+    if (config.seatLabelType === 'custom-per-row' && rowLabel && parsedCustomPerRowNumbers?.[rowLabel]) {
+      const rowNumbers = parsedCustomPerRowNumbers[rowLabel];
+      return String(rowNumbers[colIndex] ?? (config.seatLabelStart + colIndex));
+    }
     return getSeatLabel(colIndex, totalCols, config.seatLabelType, config.seatLabelStart, isLeftSide, parsedCustomNumbers || undefined);
   };
 
@@ -270,7 +293,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
         
         // Para odd-left/even-left, considera lado esquerdo como primeira metade
         const isLeftSide = c < colsInRow / 2;
-        const seatLabel = getPreviewSeatLabel(c, colsInRow, isLeftSide);
+        const seatLabel = getPreviewSeatLabel(c, colsInRow, isLeftSide, rowLabel);
         
         if (isInside) insideCount++;
         else outsideCount++;
@@ -286,7 +309,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
       totalItems: config.rows * config.cols,
       totalSeats: isTable ? insideCount * config.chairsPerTable : insideCount
     };
-  }, [config.rows, config.cols, config.rotation, config.furnitureType, config.chairsPerTable, config.seatSize, config.colSpacing, config.rowSpacing, config.rowLabelType, config.rowLabelStart, config.seatLabelType, config.seatLabelStart, config.seatsPerRowEnabled, config.rowAlignment, previewDimensions, previewVertices, isTable, parsedSeatsPerRow, parsedCustomNumbers]);
+  }, [config.rows, config.cols, config.rotation, config.furnitureType, config.chairsPerTable, config.seatSize, config.colSpacing, config.rowSpacing, config.rowLabelType, config.rowLabelStart, config.seatLabelType, config.seatLabelStart, config.seatsPerRowEnabled, config.rowAlignment, previewDimensions, previewVertices, isTable, parsedSeatsPerRow, parsedCustomNumbers, parsedCustomPerRowNumbers]);
 
   const handleGenerate = () => {
     const tableConf = isTable ? {
@@ -312,6 +335,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
       furnitureType: config.furnitureType,
       tableConfig: tableConf,
       customNumbers: parsedCustomNumbers || undefined,
+      customPerRowNumbers: parsedCustomPerRowNumbers,
       seatsPerRow: parsedSeatsPerRow,
       rowAlignment: config.seatsPerRowEnabled ? config.rowAlignment : undefined,
       resizeWidth: config.resizeEnabled ? config.resizeWidth : undefined,
@@ -538,7 +562,13 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                     <Label className="text-xs">Numeração do Assento</Label>
                     <Select
                       value={config.seatLabelType}
-                      onValueChange={(v: SeatLabelType) => setConfig(prev => ({ ...prev, seatLabelType: v }))}
+                      onValueChange={(v: SeatLabelType) => {
+                        setConfig(prev => ({ 
+                          ...prev, 
+                          seatLabelType: v,
+                          customPerRowEnabled: v === 'custom-per-row'
+                        }));
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -546,9 +576,12 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                       <SelectContent>
                         <SelectItem value="numeric">Sequencial (1, 2, 3...)</SelectItem>
                         <SelectItem value="reverse">Reverso (N...3, 2, 1)</SelectItem>
-                        <SelectItem value="odd-left">Ímpares à Esquerda</SelectItem>
-                        <SelectItem value="even-left">Pares à Esquerda</SelectItem>
+                        <SelectItem value="odd-only">Somente Ímpares (1, 3, 5...)</SelectItem>
+                        <SelectItem value="even-only">Somente Pares (2, 4, 6...)</SelectItem>
+                        <SelectItem value="odd-left">Ímpares à Esquerda / Pares à Direita</SelectItem>
+                        <SelectItem value="even-left">Pares à Esquerda / Ímpares à Direita</SelectItem>
                         <SelectItem value="custom">Customizada (2, 7, 10...)</SelectItem>
+                        <SelectItem value="custom-per-row">Customizada por Fileira</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -562,6 +595,15 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                         onChange={(e) => setConfig(prev => ({ ...prev, customNumbers: e.target.value }))}
                         placeholder="2, 4, 6, 8, 10"
                       />
+                    ) : config.seatLabelType === 'custom-per-row' ? (
+                      <Input
+                        type="number"
+                        value={config.seatLabelStart}
+                        onChange={(e) => setConfig(prev => ({ ...prev, seatLabelStart: parseInt(e.target.value) || 1 }))}
+                        min={1}
+                        disabled
+                        placeholder="Defina abaixo"
+                      />
                     ) : (
                       <Input
                         type="number"
@@ -572,6 +614,48 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                     )}
                   </div>
                 </div>
+
+                {/* Customização por fileira */}
+                {config.seatLabelType === 'custom-per-row' && (
+                  <div className="space-y-3 pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-medium">Numeração por Fileira</Label>
+                      <span className="text-xs text-muted-foreground">
+                        {config.rows} fileiras
+                      </span>
+                    </div>
+                    <div className="max-h-[200px] overflow-y-auto space-y-2 pr-2">
+                      {Array.from({ length: config.rows }, (_, i) => {
+                        const rowLabel = getPreviewRowLabel(i);
+                        const colsInRow = parsedSeatsPerRow && parsedSeatsPerRow[i] !== undefined 
+                          ? parsedSeatsPerRow[i] 
+                          : config.cols;
+                        return (
+                          <div key={rowLabel} className="flex items-center gap-2">
+                            <span className="w-8 text-xs font-medium text-center bg-primary/10 rounded px-1 py-0.5">
+                              {rowLabel}
+                            </span>
+                            <Input
+                              value={config.customPerRowNumbers[rowLabel] || ''}
+                              onChange={(e) => setConfig(prev => ({
+                                ...prev,
+                                customPerRowNumbers: {
+                                  ...prev.customPerRowNumbers,
+                                  [rowLabel]: e.target.value
+                                }
+                              }))}
+                              placeholder={`Ex: 1, 3, 5... (${colsInRow} assentos)`}
+                              className="flex-1 text-xs h-8"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Informe a numeração de cada fileira separada por vírgula. Ex: 1, 3, 5, 7...
+                    </p>
+                  </div>
+                )}
 
                 {/* Seats per row config */}
                 <div className="space-y-3 pt-4 border-t">
