@@ -53,9 +53,13 @@ interface GeneratorConfig {
   tableShape: TableShape;
   chairsPerTable: number;
   seatType: SeatType;
-  customNumbers: string; // String de números separados por vírgula
-  seatsPerRowEnabled: boolean; // Habilita configuração de assentos por fileira
-  seatsPerRowConfig: string; // String de números separados por vírgula para cada fileira
+  customNumbers: string;
+  seatsPerRowEnabled: boolean;
+  seatsPerRowConfig: string;
+  // Redimensionamento da forma
+  resizeEnabled: boolean;
+  resizeWidth: number;
+  resizeHeight: number;
 }
 
 const seatTypeOptions: { type: SeatType; label: string }[] = [
@@ -73,7 +77,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
   sector,
 }) => {
   const [step, setStep] = useState<'type' | 'config'>('type');
-  const [config, setConfig] = useState<GeneratorConfig>({
+  const [config, setConfig] = useState<GeneratorConfig>(() => ({
     rows: 10,
     cols: 20,
     rowSpacing: 4,
@@ -92,7 +96,10 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     customNumbers: '',
     seatsPerRowEnabled: false,
     seatsPerRowConfig: '',
-  });
+    resizeEnabled: false,
+    resizeWidth: sector?.bounds.width || 400,
+    resizeHeight: sector?.bounds.height || 300,
+  }));
 
   const isTable = config.furnitureType === 'table' || config.furnitureType === 'bistro';
 
@@ -108,10 +115,14 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     return config.seatsPerRowConfig.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n > 0);
   }, [config.seatsPerRowEnabled, config.seatsPerRowConfig]);
 
-  // Preview dimensions - usa geometria do setor se disponível
+  // Preview dimensions - usa geometria do setor (ou redimensionada)
   const previewDimensions = useMemo(() => {
-    const sectorWidth = sector?.bounds.width || 450;
-    const sectorHeight = sector?.bounds.height || 280;
+    const originalWidth = sector?.bounds.width || 450;
+    const originalHeight = sector?.bounds.height || 280;
+    
+    // Usa dimensões redimensionadas se habilitado
+    const sectorWidth = config.resizeEnabled ? config.resizeWidth : originalWidth;
+    const sectorHeight = config.resizeEnabled ? config.resizeHeight : originalHeight;
     
     const maxPreviewWidth = 320;
     const maxPreviewHeight = 200;
@@ -133,22 +144,28 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
       colSpacing: scaledColSpacing,
       scale,
       sectorWidth,
-      sectorHeight
+      sectorHeight,
+      originalWidth,
+      originalHeight
     };
-  }, [config, sector, isTable]);
+  }, [config.resizeEnabled, config.resizeWidth, config.resizeHeight, config.rowSpacing, config.colSpacing, sector, isTable]);
 
-  // Gera vértices do polígono para preview (escalados)
+  // Gera vértices do polígono para preview (escalados e proporcionalmente redimensionados)
   const previewVertices = useMemo(() => {
     if (!sector?.vertices) return null;
-    const { scale } = previewDimensions;
+    const { scale, originalWidth, originalHeight, sectorWidth, sectorHeight } = previewDimensions;
     const minX = Math.min(...sector.vertices.map(v => v.x));
     const minY = Math.min(...sector.vertices.map(v => v.y));
     
+    // Se redimensionamento habilitado, escala proporcionalmente os vértices
+    const scaleX = config.resizeEnabled ? (sectorWidth / originalWidth) : 1;
+    const scaleY = config.resizeEnabled ? (sectorHeight / originalHeight) : 1;
+    
     return sector.vertices.map(v => ({
-      x: (v.x - minX) * scale,
-      y: (v.y - minY) * scale,
+      x: (v.x - minX) * scaleX * scale,
+      y: (v.y - minY) * scaleY * scale,
     }));
-  }, [sector?.vertices, previewDimensions]);
+  }, [sector?.vertices, previewDimensions, config.resizeEnabled]);
 
   // Gera labels de fileira e assento para exibir no preview
   const getPreviewRowLabel = (rowIndex: number): string => {
@@ -274,6 +291,8 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
       tableConfig: tableConf,
       customNumbers: parsedCustomNumbers || undefined,
       seatsPerRow: parsedSeatsPerRow,
+      resizeWidth: config.resizeEnabled ? config.resizeWidth : undefined,
+      resizeHeight: config.resizeEnabled ? config.resizeHeight : undefined,
     });
     onClose();
     setStep('type');
@@ -763,12 +782,57 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
               {sector && (
                 <div className="p-2 bg-primary/10 border border-primary/20 rounded-lg">
                   <p className="text-xs text-primary">
-                    <strong>Setor:</strong> {sector.name} ({Math.round(sector.bounds.width)}x{Math.round(sector.bounds.height)}px)
+                    <strong>Setor:</strong> {sector.name} ({config.resizeEnabled ? Math.round(config.resizeWidth) : Math.round(sector.bounds.width)}x{config.resizeEnabled ? Math.round(config.resizeHeight) : Math.round(sector.bounds.height)}px)
                   </p>
                 </div>
               )}
 
-              {/* Summary - Melhoria 5 */}
+              {/* Controles de redimensionamento */}
+              {sector && (
+                <div className="space-y-2 p-2 bg-muted/30 border border-border/50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="resizeEnabled"
+                      checked={config.resizeEnabled}
+                      onChange={(e) => setConfig(prev => ({ 
+                        ...prev, 
+                        resizeEnabled: e.target.checked,
+                        resizeWidth: sector.bounds.width,
+                        resizeHeight: sector.bounds.height
+                      }))}
+                      className="rounded"
+                    />
+                    <Label htmlFor="resizeEnabled" className="text-xs font-medium">Redimensionar forma</Label>
+                  </div>
+                  {config.resizeEnabled && (
+                    <div className="space-y-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Largura: {Math.round(config.resizeWidth)}px</Label>
+                        <Slider
+                          value={[config.resizeWidth]}
+                          onValueChange={([v]) => setConfig(prev => ({ ...prev, resizeWidth: v }))}
+                          min={100}
+                          max={2000}
+                          step={10}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Altura: {Math.round(config.resizeHeight)}px</Label>
+                        <Slider
+                          value={[config.resizeHeight]}
+                          onValueChange={([v]) => setConfig(prev => ({ ...prev, resizeHeight: v }))}
+                          min={100}
+                          max={2000}
+                          step={10}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Summary */}
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="p-2 bg-muted/50 rounded-lg">
                   <span className="text-muted-foreground">Tipo:</span>

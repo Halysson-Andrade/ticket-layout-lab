@@ -158,6 +158,8 @@ export interface GridGeneratorParams {
   customNumbers?: number[]; // Numeração customizada (ex: 2, 7, 10...)
   rowDescriptions?: Record<string, string>; // Descrições por fileira (ex: { A: 'Primeira fila' })
   seatsPerRow?: number[]; // Quantidade de assentos por fileira (ex: [10, 12, 14, 16])
+  resizeWidth?: number; // Nova largura do setor (opcional)
+  resizeHeight?: number; // Nova altura do setor (opcional)
 }
 
 export interface Template {
