@@ -105,6 +105,8 @@ export interface Sector {
   tableConfig?: TableConfig;
   gridRows?: number;
   gridCols?: number;
+  rowAlignment?: RowAlignment;
+  seatsPerRow?: number[];
 }
 
 export interface VenueElement {
@@ -151,6 +153,8 @@ export interface VenueMap {
   updatedAt: string;
 }
 
+export type RowAlignment = 'left' | 'center' | 'right';
+
 export interface GridGeneratorParams {
   rows: number;
   cols: number;
@@ -171,6 +175,7 @@ export interface GridGeneratorParams {
   customNumbers?: number[]; // Numeração customizada (ex: 2, 7, 10...)
   rowDescriptions?: Record<string, string>; // Descrições por fileira (ex: { A: 'Primeira fila' })
   seatsPerRow?: number[]; // Quantidade de assentos por fileira (ex: [10, 12, 14, 16])
+  rowAlignment?: RowAlignment; // Alinhamento dos assentos na fileira
   resizeWidth?: number; // Nova largura do setor (opcional)
   resizeHeight?: number; // Nova altura do setor (opcional)
 }

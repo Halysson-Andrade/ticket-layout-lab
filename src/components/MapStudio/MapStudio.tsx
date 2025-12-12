@@ -523,7 +523,8 @@ export const MapStudio: React.FC = () => {
       params.rowDescriptions,
       params.rotation,
       params.seatsPerRow,
-      params.rowSpacing // Passa rowSpacing separado
+      params.rowSpacing,
+      params.rowAlignment
     );
 
     setSectors(prev => {
@@ -545,6 +546,8 @@ export const MapStudio: React.FC = () => {
               seatSize: params.seatSize,
               gridRows: params.rows,
               gridCols: params.cols,
+              rowAlignment: params.rowAlignment,
+              seatsPerRow: params.seatsPerRow,
               // Aplica redimensionamento se solicitado
               ...(params.resizeWidth && params.resizeHeight ? {
                 vertices: sector!.vertices,
@@ -649,7 +652,9 @@ export const MapStudio: React.FC = () => {
             seatLabelStart,
             labelPrefix,
             furnitureType,
-            tableConf
+            tableConf,
+            s.seatsPerRow,
+            s.rowAlignment
           );
           
           return { ...updatedSector, seats: newSeats };
