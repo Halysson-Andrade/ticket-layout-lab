@@ -461,18 +461,24 @@ export function getSeatLabel(
     case 'odd-left': {
       // Garante que o número inicial seja ímpar
       const oddStart = start % 2 === 1 ? start : start + 1;
+      const halfCols = Math.ceil(total / 2);
       if (isLeftSide) {
-        return String(oddStart + (index * 2)); // start, start+2, start+4...
+        return String(oddStart + (index * 2)); // índices 0,1,2... → oddStart, oddStart+2, oddStart+4...
       }
-      return String(oddStart + 1 + (index * 2)); // start+1, start+3, start+5...
+      // Para o lado direito, usa índice relativo ao início do lado direito
+      const rightIndex = index - halfCols;
+      return String(oddStart + 1 + (rightIndex * 2)); // índices relativos 0,1,2... → evenStart, evenStart+2...
     }
     case 'even-left': {
       // Garante que o número inicial seja par
       const evenStart = start % 2 === 0 ? start : start + 1;
+      const halfColsEven = Math.ceil(total / 2);
       if (isLeftSide) {
-        return String(evenStart + (index * 2)); // start, start+2, start+4...
+        return String(evenStart + (index * 2)); // índices 0,1,2... → evenStart, evenStart+2, evenStart+4...
       }
-      return String(evenStart + 1 + (index * 2)); // start+1, start+3, start+5...
+      // Para o lado direito, usa índice relativo ao início do lado direito
+      const rightIndexEven = index - halfColsEven;
+      return String(evenStart + 1 + (rightIndexEven * 2)); // índices relativos 0,1,2... → oddStart, oddStart+2...
     }
     default:
       return String(start + index);

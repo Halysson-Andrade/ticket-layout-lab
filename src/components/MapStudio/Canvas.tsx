@@ -157,23 +157,44 @@ export const Canvas: React.FC<CanvasProps> = ({
     };
   }, [pan, zoom]);
 
+  // Transforma ponto aplicando rotação inversa do setor
+  const transformPointForSector = useCallback((pos: { x: number; y: number }, sector: Sector): { x: number; y: number } => {
+    if (!sector.rotation || sector.rotation === 0) {
+      return pos;
+    }
+    const bounds = getBoundsFromVertices(sector.vertices);
+    const centerX = bounds.x + bounds.width / 2;
+    const centerY = bounds.y + bounds.height / 2;
+    const rad = (-sector.rotation * Math.PI) / 180; // Rotação inversa
+    const dx = pos.x - centerX;
+    const dy = pos.y - centerY;
+    return {
+      x: centerX + dx * Math.cos(rad) - dy * Math.sin(rad),
+      y: centerY + dx * Math.sin(rad) + dy * Math.cos(rad),
+    };
+  }, []);
+
   // Verifica se o ponto está próximo de um vértice
   const getVertexAtPoint = useCallback((pos: { x: number; y: number }, sector: Sector): number | null => {
     const handleRadius = HANDLE_SIZE / zoom;
+    // Aplica rotação inversa ao ponto clicado para comparar com vértices originais
+    const transformedPos = transformPointForSector(pos, sector);
     for (let i = 0; i < sector.vertices.length; i++) {
       const v = sector.vertices[i];
-      const dist = Math.sqrt(Math.pow(pos.x - v.x, 2) + Math.pow(pos.y - v.y, 2));
+      const dist = Math.sqrt(Math.pow(transformedPos.x - v.x, 2) + Math.pow(transformedPos.y - v.y, 2));
       if (dist <= handleRadius) {
         return i;
       }
     }
     return null;
-  }, [zoom]);
+  }, [zoom, transformPointForSector]);
 
   // Verifica se o ponto está próximo de uma aresta do polígono
   const getEdgeAtPoint = useCallback((pos: { x: number; y: number }, sector: Sector): { edgeIndex: number; point: { x: number; y: number } } | null => {
     const threshold = 12 / zoom;
     const vertices = sector.vertices;
+    // Aplica rotação inversa ao ponto clicado
+    const transformedPos = transformPointForSector(pos, sector);
     
     for (let i = 0; i < vertices.length; i++) {
       const v1 = vertices[i];
@@ -187,20 +208,27 @@ export const Canvas: React.FC<CanvasProps> = ({
       if (lengthSquared === 0) continue;
       
       // Parâmetro t para projeção do ponto na linha
-      const t = Math.max(0, Math.min(1, ((pos.x - v1.x) * dx + (pos.y - v1.y) * dy) / lengthSquared));
+      const t = Math.max(0, Math.min(1, ((transformedPos.x - v1.x) * dx + (transformedPos.y - v1.y) * dy) / lengthSquared));
       
       // Ponto mais próximo na aresta
       const projX = v1.x + t * dx;
       const projY = v1.y + t * dy;
       
-      const distSquared = Math.pow(pos.x - projX, 2) + Math.pow(pos.y - projY, 2);
+      const distSquared = Math.pow(transformedPos.x - projX, 2) + Math.pow(transformedPos.y - projY, 2);
       
       if (distSquared <= threshold * threshold) {
         return { edgeIndex: i, point: { x: projX, y: projY } };
       }
     }
     return null;
-  }, [zoom]);
+  }, [zoom, transformPointForSector]);
+
+  // Verifica se ponto está dentro do setor considerando rotação
+  const isPointInSector = useCallback((pos: { x: number; y: number }, sector: Sector): boolean => {
+    if (!sector.vertices || sector.vertices.length < 3) return false;
+    const transformedPos = transformPointForSector(pos, sector);
+    return isPointInPolygon(transformedPos, sector.vertices);
+  }, [transformPointForSector]);
 
   // Renderiza mesa/bistrô com cadeiras
   const renderTableWithChairs = useCallback((
@@ -773,7 +801,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     // Verifica se clicou dentro de um setor selecionado
     for (const sectorId of selectedSectorIds) {
       const sector = sectors.find(s => s.id === sectorId);
-      if (sector && sector.vertices && isPointInPolygon(pos, sector.vertices)) {
+      if (sector && isPointInSector(pos, sector)) {
         setContextMenu({
           x: e.clientX,
           y: e.clientY,
@@ -788,7 +816,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     
     // Fecha menu se clicar no vazio
     setContextMenu(null);
-  }, [screenToCanvas, selectedSectorIds, sectors, getVertexAtPoint, getEdgeAtPoint]);
+  }, [screenToCanvas, selectedSectorIds, sectors, getVertexAtPoint, getEdgeAtPoint, isPointInSector]);
 
   // Mouse down
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -824,7 +852,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       for (const sector of sectors) {
         if (!sector.visible || sector.locked) continue;
         if (sector.vertices && sector.vertices.length > 2) {
-          if (isPointInPolygon(pos, sector.vertices)) {
+          if (isPointInSector(pos, sector)) {
             onAddFurniture?.(sector.id, { x: pos.x - 30, y: pos.y - 30 });
             return;
           }
@@ -947,7 +975,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       for (const sector of sectors) {
         if (!sector.visible || sector.locked) continue;
         if (sector.vertices && sector.vertices.length > 2) {
-          if (isPointInPolygon(pos, sector.vertices)) {
+          if (isPointInSector(pos, sector)) {
             onSelectSector(sector.id, e.shiftKey);
             setIsDragging(true);
             setDragStart(pos);
@@ -966,7 +994,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       setBoxSelectStart(pos);
       setBoxSelectCurrent(pos);
     }
-  }, [activeTool, screenToCanvas, pan, sectors, elements, geometricShapes, selectedSectorIds, selectedElementIds, selectedSeatIds, selectedShapeIds, onSelectSeats, onSelectSector, onSelectElements, onSelectShape, onApplySeatType, activeSeatType, getVertexAtPoint, zoom, contextMenu]);
+  }, [activeTool, screenToCanvas, pan, sectors, elements, geometricShapes, selectedSectorIds, selectedElementIds, selectedSeatIds, selectedShapeIds, onSelectSeats, onSelectSector, onSelectElements, onSelectShape, onApplySeatType, activeSeatType, getVertexAtPoint, zoom, contextMenu, isPointInSector, onAddFurniture]);
 
   // Mouse move
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -1031,7 +1059,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       } else {
         // Move apenas o assento arrastado
         const sector = sectors.find(s => s.id === draggingSeatInfo.sectorId);
-        if (sector && isPointInPolygon(pos, sector.vertices)) {
+        if (sector && isPointInSector(pos, sector)) {
           onMoveSeat(draggingSeatInfo.seatId, draggingSeatInfo.sectorId, pos.x - 7, pos.y - 7);
         }
       }
@@ -1067,7 +1095,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     if (isBoxSelecting) {
       setBoxSelectCurrent(pos);
     }
-  }, [isPanning, isDrawing, isDragging, isDraggingShape, isDraggingElement, isDraggingVertex, isDraggingSeat, draggingSeatInfo, isResizingElement, resizeCorner, activeVertexIndex, isBoxSelecting, activeTool, dragStart, screenToCanvas, selectedSectorIds, selectedShapeIds, selectedElementIds, sectors, elements, onPanChange, onMoveSector, onMoveShape, onMoveElement, onResizeElement, onMoveSeat, onUpdateSectorVertices]);
+  }, [isPanning, isDrawing, isDragging, isDraggingShape, isDraggingElement, isDraggingVertex, isDraggingSeat, draggingSeatInfo, isResizingElement, resizeCorner, activeVertexIndex, isBoxSelecting, activeTool, dragStart, screenToCanvas, selectedSectorIds, selectedShapeIds, selectedElementIds, sectors, elements, onPanChange, onMoveSector, onMoveShape, onMoveElement, onResizeElement, onMoveSeat, onUpdateSectorVertices, onMoveSelectedSeats, selectedSeatIds, isPointInSector]);
 
   // Mouse up
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
