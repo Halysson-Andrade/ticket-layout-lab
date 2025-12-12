@@ -458,16 +458,22 @@ export function getSeatLabel(
       return String(start + index);
     case 'reverse':
       return String(start + total - 1 - index);
-    case 'odd-left':
+    case 'odd-left': {
+      // Garante que o número inicial seja ímpar
+      const oddStart = start % 2 === 1 ? start : start + 1;
       if (isLeftSide) {
-        return String((index * 2) + 1); // 1, 3, 5...
+        return String(oddStart + (index * 2)); // start, start+2, start+4...
       }
-      return String((index * 2) + 2); // 2, 4, 6...
-    case 'even-left':
+      return String(oddStart + 1 + (index * 2)); // start+1, start+3, start+5...
+    }
+    case 'even-left': {
+      // Garante que o número inicial seja par
+      const evenStart = start % 2 === 0 ? start : start + 1;
       if (isLeftSide) {
-        return String((index * 2) + 2); // 2, 4, 6...
+        return String(evenStart + (index * 2)); // start, start+2, start+4...
       }
-      return String((index * 2) + 1); // 1, 3, 5...
+      return String(evenStart + 1 + (index * 2)); // start+1, start+3, start+5...
+    }
     default:
       return String(start + index);
   }

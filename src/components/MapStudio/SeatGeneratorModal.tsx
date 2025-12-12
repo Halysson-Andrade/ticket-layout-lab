@@ -185,8 +185,8 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     return getRowLabel(rowIndex, config.rowLabelType, config.rowLabelStart || (config.rowLabelType === 'alpha' ? 'A' : '1'));
   };
 
-  const getPreviewSeatLabel = (colIndex: number, totalCols: number): string => {
-    return getSeatLabel(colIndex, totalCols, config.seatLabelType, config.seatLabelStart, undefined, parsedCustomNumbers || undefined);
+  const getPreviewSeatLabel = (colIndex: number, totalCols: number, isLeftSide?: boolean): string => {
+    return getSeatLabel(colIndex, totalCols, config.seatLabelType, config.seatLabelStart, isLeftSide, parsedCustomNumbers || undefined);
   };
 
   // Gera preview dos assentos/mesas - MESMA LÓGICA de generateSeatsInsidePolygon
@@ -268,7 +268,9 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
           isInside = isPointInPolygon({ x, y }, previewVertices);
         }
         
-        const seatLabel = getPreviewSeatLabel(c, colsInRow);
+        // Para odd-left/even-left, considera lado esquerdo como primeira metade
+        const isLeftSide = c < colsInRow / 2;
+        const seatLabel = getPreviewSeatLabel(c, colsInRow, isLeftSide);
         
         if (isInside) insideCount++;
         else outsideCount++;
@@ -284,7 +286,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
       totalItems: config.rows * config.cols,
       totalSeats: isTable ? insideCount * config.chairsPerTable : insideCount
     };
-  }, [config.rows, config.cols, config.rotation, config.furnitureType, config.chairsPerTable, config.seatSize, config.colSpacing, config.rowSpacing, config.rowLabelType, config.rowLabelStart, config.seatLabelType, config.seatLabelStart, previewDimensions, previewVertices, isTable, parsedSeatsPerRow, parsedCustomNumbers]);
+  }, [config.rows, config.cols, config.rotation, config.furnitureType, config.chairsPerTable, config.seatSize, config.colSpacing, config.rowSpacing, config.rowLabelType, config.rowLabelStart, config.seatLabelType, config.seatLabelStart, config.seatsPerRowEnabled, config.rowAlignment, previewDimensions, previewVertices, isTable, parsedSeatsPerRow, parsedCustomNumbers]);
 
   const handleGenerate = () => {
     const tableConf = isTable ? {
