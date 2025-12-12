@@ -446,8 +446,14 @@ export function getSeatLabel(
   type: SeatLabelType,
   start: number,
   isLeftSide?: boolean,
-  customNumbers?: number[]
+  customNumbers?: number[],
+  customPerRowNumbers?: number[]
 ): string {
+  // Se tiver numeração customizada por fileira, usa ela
+  if (type === 'custom-per-row' && customPerRowNumbers && customPerRowNumbers.length > 0) {
+    return String(customPerRowNumbers[index] ?? (start + index));
+  }
+  
   // Se tiver numeração customizada, usa ela
   if (type === 'custom' && customNumbers && customNumbers.length > 0) {
     return String(customNumbers[index % customNumbers.length] || (start + index));
@@ -458,27 +464,35 @@ export function getSeatLabel(
       return String(start + index);
     case 'reverse':
       return String(start + total - 1 - index);
+    case 'odd-only': {
+      // Todos os assentos são ímpares sequenciais (23, 25, 27, 29...)
+      const oddStart = start % 2 === 1 ? start : start + 1;
+      return String(oddStart + (index * 2));
+    }
+    case 'even-only': {
+      // Todos os assentos são pares sequenciais (24, 26, 28, 30...)
+      const evenStart = start % 2 === 0 ? start : start + 1;
+      return String(evenStart + (index * 2));
+    }
     case 'odd-left': {
-      // Garante que o número inicial seja ímpar
+      // Lado esquerdo = ímpares, lado direito = pares
       const oddStart = start % 2 === 1 ? start : start + 1;
       const halfCols = Math.ceil(total / 2);
       if (isLeftSide) {
-        return String(oddStart + (index * 2)); // índices 0,1,2... → oddStart, oddStart+2, oddStart+4...
+        return String(oddStart + (index * 2));
       }
-      // Para o lado direito, usa índice relativo ao início do lado direito
       const rightIndex = index - halfCols;
-      return String(oddStart + 1 + (rightIndex * 2)); // índices relativos 0,1,2... → evenStart, evenStart+2...
+      return String(oddStart + 1 + (rightIndex * 2));
     }
     case 'even-left': {
-      // Garante que o número inicial seja par
+      // Lado esquerdo = pares, lado direito = ímpares
       const evenStart = start % 2 === 0 ? start : start + 1;
       const halfColsEven = Math.ceil(total / 2);
       if (isLeftSide) {
-        return String(evenStart + (index * 2)); // índices 0,1,2... → evenStart, evenStart+2, evenStart+4...
+        return String(evenStart + (index * 2));
       }
-      // Para o lado direito, usa índice relativo ao início do lado direito
       const rightIndexEven = index - halfColsEven;
-      return String(evenStart + 1 + (rightIndexEven * 2)); // índices relativos 0,1,2... → oddStart, oddStart+2...
+      return String(evenStart + 1 + (rightIndexEven * 2));
     }
     default:
       return String(start + index);
@@ -723,7 +737,8 @@ export function generateSeatsInsidePolygon(
   rowSpacing?: number,
   rowAlignment?: RowAlignment,
   rowLabelStart: string = 'A',
-  seatLabelStart: number = 1
+  seatLabelStart: number = 1,
+  customPerRowNumbers?: Record<string, number[]>
 ): Seat[] {
   if (vertices.length < 3) return [];
   
@@ -840,7 +855,11 @@ export function generateSeatsInsidePolygon(
         
         if (isInside) {
           const isLeftSide = c < colsInRow / 2;
-          const seatLabel = getSeatLabel(c, colsInRow, seatLabelType, seatLabelStart, isLeftSide, customNumbers);
+          // Se for custom-per-row, usa o array de números da fileira específica
+          const rowCustomNumbers = seatLabelType === 'custom-per-row' && customPerRowNumbers?.[rowLabel] 
+            ? customPerRowNumbers[rowLabel] 
+            : undefined;
+          const seatLabel = getSeatLabel(c, colsInRow, seatLabelType, seatLabelStart, isLeftSide, customNumbers, rowCustomNumbers);
           
           const seat: Seat = {
             id: generateId(),
