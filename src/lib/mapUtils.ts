@@ -817,20 +817,9 @@ export function generateSeatsInsidePolygon(
   const colStep = itemSize + colSpacing;
   const rowStep = itemSize + effectiveRowSpacing;
   
-  const centerX = bounds.x + bounds.width / 2;
-  const centerY = bounds.y + bounds.height / 2;
-  const rad = (rotation * Math.PI) / 180;
-  
-  // Função auxiliar para aplicar rotação
-  const applyRotation = (x: number, y: number): { x: number; y: number } => {
-    if (rotation === 0) return { x, y };
-    const dx = x - centerX;
-    const dy = y - centerY;
-    return {
-      x: centerX + dx * Math.cos(rad) - dy * Math.sin(rad),
-      y: centerY + dx * Math.sin(rad) + dy * Math.cos(rad),
-    };
-  };
+  // NOTA: NÃO aplicamos rotação aqui porque o Canvas já aplica rotação visual 
+  // ao setor inteiro via ctx.rotate(sector.rotation). A rotação é apenas visual,
+  // as posições dos assentos são relativas ao setor não-rotacionado.
   
   // Se rows e cols foram especificados, usa geração baseada em grid exato
   if (rows > 0 && cols > 0) {
@@ -861,13 +850,8 @@ export function generateSeatsInsidePolygon(
       }
       
       for (let c = 0; c < colsInRow; c++) {
-        let x = rowOffsetX + c * colStep;
-        let y = offsetY + r * rowStep;
-        
-        // Aplica rotação
-        const rotated = applyRotation(x, y);
-        x = rotated.x;
-        y = rotated.y;
+        const x = rowOffsetX + c * colStep;
+        const y = offsetY + r * rowStep;
         
         // Verifica se está dentro do polígono (no ponto central)
         const seatCenter = { x, y };
@@ -918,11 +902,11 @@ export function generateSeatsInsidePolygon(
     let hasSeatsInRow = false;
     
     for (let xBase = bounds.x + padding; xBase < bounds.x + bounds.width - padding; xBase += colStep) {
-      // Aplica rotação
-      const rotated = applyRotation(xBase + itemSize / 2, y + itemSize / 2);
+      const seatX = xBase + itemSize / 2;
+      const seatY = y + itemSize / 2;
       
       // Verifica se o centro do assento está dentro do polígono
-      const isInside = isPointInPolygon(rotated, vertices);
+      const isInside = isPointInPolygon({ x: seatX, y: seatY }, vertices);
       
       if (isInside) {
         const isLeftSide = colIndex < 50; // metade para fallback
@@ -935,8 +919,8 @@ export function generateSeatsInsidePolygon(
           number: seatLabel,
           type: 'normal',
           status: 'available',
-          x: rotated.x - itemSize / 2,
-          y: rotated.y - itemSize / 2,
+          x: seatX - itemSize / 2,
+          y: seatY - itemSize / 2,
           rotation,
           furnitureType,
           rowDescription: rowDescriptions?.[rowLabel],

@@ -987,7 +987,52 @@ export const MapStudio: React.FC = () => {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      const moveStep = e.shiftKey ? 10 : 1; // Shift = movimento maior
+
+      switch (e.key) {
+        case 'ArrowUp':
+          e.preventDefault();
+          if (selectedSectorIds.length > 0) {
+            selectedSectorIds.forEach(id => handleMoveSector(id, 0, -moveStep));
+          } else if (selectedShapeIds.length > 0) {
+            selectedShapeIds.forEach(id => handleMoveShape(id, 0, -moveStep));
+          } else if (selectedElementIds.length > 0) {
+            selectedElementIds.forEach(id => handleMoveElement(id, 0, -moveStep));
+          }
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          if (selectedSectorIds.length > 0) {
+            selectedSectorIds.forEach(id => handleMoveSector(id, 0, moveStep));
+          } else if (selectedShapeIds.length > 0) {
+            selectedShapeIds.forEach(id => handleMoveShape(id, 0, moveStep));
+          } else if (selectedElementIds.length > 0) {
+            selectedElementIds.forEach(id => handleMoveElement(id, 0, moveStep));
+          }
+          break;
+        case 'ArrowLeft':
+          e.preventDefault();
+          if (selectedSectorIds.length > 0) {
+            selectedSectorIds.forEach(id => handleMoveSector(id, -moveStep, 0));
+          } else if (selectedShapeIds.length > 0) {
+            selectedShapeIds.forEach(id => handleMoveShape(id, -moveStep, 0));
+          } else if (selectedElementIds.length > 0) {
+            selectedElementIds.forEach(id => handleMoveElement(id, -moveStep, 0));
+          }
+          break;
+        case 'ArrowRight':
+          e.preventDefault();
+          if (selectedSectorIds.length > 0) {
+            selectedSectorIds.forEach(id => handleMoveSector(id, moveStep, 0));
+          } else if (selectedShapeIds.length > 0) {
+            selectedShapeIds.forEach(id => handleMoveShape(id, moveStep, 0));
+          } else if (selectedElementIds.length > 0) {
+            selectedElementIds.forEach(id => handleMoveElement(id, moveStep, 0));
+          }
+          break;
+      }
 
       switch (e.key.toLowerCase()) {
         case 'v': setActiveTool('select'); break;
@@ -1000,7 +1045,7 @@ export const MapStudio: React.FC = () => {
           break;
         case 's': setActiveTool('seat-single'); break;
         case 'e': setActiveTool('element'); break;
-        case 't': setActiveTool('table'); break; // Atalho para ferramenta de mobília (Melhoria 2)
+        case 't': setActiveTool('table'); break;
         case 'delete':
         case 'backspace': handleDelete(); break;
         case 'd':
@@ -1024,7 +1069,7 @@ export const MapStudio: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleDelete, handleDuplicate, handleUndo, handleRedo, selectedSectorIds]);
+  }, [handleDelete, handleDuplicate, handleUndo, handleRedo, selectedSectorIds, selectedShapeIds, selectedElementIds, handleMoveSector, handleMoveShape, handleMoveElement]);
 
   // Dados para export
   const exportData = {
