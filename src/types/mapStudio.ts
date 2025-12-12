@@ -96,6 +96,15 @@ export interface Sector {
   rowSpacing?: number;
   colSpacing?: number;
   seatSize?: number;
+  // Configuração de labels (preservada ao ajustar espaçamento)
+  rowLabelType?: RowLabelType;
+  seatLabelType?: SeatLabelType;
+  rowLabelStart?: string;
+  seatLabelStart?: number;
+  labelPrefix?: string;
+  tableConfig?: TableConfig;
+  gridRows?: number;
+  gridCols?: number;
 }
 
 export interface VenueElement {

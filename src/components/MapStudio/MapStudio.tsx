@@ -30,7 +30,7 @@ import {
   GridGeneratorParams,
   ELEMENT_ICONS
 } from '@/types/mapStudio';
-import { generateSeatsGrid, generateId, generateVerticesForShape, generateVerticesWithCurvature, getBoundsFromVertices, generateSeatsInsidePolygon, repositionSeatsInsidePolygon } from '@/lib/mapUtils';
+import { generateSeatsGrid, generateId, generateVerticesForShape, generateVerticesWithCurvature, getBoundsFromVertices, generateSeatsInsidePolygon, generateSeatsInsidePolygonSimple, repositionSeatsInsidePolygon } from '@/lib/mapUtils';
 import { toast } from 'sonner';
 
 const CANVAS_WIDTH = 2000;
@@ -533,6 +533,18 @@ export const MapStudio: React.FC = () => {
               ...s, 
               seats: newSeats, 
               furnitureType,
+              tableConfig: tableConf,
+              // Salva configuração de labels para preservar ao ajustar espaçamento
+              rowLabelType: params.rowLabelType,
+              seatLabelType: params.seatLabelType,
+              rowLabelStart: params.rowLabelStart,
+              seatLabelStart: params.seatLabelStart,
+              labelPrefix: params.prefix,
+              rowSpacing: params.rowSpacing,
+              colSpacing: params.colSpacing,
+              seatSize: params.seatSize,
+              gridRows: params.rows,
+              gridCols: params.cols,
               // Aplica redimensionamento se solicitado
               ...(params.resizeWidth && params.resizeHeight ? {
                 vertices: sector!.vertices,
@@ -600,35 +612,44 @@ export const MapStudio: React.FC = () => {
           seatSize 
         };
         
-        // Se o setor já tem assentos, regenera com os novos espaçamentos
+        // Se o setor já tem assentos, regenera com os novos espaçamentos preservando configuração
         if (s.seats.length > 0) {
-          // Determina número de filas e colunas atual baseado nos assentos existentes
-          const uniqueRows = new Set(s.seats.map(seat => seat.row));
-          const rowCount = uniqueRows.size || 10;
-          const colCount = Math.ceil(s.seats.length / rowCount);
+          // Extrai configuração existente dos assentos
+          const uniqueRows = [...new Set(s.seats.map(seat => seat.row))];
+          const rowCount = s.gridRows || uniqueRows.length || 10;
           
-          const furnitureType = s.furnitureType || 'chair';
-          const tableConf = furnitureType !== 'chair' ? {
-            shape: 'round' as const,
-            chairCount: 6,
-            tableWidth: 60,
-            tableHeight: 60,
-          } : undefined;
+          // Conta máximo de assentos por fileira
+          const seatsPerRowMap: Record<string, number> = {};
+          s.seats.forEach(seat => {
+            seatsPerRowMap[seat.row] = (seatsPerRowMap[seat.row] || 0) + 1;
+          });
+          const maxColCount = s.gridCols || Math.max(...Object.values(seatsPerRowMap), 10);
           
-          const newSeats = generateSeatsInsidePolygon(
+          // Usa configuração salva ou detecta dos assentos existentes
+          const furnitureType = s.furnitureType || s.seats[0]?.furnitureType || 'chair';
+          const tableConf = s.tableConfig || (furnitureType !== 'chair' ? s.seats[0]?.tableConfig : undefined);
+          const rowLabelType = s.rowLabelType || 'alpha';
+          const seatLabelType = s.seatLabelType || 'numeric';
+          const labelPrefix = s.labelPrefix || '';
+          const rowLabelStart = s.rowLabelStart || (rowLabelType === 'alpha' ? 'A' : '1');
+          const seatLabelStart = s.seatLabelStart || 1;
+          
+          // Gera assentos SEM aplicar curvatura - apenas espaçamento
+          const newSeats = generateSeatsInsidePolygonSimple(
             s.vertices,
             s.id,
             seatSize,
             colSpacing,
-            'alpha',
-            'numeric',
-            '',
-            furnitureType,
-            tableConf,
-            s.shape === 'arc',
             rowSpacing,
             rowCount,
-            colCount
+            maxColCount,
+            rowLabelType,
+            seatLabelType,
+            rowLabelStart,
+            seatLabelStart,
+            labelPrefix,
+            furnitureType,
+            tableConf
           );
           
           return { ...updatedSector, seats: newSeats };
