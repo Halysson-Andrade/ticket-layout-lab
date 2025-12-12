@@ -1,4 +1,4 @@
-import { Seat, GridGeneratorParams, RowLabelType, SeatLabelType, RowAlignment, SEAT_COLORS, Vertex, SectorShape, Bounds, FurnitureType, TableConfig, TableShape } from '@/types/mapStudio';
+import { Seat, GridGeneratorParams, RowLabelType, SeatLabelType, RowAlignment, SEAT_COLORS, Vertex, SectorShape, Bounds, FurnitureType, TableConfig, TableShape, RowNumberingConfig } from '@/types/mapStudio';
 
 // Gera ID único
 export function generateId(): string {
@@ -447,11 +447,31 @@ export function getSeatLabel(
   start: number,
   isLeftSide?: boolean,
   customNumbers?: number[],
-  customPerRowNumbers?: number[]
+  rowNumberingConfig?: { type: 'numeric' | 'odd' | 'even' | 'custom'; startNumber: number; numbers?: number[] }
 ): string {
-  // Se tiver numeração customizada por fileira, usa ela
-  if (type === 'custom-per-row' && customPerRowNumbers && customPerRowNumbers.length > 0) {
-    return String(customPerRowNumbers[index] ?? (start + index));
+  // Se tiver configuração de numeração por fileira
+  if (type === 'custom-per-row' && rowNumberingConfig) {
+    const { type: rowType, startNumber, numbers } = rowNumberingConfig;
+    
+    switch (rowType) {
+      case 'numeric':
+        return String(startNumber + index);
+      case 'odd': {
+        const oddStart = startNumber % 2 === 1 ? startNumber : startNumber + 1;
+        return String(oddStart + (index * 2));
+      }
+      case 'even': {
+        const evenStart = startNumber % 2 === 0 ? startNumber : startNumber + 1;
+        return String(evenStart + (index * 2));
+      }
+      case 'custom':
+        if (numbers && numbers.length > 0) {
+          return String(numbers[index] ?? (startNumber + index));
+        }
+        return String(startNumber + index);
+      default:
+        return String(startNumber + index);
+    }
   }
   
   // Se tiver numeração customizada, usa ela
@@ -738,7 +758,7 @@ export function generateSeatsInsidePolygon(
   rowAlignment?: RowAlignment,
   rowLabelStart: string = 'A',
   seatLabelStart: number = 1,
-  customPerRowNumbers?: Record<string, number[]>
+  customPerRowNumbers?: Record<string, RowNumberingConfig>
 ): Seat[] {
   if (vertices.length < 3) return [];
   
@@ -855,11 +875,11 @@ export function generateSeatsInsidePolygon(
         
         if (isInside) {
           const isLeftSide = c < colsInRow / 2;
-          // Se for custom-per-row, usa o array de números da fileira específica
-          const rowCustomNumbers = seatLabelType === 'custom-per-row' && customPerRowNumbers?.[rowLabel] 
+          // Se for custom-per-row, usa a configuração da fileira específica
+          const rowConfig = seatLabelType === 'custom-per-row' && customPerRowNumbers?.[rowLabel] 
             ? customPerRowNumbers[rowLabel] 
             : undefined;
-          const seatLabel = getSeatLabel(c, colsInRow, seatLabelType, seatLabelStart, isLeftSide, customNumbers, rowCustomNumbers);
+          const seatLabel = getSeatLabel(c, colsInRow, seatLabelType, seatLabelStart, isLeftSide, customNumbers, rowConfig);
           
           const seat: Seat = {
             id: generateId(),

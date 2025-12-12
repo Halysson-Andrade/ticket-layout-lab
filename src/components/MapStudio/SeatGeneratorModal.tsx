@@ -25,7 +25,8 @@ import {
   SeatType,
   Sector,
   Vertex,
-  RowNumberingConfig
+  RowNumberingConfig,
+  RowNumberingType
 } from '@/types/mapStudio';
 import { cn } from '@/lib/utils';
 import { isPointInPolygon, getBoundsFromVertices, getRowLabel, getSeatLabel } from '@/lib/mapUtils';
@@ -64,7 +65,7 @@ interface GeneratorConfig {
   resizeHeight: number;
   // Numeração customizada por fileira
   customPerRowEnabled: boolean;
-  customPerRowNumbers: Record<string, string>; // { A: "1, 3, 5", B: "2, 4, 6" }
+  customPerRowConfig: Record<string, { type: RowNumberingType; startNumber: number; customNumbers: string }>; 
 }
 
 const seatTypeOptions: { type: SeatType; label: string }[] = [
@@ -106,7 +107,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     resizeWidth: 400,
     resizeHeight: 300,
     customPerRowEnabled: false,
-    customPerRowNumbers: {},
+    customPerRowConfig: {},
   });
 
   // Sincroniza dimensões de resize quando o sector muda ou modal abre
@@ -134,17 +135,23 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     return config.seatsPerRowConfig.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n > 0);
   }, [config.seatsPerRowEnabled, config.seatsPerRowConfig]);
 
-  // Parse custom per row numbers
+  // Parse custom per row config
   const parsedCustomPerRowNumbers = useMemo(() => {
     if (config.seatLabelType !== 'custom-per-row' || !config.customPerRowEnabled) return undefined;
-    const result: Record<string, number[]> = {};
-    for (const [rowLabel, numbersStr] of Object.entries(config.customPerRowNumbers)) {
-      if (numbersStr.trim()) {
-        result[rowLabel] = numbersStr.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
-      }
+    const result: Record<string, RowNumberingConfig> = {};
+    for (const [rowLabel, rowConfig] of Object.entries(config.customPerRowConfig)) {
+      const numbers = rowConfig.customNumbers.trim() 
+        ? rowConfig.customNumbers.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n))
+        : undefined;
+      result[rowLabel] = {
+        rowLabel,
+        type: rowConfig.type,
+        startNumber: rowConfig.startNumber,
+        numbers
+      };
     }
     return Object.keys(result).length > 0 ? result : undefined;
-  }, [config.seatLabelType, config.customPerRowEnabled, config.customPerRowNumbers]);
+  }, [config.seatLabelType, config.customPerRowEnabled, config.customPerRowConfig]);
 
   // Preview dimensions - usa geometria do setor (ou redimensionada)
   const previewDimensions = useMemo(() => {
@@ -204,10 +211,10 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
   };
 
   const getPreviewSeatLabel = (colIndex: number, totalCols: number, isLeftSide?: boolean, rowLabel?: string): string => {
-    // Se for customização por fileira, usa o array de números da fileira específica
+    // Se for customização por fileira, usa a configuração da fileira específica
     if (config.seatLabelType === 'custom-per-row' && rowLabel && parsedCustomPerRowNumbers?.[rowLabel]) {
-      const rowNumbers = parsedCustomPerRowNumbers[rowLabel];
-      return String(rowNumbers[colIndex] ?? (config.seatLabelStart + colIndex));
+      const rowConfig = parsedCustomPerRowNumbers[rowLabel];
+      return getSeatLabel(colIndex, totalCols, config.seatLabelType, config.seatLabelStart, isLeftSide, parsedCustomNumbers || undefined, rowConfig);
     }
     return getSeatLabel(colIndex, totalCols, config.seatLabelType, config.seatLabelStart, isLeftSide, parsedCustomNumbers || undefined);
   };
@@ -624,35 +631,81 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                         {config.rows} fileiras
                       </span>
                     </div>
-                    <div className="max-h-[200px] overflow-y-auto space-y-2 pr-2">
+                    <div className="max-h-[250px] overflow-y-auto space-y-3 pr-2">
                       {Array.from({ length: config.rows }, (_, i) => {
                         const rowLabel = getPreviewRowLabel(i);
                         const colsInRow = parsedSeatsPerRow && parsedSeatsPerRow[i] !== undefined 
                           ? parsedSeatsPerRow[i] 
                           : config.cols;
+                        const rowConfig = config.customPerRowConfig[rowLabel] || { type: 'numeric' as RowNumberingType, startNumber: 1, customNumbers: '' };
                         return (
-                          <div key={rowLabel} className="flex items-center gap-2">
-                            <span className="w-8 text-xs font-medium text-center bg-primary/10 rounded px-1 py-0.5">
-                              {rowLabel}
-                            </span>
-                            <Input
-                              value={config.customPerRowNumbers[rowLabel] || ''}
-                              onChange={(e) => setConfig(prev => ({
-                                ...prev,
-                                customPerRowNumbers: {
-                                  ...prev.customPerRowNumbers,
-                                  [rowLabel]: e.target.value
-                                }
-                              }))}
-                              placeholder={`Ex: 1, 3, 5... (${colsInRow} assentos)`}
-                              className="flex-1 text-xs h-8"
-                            />
+                          <div key={rowLabel} className="p-2 border rounded-lg bg-muted/30 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className="w-8 text-xs font-bold text-center bg-primary/20 rounded px-1 py-0.5">
+                                {rowLabel}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                ({colsInRow} assentos)
+                              </span>
+                            </div>
+                            <div className="flex gap-2">
+                              <Select
+                                value={rowConfig.type}
+                                onValueChange={(value: RowNumberingType) => setConfig(prev => ({
+                                  ...prev,
+                                  customPerRowConfig: {
+                                    ...prev.customPerRowConfig,
+                                    [rowLabel]: { ...rowConfig, type: value }
+                                  }
+                                }))}
+                              >
+                                <SelectTrigger className="w-[140px] h-7 text-xs">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="numeric">Numérico</SelectItem>
+                                  <SelectItem value="odd">Somente Ímpares</SelectItem>
+                                  <SelectItem value="even">Somente Pares</SelectItem>
+                                  <SelectItem value="custom">Customizado</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {rowConfig.type !== 'custom' && (
+                                <Input
+                                  type="number"
+                                  value={rowConfig.startNumber}
+                                  onChange={(e) => setConfig(prev => ({
+                                    ...prev,
+                                    customPerRowConfig: {
+                                      ...prev.customPerRowConfig,
+                                      [rowLabel]: { ...rowConfig, startNumber: parseInt(e.target.value) || 1 }
+                                    }
+                                  }))}
+                                  min={1}
+                                  placeholder="Início"
+                                  className="w-20 h-7 text-xs"
+                                />
+                              )}
+                            </div>
+                            {rowConfig.type === 'custom' && (
+                              <Input
+                                value={rowConfig.customNumbers}
+                                onChange={(e) => setConfig(prev => ({
+                                  ...prev,
+                                  customPerRowConfig: {
+                                    ...prev.customPerRowConfig,
+                                    [rowLabel]: { ...rowConfig, customNumbers: e.target.value }
+                                  }
+                                }))}
+                                placeholder="Ex: 1, 3, 5, 7..."
+                                className="flex-1 text-xs h-7"
+                              />
+                            )}
                           </div>
                         );
                       })}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Informe a numeração de cada fileira separada por vírgula. Ex: 1, 3, 5, 7...
+                      Configure o tipo de numeração para cada fileira: numérico (a partir de X), somente ímpares, somente pares ou customizado.
                     </p>
                   </div>
                 )}

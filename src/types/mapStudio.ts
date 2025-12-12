@@ -14,10 +14,15 @@ export type TableShape = 'round' | 'square' | 'rectangular';
 export type RowLabelType = 'alpha' | 'numeric' | 'roman';
 export type SeatLabelType = 'numeric' | 'odd-left' | 'even-left' | 'odd-only' | 'even-only' | 'reverse' | 'custom' | 'custom-per-row';
 
+// Tipo de numeração por fileira
+export type RowNumberingType = 'numeric' | 'odd' | 'even' | 'custom';
+
 // Configuração de numeração customizada por fileira
 export interface RowNumberingConfig {
   rowLabel: string;
-  numbers: number[]; // Array de números para cada assento na fileira
+  type: RowNumberingType; // Tipo de numeração: numérico, ímpar, par ou customizado
+  startNumber: number; // Número inicial para numeric/odd/even
+  numbers?: number[]; // Array de números para tipo 'custom'
 }
 
 export interface Point {
@@ -114,6 +119,7 @@ export interface Sector {
   rowAlignment?: RowAlignment;
   seatsPerRow?: number[];
   customNumbers?: number[]; // Numeração custom usada no gerador
+  customPerRowNumbers?: Record<string, RowNumberingConfig>; // Configuração de numeração por fileira
 }
 
 export interface VenueElement {
@@ -180,7 +186,7 @@ export interface GridGeneratorParams {
   tableShape?: TableShape;
   chairsPerTable?: number;
   customNumbers?: number[]; // Numeração customizada (ex: 2, 7, 10...)
-  customPerRowNumbers?: Record<string, number[]>; // Numeração customizada por fileira (ex: { A: [1, 3, 5], B: [2, 4, 6] })
+  customPerRowNumbers?: Record<string, RowNumberingConfig>; // Configuração de numeração por fileira
   rowDescriptions?: Record<string, string>; // Descrições por fileira (ex: { A: 'Primeira fila' })
   seatsPerRow?: number[]; // Quantidade de assentos por fileira (ex: [10, 12, 14, 16])
   rowAlignment?: RowAlignment; // Alinhamento dos assentos na fileira
