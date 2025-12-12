@@ -705,7 +705,9 @@ export function generateSeatsInsidePolygon(
   rows: number = 0,
   cols: number = 0,
   customNumbers?: number[],
-  rowDescriptions?: Record<string, string>
+  rowDescriptions?: Record<string, string>,
+  rotation: number = 0,
+  seatsPerRow?: number[]
 ): Seat[] {
   if (vertices.length < 3) return [];
   
@@ -762,6 +764,21 @@ export function generateSeatsInsidePolygon(
     : seatSize;
   const step = itemSize + spacing;
   
+  const centerX = bounds.x + bounds.width / 2;
+  const centerY = bounds.y + bounds.height / 2;
+  const rad = (rotation * Math.PI) / 180;
+  
+  // Função auxiliar para aplicar rotação
+  const applyRotation = (x: number, y: number): { x: number; y: number } => {
+    if (rotation === 0) return { x, y };
+    const dx = x - centerX;
+    const dy = y - centerY;
+    return {
+      x: centerX + dx * Math.cos(rad) - dy * Math.sin(rad),
+      y: centerY + dx * Math.sin(rad) + dy * Math.cos(rad),
+    };
+  };
+  
   // Se rows e cols foram especificados, usa geração baseada em grid exato
   if (rows > 0 && cols > 0) {
     // Calcula o tamanho total do grid
@@ -775,17 +792,28 @@ export function generateSeatsInsidePolygon(
     for (let r = 0; r < rows; r++) {
       const rowLabel = getRowLabel(r, rowLabelType, 'A');
       
-      for (let c = 0; c < cols; c++) {
-        const x = offsetX + c * step;
-        const y = offsetY + r * step;
+      // Quantidade de assentos nesta fileira
+      const colsInRow = seatsPerRow && seatsPerRow[r] !== undefined ? seatsPerRow[r] : cols;
+      
+      // Recalcula offset X para centralizar fileira com quantidade customizada
+      const rowGridWidth = colsInRow * step;
+      const rowOffsetX = bounds.x + (bounds.width - rowGridWidth) / 2 + itemSize / 2;
+      
+      for (let c = 0; c < colsInRow; c++) {
+        let x = rowOffsetX + c * step;
+        let y = offsetY + r * step;
         
-        // Verifica se está dentro do polígono
+        // Aplica rotação
+        const rotated = applyRotation(x, y);
+        x = rotated.x;
+        y = rotated.y;
+        
+        // Verifica se está dentro do polígono (no ponto central)
         const seatCenter = { x, y };
         const isInside = isPointInPolygon(seatCenter, vertices);
         
         if (isInside) {
-          const seatLabel = getSeatLabel(c, cols, seatLabelType, 1, undefined, customNumbers);
-          const rowLabel = getRowLabel(r, rowLabelType, 'A');
+          const seatLabel = getSeatLabel(c, colsInRow, seatLabelType, 1, undefined, customNumbers);
           
           const seat: Seat = {
             id: generateId(),
@@ -796,7 +824,7 @@ export function generateSeatsInsidePolygon(
             status: 'available',
             x: x - itemSize / 2,
             y: y - itemSize / 2,
-            rotation: 0,
+            rotation,
             furnitureType,
             rowDescription: rowDescriptions?.[rowLabel],
           };
@@ -823,11 +851,12 @@ export function generateSeatsInsidePolygon(
     const rowLabel = getRowLabel(rowIndex, rowLabelType, 'A');
     let hasSeatsInRow = false;
     
-    for (let x = bounds.x + padding; x < bounds.x + bounds.width - padding; x += step) {
-      // Verifica se o centro do assento está dentro do polígono
-      const seatCenter = { x: x + itemSize / 2, y: y + itemSize / 2 };
+    for (let xBase = bounds.x + padding; xBase < bounds.x + bounds.width - padding; xBase += step) {
+      // Aplica rotação
+      const rotated = applyRotation(xBase + itemSize / 2, y + itemSize / 2);
       
-      const isInside = isPointInPolygon(seatCenter, vertices);
+      // Verifica se o centro do assento está dentro do polígono
+      const isInside = isPointInPolygon(rotated, vertices);
       
       if (isInside) {
         const seatLabel = getSeatLabel(colIndex, 100, seatLabelType, 1, undefined, customNumbers);
@@ -839,9 +868,9 @@ export function generateSeatsInsidePolygon(
           number: seatLabel,
           type: 'normal',
           status: 'available',
-          x,
-          y,
-          rotation: 0,
+          x: rotated.x - itemSize / 2,
+          y: rotated.y - itemSize / 2,
+          rotation,
           furnitureType,
           rowDescription: rowDescriptions?.[rowLabel],
         };

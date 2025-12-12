@@ -48,6 +48,7 @@ interface CanvasProps {
   geometricShapes?: GeometricShape[];
   selectedShapeIds?: string[];
   onSelectShape?: (id: string, additive: boolean) => void;
+  onMoveShape?: (id: string, dx: number, dy: number) => void;
   onGroupShapesToSector?: (shapeIds: string[]) => void;
   onAddFurniture?: (sectorId: string, position: { x: number; y: number }) => void; // Melhoria 2
 }
@@ -90,6 +91,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   geometricShapes = [],
   selectedShapeIds = [],
   onSelectShape,
+  onMoveShape,
   onGroupShapesToSector,
   onAddFurniture,
 }) => {
@@ -98,6 +100,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   const [isPanning, setIsPanning] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isDraggingShape, setIsDraggingShape] = useState(false);
   const [isDraggingElement, setIsDraggingElement] = useState(false);
   const [isDraggingSeat, setIsDraggingSeat] = useState(false);
   const [draggingSeatInfo, setDraggingSeatInfo] = useState<{ seatId: string; sectorId: string } | null>(null);
@@ -493,6 +496,49 @@ export const Canvas: React.FC<CanvasProps> = ({
         );
       } else {
         // Zoom próximo: mostra assentos individuais
+        
+        // Agrupa assentos por fileira para renderizar labels nas laterais
+        const seatsByRow: Record<string, Seat[]> = {};
+        sector.seats.forEach(seat => {
+          if (!seatsByRow[seat.row]) seatsByRow[seat.row] = [];
+          seatsByRow[seat.row].push(seat);
+        });
+        
+        // Renderiza labels de fileira nas laterais (quando zoom > 0.6)
+        if (zoom > 0.6) {
+          Object.entries(seatsByRow).forEach(([rowLabel, rowSeats]) => {
+            if (rowSeats.length === 0) return;
+            
+            // Encontra o assento mais à esquerda e mais à direita da fileira
+            const sortedByX = [...rowSeats].sort((a, b) => a.x - b.x);
+            const leftMost = sortedByX[0];
+            const rightMost = sortedByX[sortedByX.length - 1];
+            
+            const seatSize = leftMost.tableConfig?.tableWidth || 14;
+            
+            // Label à esquerda
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.font = `bold ${11}px sans-serif`;
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(rowLabel, leftMost.x - 8, leftMost.y + seatSize / 2);
+            
+            // Descrição da fileira (se houver) abaixo do label
+            if (leftMost.rowDescription && zoom > 0.8) {
+              ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+              ctx.font = `italic ${9}px sans-serif`;
+              ctx.fillText(leftMost.rowDescription, leftMost.x - 8, leftMost.y + seatSize / 2 + 12);
+            }
+            
+            // Label à direita (opcional - espelha à esquerda)
+            ctx.textAlign = 'left';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.font = `bold ${11}px sans-serif`;
+            ctx.fillText(rowLabel, rightMost.x + seatSize + 8, rightMost.y + seatSize / 2);
+          });
+        }
+        
+        // Renderiza assentos
         sector.seats.forEach(seat => {
           const isSeatSelected = selectedSeatIds.includes(seat.id);
           
@@ -874,7 +920,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         if (shape.vertices && shape.vertices.length > 2) {
           if (isPointInPolygon(pos, shape.vertices)) {
             onSelectShape?.(shape.id, e.shiftKey);
-            setIsDragging(true);
+            setIsDraggingShape(true);
             setDragStart(pos);
             return;
           }
@@ -986,6 +1032,15 @@ export const Canvas: React.FC<CanvasProps> = ({
       return;
     }
 
+    // Arrastar formas geométricas (não vinculadas)
+    if (isDraggingShape && selectedShapeIds.length > 0 && onMoveShape) {
+      const dx = pos.x - dragStart.x;
+      const dy = pos.y - dragStart.y;
+      selectedShapeIds.forEach(id => onMoveShape(id, dx, dy));
+      setDragStart(pos);
+      return;
+    }
+
     if (isDragging && selectedSectorIds.length > 0) {
       const dx = pos.x - dragStart.x;
       const dy = pos.y - dragStart.y;
@@ -996,7 +1051,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     if (isBoxSelecting) {
       setBoxSelectCurrent(pos);
     }
-  }, [isPanning, isDrawing, isDragging, isDraggingElement, isDraggingVertex, isDraggingSeat, draggingSeatInfo, isResizingElement, resizeCorner, activeVertexIndex, isBoxSelecting, activeTool, dragStart, screenToCanvas, selectedSectorIds, selectedElementIds, sectors, elements, onPanChange, onMoveSector, onMoveElement, onResizeElement, onMoveSeat, onUpdateSectorVertices]);
+  }, [isPanning, isDrawing, isDragging, isDraggingShape, isDraggingElement, isDraggingVertex, isDraggingSeat, draggingSeatInfo, isResizingElement, resizeCorner, activeVertexIndex, isBoxSelecting, activeTool, dragStart, screenToCanvas, selectedSectorIds, selectedShapeIds, selectedElementIds, sectors, elements, onPanChange, onMoveSector, onMoveShape, onMoveElement, onResizeElement, onMoveSeat, onUpdateSectorVertices]);
 
   // Mouse up
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
@@ -1056,6 +1111,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     setIsPanning(false);
     setIsDrawing(false);
     setIsDragging(false);
+    setIsDraggingShape(false);
     setIsDraggingElement(false);
     setIsDraggingSeat(false);
     setDraggingSeatInfo(null);
