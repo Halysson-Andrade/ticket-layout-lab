@@ -42,6 +42,9 @@ const sections: ShortcutSection[] = [
     shortcuts: [
       { keys: ['Ctrl', 'Z'], description: 'Desfazer' },
       { keys: ['Ctrl', 'Shift', 'Z'], description: 'Refazer' },
+      { keys: ['Ctrl', 'C'], description: 'Copiar setor(es)' },
+      { keys: ['Ctrl', 'V'], description: 'Colar setor(es)' },
+      { keys: ['Ctrl', 'D'], description: 'Duplicar setor(es)' },
       { keys: ['Delete'], description: 'Excluir selecionado' },
     ],
   },
