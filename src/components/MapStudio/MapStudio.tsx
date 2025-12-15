@@ -29,7 +29,8 @@ import {
   SECTOR_COLORS,
   PREDEFINED_SECTORS,
   GridGeneratorParams,
-  ELEMENT_ICONS
+  ELEMENT_ICONS,
+  RowNumberingConfig
 } from '@/types/mapStudio';
 import { generateSeatsGrid, generateId, generateVerticesForShape, generateVerticesWithCurvature, getBoundsFromVertices, generateSeatsInsidePolygon, generateSeatsInsidePolygonSimple, repositionSeatsInsidePolygon } from '@/lib/mapUtils';
 import { toast } from 'sonner';
@@ -1493,20 +1494,56 @@ export const MapStudio: React.FC = () => {
               tableHeight: 60,
             } : undefined;
             
+            // Parseia seatsPerRow e customPerRowNumbers
+            const parsedSeatsPerRow = shapeConfig.seatsPerRowEnabled && shapeConfig.seatsPerRowConfig 
+              ? shapeConfig.seatsPerRowConfig.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n > 0)
+              : undefined;
+            
+            const parsedCustomNumbers = shapeConfig.seatLabelType === 'custom' && shapeConfig.customNumbers
+              ? shapeConfig.customNumbers.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n))
+              : undefined;
+            
+            const parsedCustomPerRowNumbers: Record<string, RowNumberingConfig> | undefined = 
+              shapeConfig.seatLabelType === 'custom-per-row' && shapeConfig.customPerRowConfig
+                ? Object.entries(shapeConfig.customPerRowConfig).reduce((acc, [rowLabel, cfg]) => {
+                    const numbers = cfg.customNumbers?.trim()
+                      ? cfg.customNumbers.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n))
+                      : undefined;
+                    acc[rowLabel] = {
+                      rowLabel,
+                      type: cfg.type,
+                      startNumber: cfg.startNumber,
+                      numbers,
+                      direction: cfg.direction || 'ltr'
+                    };
+                    return acc;
+                  }, {} as Record<string, RowNumberingConfig>)
+                : undefined;
+            
             const seats = generateSeatsInsidePolygon(
               vertices,
               sectorId,
               shapeConfig.seatSize,
               shapeConfig.colSpacing,
-              'alpha',
-              'numeric',
-              `S${sectors.length + i + 1}-`,
+              shapeConfig.rowLabelType,
+              shapeConfig.seatLabelType,
+              shapeConfig.prefix || `S${sectors.length + i + 1}-`,
               shapeConfig.furnitureType,
               tableConf,
               shapeConfig.shape === 'arc',
               shapeConfig.curvature || 0,
               shapeConfig.rows,
-              shapeConfig.cols
+              shapeConfig.cols,
+              parsedCustomNumbers,
+              undefined, // rowDescriptions
+              0, // rotation
+              parsedSeatsPerRow,
+              shapeConfig.rowSpacing,
+              shapeConfig.rowAlignment,
+              shapeConfig.rowLabelStart || 'A',
+              shapeConfig.seatLabelStart || 1,
+              parsedCustomPerRowNumbers,
+              shapeConfig.seatNumberDirection
             );
             
             const sector: Sector = {
@@ -1523,6 +1560,24 @@ export const MapStudio: React.FC = () => {
               visible: true,
               locked: false,
               furnitureType: shapeConfig.furnitureType,
+              // Salva configurações para preservar ao ajustar espaçamento
+              rowSpacing: shapeConfig.rowSpacing,
+              colSpacing: shapeConfig.colSpacing,
+              seatSize: shapeConfig.seatSize,
+              rowLabelType: shapeConfig.rowLabelType,
+              seatLabelType: shapeConfig.seatLabelType,
+              rowLabelStart: shapeConfig.rowLabelStart,
+              seatLabelStart: shapeConfig.seatLabelStart,
+              labelPrefix: shapeConfig.prefix,
+              tableConfig: tableConf,
+              gridRows: shapeConfig.rows,
+              gridCols: shapeConfig.cols,
+              rowAlignment: shapeConfig.rowAlignment,
+              seatsPerRow: parsedSeatsPerRow,
+              customNumbers: parsedCustomNumbers,
+              customPerRowNumbers: parsedCustomPerRowNumbers,
+              rowLabelPosition: shapeConfig.rowLabelPosition,
+              seatNumberDirection: shapeConfig.seatNumberDirection,
             };
             newSectors.push(sector);
           }

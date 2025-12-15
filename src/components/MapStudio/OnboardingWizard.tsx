@@ -1,14 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronRight, ChevronLeft, Check, Armchair, LayoutGrid, Settings, Square, Triangle, Pentagon, Hexagon, Circle, Star, ArrowUp, AlertTriangle } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Check, Armchair, LayoutGrid, Settings, Square, Triangle, Pentagon, Hexagon, Circle, Star, ArrowUp, AlertTriangle, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { SectorShape, SHAPE_NAMES, FurnitureType, TableShape, FURNITURE_LABELS, SEAT_COLORS, SeatType, RowLabelType, SeatLabelType } from '@/types/mapStudio';
+import { SectorShape, SHAPE_NAMES, FurnitureType, TableShape, FURNITURE_LABELS, SEAT_COLORS, SeatType, RowLabelType, SeatLabelType, SeatNumberDirection, RowNumberingType, RowNumberingConfig } from '@/types/mapStudio';
 import { cn } from '@/lib/utils';
-import { generateVerticesForShape, isPointInPolygon } from '@/lib/mapUtils';
+import { generateVerticesForShape, isPointInPolygon, getRowLabel, getSeatLabel } from '@/lib/mapUtils';
 
 interface OnboardingWizardProps {
   open: boolean;
@@ -36,6 +36,15 @@ export interface ShapeConfig {
   seatLabelType: SeatLabelType;
   seatLabelStart: number;
   prefix: string;
+  // Novas funcionalidades do gerador de assentos
+  seatNumberDirection: SeatNumberDirection;
+  rowLabelPosition: 'left' | 'right' | 'both';
+  seatsPerRowEnabled: boolean;
+  seatsPerRowConfig: string;
+  rowAlignment: 'left' | 'center' | 'right';
+  customNumbers: string;
+  customPerRowEnabled: boolean;
+  customPerRowConfig: Record<string, { type: RowNumberingType; startNumber: number; customNumbers: string; direction: SeatNumberDirection }>;
 }
 
 interface ShapeTemplate {
@@ -209,6 +218,15 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     seatLabelType: 'numeric',
     seatLabelStart: 1,
     prefix: '',
+    // Novas funcionalidades
+    seatNumberDirection: 'ltr',
+    rowLabelPosition: 'left',
+    seatsPerRowEnabled: false,
+    seatsPerRowConfig: '',
+    rowAlignment: 'center',
+    customNumbers: '',
+    customPerRowEnabled: false,
+    customPerRowConfig: {},
   });
 
   // Hook useMemo ANTES do early return
@@ -783,6 +801,52 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                       </div>
                     </div>
 
+                    {/* Assentos variáveis por fileira */}
+                    <div className="p-4 bg-muted/30 rounded-lg space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">Assentos Variáveis por Fileira</Label>
+                        <Button
+                          variant={config.seatsPerRowEnabled ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setConfig(prev => ({ ...prev, seatsPerRowEnabled: !prev.seatsPerRowEnabled }))}
+                          className="h-7 text-xs"
+                        >
+                          {config.seatsPerRowEnabled ? 'Ativado' : 'Desativado'}
+                        </Button>
+                      </div>
+                      {config.seatsPerRowEnabled && (
+                        <div className="space-y-2">
+                          <Input
+                            value={config.seatsPerRowConfig}
+                            onChange={(e) => setConfig(prev => ({ ...prev, seatsPerRowConfig: e.target.value }))}
+                            placeholder="Ex: 10, 12, 14, 16 (um valor por fileira)"
+                            className="text-sm"
+                          />
+                          <div className="flex items-center gap-2">
+                            <Label className="text-xs text-muted-foreground">Alinhamento:</Label>
+                            <div className="flex gap-1">
+                              {(['left', 'center', 'right'] as const).map((align) => (
+                                <Button
+                                  key={align}
+                                  variant={config.rowAlignment === align ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => setConfig(prev => ({ ...prev, rowAlignment: align }))}
+                                  className="h-7 px-2"
+                                >
+                                  {align === 'left' && <AlignLeft className="h-3 w-3" />}
+                                  {align === 'center' && <AlignCenter className="h-3 w-3" />}
+                                  {align === 'right' && <AlignRight className="h-3 w-3" />}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-[10px] text-muted-foreground">
+                            Defina quantos assentos em cada fileira (separados por vírgula).
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
                     <div>
                       <Label className="text-sm font-medium">Tamanho do Assento (px)</Label>
                       <div className="flex items-center gap-4 mt-2">
@@ -893,13 +957,28 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                           </Select>
                         </div>
                         <div>
-                          <Label className="text-xs text-muted-foreground">Início Fileira</Label>
-                          <Input
-                            value={config.rowLabelStart}
-                            onChange={(e) => setConfig(prev => ({ ...prev, rowLabelStart: e.target.value }))}
-                            className="mt-1"
-                            placeholder={config.rowLabelType === 'alpha' ? 'A' : '1'}
-                          />
+                          <Label className="text-xs text-muted-foreground">Início e Posição da Fileira</Label>
+                          <div className="flex gap-2 mt-1">
+                            <Input
+                              value={config.rowLabelStart}
+                              onChange={(e) => setConfig(prev => ({ ...prev, rowLabelStart: e.target.value }))}
+                              placeholder={config.rowLabelType === 'alpha' ? 'A' : '1'}
+                              className="flex-1"
+                            />
+                            <Select
+                              value={config.rowLabelPosition}
+                              onValueChange={(v: 'left' | 'right' | 'both') => setConfig(prev => ({ ...prev, rowLabelPosition: v }))}
+                            >
+                              <SelectTrigger className="w-[80px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="left">← Esq.</SelectItem>
+                                <SelectItem value="right">Dir. →</SelectItem>
+                                <SelectItem value="both">Ambos</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                       </div>
 
@@ -908,31 +987,158 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                           <Label className="text-xs text-muted-foreground">Tipo de Numeração</Label>
                           <Select
                             value={config.seatLabelType}
-                            onValueChange={(v: SeatLabelType) => setConfig(prev => ({ ...prev, seatLabelType: v }))}
+                            onValueChange={(v: SeatLabelType) => {
+                              setConfig(prev => ({ 
+                                ...prev, 
+                                seatLabelType: v,
+                                customPerRowEnabled: v === 'custom-per-row'
+                              }));
+                            }}
                           >
                             <SelectTrigger className="mt-1">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="numeric">Sequencial (1, 2, 3...)</SelectItem>
-                              <SelectItem value="odd-left">Ímpares à esquerda</SelectItem>
-                              <SelectItem value="even-left">Pares à esquerda</SelectItem>
-                              <SelectItem value="reverse">Inverter por fileira</SelectItem>
+                              <SelectItem value="reverse">Reverso (N...3, 2, 1)</SelectItem>
+                              <SelectItem value="odd-only">Somente Ímpares (1, 3, 5...)</SelectItem>
+                              <SelectItem value="even-only">Somente Pares (2, 4, 6...)</SelectItem>
+                              <SelectItem value="odd-left">Ímpares à Esquerda</SelectItem>
+                              <SelectItem value="even-left">Pares à Esquerda</SelectItem>
+                              <SelectItem value="custom">Customizada (2, 7, 10...)</SelectItem>
+                              <SelectItem value="custom-per-row">Customizada por Fileira</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div>
-                          <Label className="text-xs text-muted-foreground">Início Assento</Label>
-                          <Input
-                            type="number"
-                            value={config.seatLabelStart}
-                            onChange={(e) => setConfig(prev => ({ ...prev, seatLabelStart: parseInt(e.target.value) || 1 }))}
-                            className="mt-1"
-                            min={1}
-                          />
+                          <Label className="text-xs text-muted-foreground">
+                            {config.seatLabelType === 'custom' ? 'Números (ex: 2, 4, 6)' : 'Número Inicial e Direção'}
+                          </Label>
+                          {config.seatLabelType === 'custom' ? (
+                            <Input
+                              value={config.customNumbers}
+                              onChange={(e) => setConfig(prev => ({ ...prev, customNumbers: e.target.value }))}
+                              placeholder="2, 4, 6, 8, 10"
+                              className="mt-1"
+                            />
+                          ) : config.seatLabelType === 'custom-per-row' ? (
+                            <p className="text-[10px] text-muted-foreground mt-2">Configure abaixo cada fileira</p>
+                          ) : (
+                            <div className="flex gap-2 mt-1">
+                              <Input
+                                type="number"
+                                value={config.seatLabelStart}
+                                onChange={(e) => setConfig(prev => ({ ...prev, seatLabelStart: parseInt(e.target.value) || 1 }))}
+                                min={1}
+                                className="flex-1"
+                              />
+                              <Select
+                                value={config.seatNumberDirection}
+                                onValueChange={(v: SeatNumberDirection) => setConfig(prev => ({ ...prev, seatNumberDirection: v }))}
+                              >
+                                <SelectTrigger className="w-[80px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="ltr">E → D</SelectItem>
+                                  <SelectItem value="rtl">D → E</SelectItem>
+                                  <SelectItem value="center-out">Centro →</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
                         </div>
                       </div>
 
+                      {/* Customização por fileira */}
+                      {config.seatLabelType === 'custom-per-row' && (
+                        <div className="space-y-3 pt-2 border-t">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs font-medium">Numeração por Fileira</Label>
+                            <span className="text-xs text-muted-foreground">{config.rows} fileiras</span>
+                          </div>
+                          <div className="max-h-[200px] overflow-y-auto space-y-2 pr-1">
+                            {Array.from({ length: config.rows }, (_, i) => {
+                              const rowLabel = getRowLabel(i, config.rowLabelType, config.rowLabelStart || (config.rowLabelType === 'alpha' ? 'A' : '1'));
+                              const rowConfig = config.customPerRowConfig[rowLabel] || { type: 'numeric' as RowNumberingType, startNumber: 1, customNumbers: '', direction: 'ltr' as SeatNumberDirection };
+                              return (
+                                <div key={rowLabel} className="flex items-center gap-2 p-2 border rounded bg-muted/30">
+                                  <span className="w-6 text-xs font-bold text-center">{rowLabel}</span>
+                                  <Select
+                                    value={rowConfig.type}
+                                    onValueChange={(value: RowNumberingType) => setConfig(prev => ({
+                                      ...prev,
+                                      customPerRowConfig: {
+                                        ...prev.customPerRowConfig,
+                                        [rowLabel]: { ...rowConfig, type: value }
+                                      }
+                                    }))}
+                                  >
+                                    <SelectTrigger className="w-[80px] h-7 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="numeric">Num</SelectItem>
+                                      <SelectItem value="odd">Ímp</SelectItem>
+                                      <SelectItem value="even">Par</SelectItem>
+                                      <SelectItem value="custom">Custom</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {rowConfig.type !== 'custom' && (
+                                    <>
+                                      <Input
+                                        type="number"
+                                        value={rowConfig.startNumber}
+                                        onChange={(e) => setConfig(prev => ({
+                                          ...prev,
+                                          customPerRowConfig: {
+                                            ...prev.customPerRowConfig,
+                                            [rowLabel]: { ...rowConfig, startNumber: parseInt(e.target.value) || 1 }
+                                          }
+                                        }))}
+                                        className="w-14 h-7 text-xs"
+                                        placeholder="Início"
+                                      />
+                                      <Select
+                                        value={rowConfig.direction}
+                                        onValueChange={(value: SeatNumberDirection) => setConfig(prev => ({
+                                          ...prev,
+                                          customPerRowConfig: {
+                                            ...prev.customPerRowConfig,
+                                            [rowLabel]: { ...rowConfig, direction: value }
+                                          }
+                                        }))}
+                                      >
+                                        <SelectTrigger className="w-[60px] h-7 text-xs">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="ltr">E→D</SelectItem>
+                                          <SelectItem value="rtl">D→E</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </>
+                                  )}
+                                  {rowConfig.type === 'custom' && (
+                                    <Input
+                                      value={rowConfig.customNumbers}
+                                      onChange={(e) => setConfig(prev => ({
+                                        ...prev,
+                                        customPerRowConfig: {
+                                          ...prev.customPerRowConfig,
+                                          [rowLabel]: { ...rowConfig, customNumbers: e.target.value }
+                                        }
+                                      }))}
+                                      className="flex-1 h-7 text-xs"
+                                      placeholder="1, 3, 5..."
+                                    />
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                       <div>
                         <Label className="text-xs text-muted-foreground">Prefixo (opcional)</Label>
                         <Input
