@@ -47,7 +47,7 @@ interface CanvasProps {
   onDeleteSector?: () => void;
   onZoomToSector?: (sectorId: string) => void;
   onEditRow?: (sectorId: string, rowLabel: string) => void;
-  onRotateSector?: (sectorId: string, rotation: number) => void;
+  onRotateSector?: (sectorId: string, rotation: number, finalize?: boolean) => void;
   geometricShapes?: GeometricShape[];
   selectedShapeIds?: string[];
   onSelectShape?: (id: string, additive: boolean) => void;
@@ -1128,7 +1128,11 @@ export const Canvas: React.FC<CanvasProps> = ({
               onDuplicateSectorById(sector.id);
               return;
             }
-            onSelectSector(sector.id, e.shiftKey);
+            // Se o setor já está selecionado (em seleção múltipla), não deseleciona os outros
+            const isAlreadySelected = selectedSectorIds.includes(sector.id);
+            if (!isAlreadySelected || selectedSectorIds.length === 1) {
+              onSelectSector(sector.id, e.shiftKey);
+            }
             setIsDragging(true);
             setDragStart(pos);
             return;
@@ -1139,7 +1143,11 @@ export const Canvas: React.FC<CanvasProps> = ({
             onDuplicateSectorById(sector.id);
             return;
           }
-          onSelectSector(sector.id, e.shiftKey);
+          // Se o setor já está selecionado (em seleção múltipla), não deseleciona os outros
+          const isAlreadySelected = selectedSectorIds.includes(sector.id);
+          if (!isAlreadySelected || selectedSectorIds.length === 1) {
+            onSelectSector(sector.id, e.shiftKey);
+          }
           setIsDragging(true);
           setDragStart(pos);
           return;
@@ -1332,6 +1340,14 @@ export const Canvas: React.FC<CanvasProps> = ({
       onSeatMoveEnd();
     }
 
+    // Finaliza rotação - transforma coordenadas reais dos vértices e assentos
+    if (isRotating && selectedSectorIds.length === 1 && onRotateSector) {
+      const sector = sectors.find(s => s.id === selectedSectorIds[0]);
+      if (sector && sector.rotation && sector.rotation !== 0) {
+        onRotateSector(sector.id, sector.rotation, true); // finalize = true
+      }
+    }
+
     setIsPanning(false);
     setIsDrawing(false);
     setIsDragging(false);
@@ -1345,7 +1361,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     setIsResizingElement(false);
     setResizeCorner(null);
     setIsRotating(false);
-  }, [isDrawing, isDraggingSeat, activeTool, drawStart, drawCurrent, onCreateSector, isBoxSelecting, boxSelectStart, boxSelectCurrent, sectors, onSelectSeats, activeSeatType, onApplySeatType, onSeatMoveEnd]);
+  }, [isDrawing, isDraggingSeat, activeTool, drawStart, drawCurrent, onCreateSector, isBoxSelecting, boxSelectStart, boxSelectCurrent, sectors, onSelectSeats, activeSeatType, onApplySeatType, onSeatMoveEnd, isRotating, selectedSectorIds, onRotateSector]);
 
   return (
     <div 
