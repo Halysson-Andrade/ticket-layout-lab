@@ -611,7 +611,7 @@ export const MapStudio: React.FC = () => {
     toast.success('Assentos regenerados!');
   }, [pushHistory]);
 
-  // Atualiza espaçamento entre assentos e regenera automaticamente
+  // Atualiza espaçamento entre assentos e regenera automaticamente (preserva assentos excluídos)
   const handleUpdateSpacing = useCallback((sectorId: string, rowSpacing: number, colSpacing: number, seatSize: number) => {
     setSectors(prev => {
       const newSectors = prev.map(s => {
@@ -625,52 +625,55 @@ export const MapStudio: React.FC = () => {
           seatSize 
         };
         
-        // Se o setor já tem assentos, regenera com os novos espaçamentos preservando configuração
+        // Se o setor já tem assentos, repositiona mantendo os mesmos assentos existentes
         if (s.seats.length > 0) {
-          // Extrai configuração existente dos assentos
-          const uniqueRows = [...new Set(s.seats.map(seat => seat.row))];
-          const rowCount = s.gridRows || uniqueRows.length || 10;
-          
-          // Conta máximo de assentos por fileira
-          const seatsPerRowMap: Record<string, number> = {};
+          // Agrupa assentos por fileira mantendo ordem
+          const seatsByRow: Record<string, Seat[]> = {};
           s.seats.forEach(seat => {
-            seatsPerRowMap[seat.row] = (seatsPerRowMap[seat.row] || 0) + 1;
+            if (!seatsByRow[seat.row]) seatsByRow[seat.row] = [];
+            seatsByRow[seat.row].push(seat);
           });
-          const maxColCount = s.gridCols || Math.max(...Object.values(seatsPerRowMap), 10);
           
-          // Usa configuração salva ou detecta dos assentos existentes
+          // Ordena assentos em cada fileira por posição x
+          Object.keys(seatsByRow).forEach(row => {
+            seatsByRow[row].sort((a, b) => a.x - b.x);
+          });
+          
+          // Ordena fileiras por posição y da primeira cadeira
+          const sortedRows = Object.keys(seatsByRow).sort((a, b) => {
+            const aY = seatsByRow[a][0]?.y || 0;
+            const bY = seatsByRow[b][0]?.y || 0;
+            return aY - bY;
+          });
+          
+          // Calcula nova posição baseada no espaçamento
+          const bounds = getBoundsFromVertices(s.vertices);
+          const startX = bounds.x + 20;
+          const startY = bounds.y + 20;
+          
+          // Usa configuração de mesa se aplicável
           const furnitureType = s.furnitureType || s.seats[0]?.furnitureType || 'chair';
-          const tableConf = s.tableConfig || (furnitureType !== 'chair' ? s.seats[0]?.tableConfig : undefined);
-          const rowLabelType = s.rowLabelType || 'alpha';
-          const seatLabelType = s.seatLabelType || 'numeric';
-          const labelPrefix = s.labelPrefix || '';
-          const rowLabelStart = s.rowLabelStart || (rowLabelType === 'alpha' ? 'A' : '1');
-          const seatLabelStart = s.seatLabelStart || 1;
+          const isTable = furnitureType === 'table' || furnitureType === 'bistro';
+          const itemSize = isTable ? (s.seats[0]?.tableConfig?.tableWidth || 60) : seatSize;
+          const step = itemSize + colSpacing;
+          const rowStep = itemSize + rowSpacing;
           
-          // Gera assentos SEM aplicar curvatura - apenas espaçamento
-          const newSeats = generateSeatsInsidePolygonSimple(
-            s.vertices,
-            s.id,
-            seatSize,
-            colSpacing,
-            rowSpacing,
-            rowCount,
-            maxColCount,
-            rowLabelType,
-            seatLabelType,
-            rowLabelStart,
-            seatLabelStart,
-            labelPrefix,
-            furnitureType,
-            tableConf,
-            s.seatsPerRow,
-            s.rowAlignment,
-            s.customNumbers,
-            s.customPerRowNumbers,
-            s.seatNumberDirection
-          );
+          // Recalcula posição de cada assento mantendo IDs, tipos, números, descrições, etc.
+          const repositionedSeats: Seat[] = [];
+          sortedRows.forEach((rowLabel, rowIndex) => {
+            const rowSeats = seatsByRow[rowLabel];
+            const rowY = startY + rowIndex * rowStep;
+            
+            rowSeats.forEach((seat, colIndex) => {
+              repositionedSeats.push({
+                ...seat, // Mantém ID, tipo, número, descrição, tudo!
+                x: startX + colIndex * step,
+                y: rowY,
+              });
+            });
+          });
           
-          return { ...updatedSector, seats: newSeats };
+          return { ...updatedSector, seats: repositionedSeats };
         }
         
         return updatedSector;
@@ -1158,6 +1161,25 @@ export const MapStudio: React.FC = () => {
     toast.success(`Fileira ${rowLabel} atualizada`);
   }, [pushHistory]);
 
+  // Atualiza descrição de uma fileira (afeta todos os assentos da fileira)
+  const handleUpdateRowDescription = useCallback((sectorId: string, rowLabel: string, description: string) => {
+    setSectors(prev => {
+      const newSectors = prev.map(s => {
+        if (s.id !== sectorId) return s;
+        
+        // Atualiza descrição em todos os assentos da fileira
+        const updatedSeats = s.seats.map(seat => {
+          if (seat.row !== rowLabel) return seat;
+          return { ...seat, rowDescription: description };
+        });
+        
+        return { ...s, seats: updatedSeats };
+      });
+      pushHistory(newSectors);
+      return newSectors;
+    });
+  }, [pushHistory]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1339,6 +1361,7 @@ export const MapStudio: React.FC = () => {
           onDuplicateSectorById={handleDuplicateSectorById}
           onDeleteSector={handleDelete}
           onRotateSector={handleRotateSector}
+          onEditRow={(sectorId, rowLabel) => setEditingRow({ sectorId, rowLabel })}
           geometricShapes={geometricShapes}
           selectedShapeIds={selectedShapeIds}
           onSelectShape={handleSelectShape}
@@ -1602,6 +1625,7 @@ export const MapStudio: React.FC = () => {
           sector={sectors.find(s => s.id === editingRow.sectorId)!}
           rowLabel={editingRow.rowLabel}
           onUpdateRow={handleUpdateRowConfig}
+          onUpdateRowDescription={handleUpdateRowDescription}
         />
       )}
     </div>
