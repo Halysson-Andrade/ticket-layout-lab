@@ -86,6 +86,9 @@ export const MapStudio: React.FC = () => {
   const [historyIndex, setHistoryIndex] = useState(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Clipboard para copiar/colar setores
+  const [clipboardSectors, setClipboardSectors] = useState<Sector[]>([]);
 
   // Adiciona ao histórico
   const pushHistory = useCallback((newSectors: Sector[]) => {
@@ -1121,6 +1124,56 @@ export const MapStudio: React.FC = () => {
     toast.success(`Setor "${sector.name}" duplicado com ${newSector.seats.length} assentos`);
   }, [sectors, pushHistory]);
 
+  // Copiar setores selecionados para o clipboard
+  const handleCopySectors = useCallback(() => {
+    if (selectedSectorIds.length === 0) {
+      toast.error('Nenhum setor selecionado para copiar');
+      return;
+    }
+    const sectorsToCopy = sectors.filter(s => selectedSectorIds.includes(s.id));
+    setClipboardSectors(JSON.parse(JSON.stringify(sectorsToCopy)));
+    toast.success(`${sectorsToCopy.length} setor(es) copiado(s)`);
+  }, [selectedSectorIds, sectors]);
+
+  // Colar setores do clipboard
+  const handlePasteSectors = useCallback(() => {
+    if (clipboardSectors.length === 0) {
+      toast.error('Nenhum setor no clipboard');
+      return;
+    }
+    
+    const newSectors: Sector[] = clipboardSectors.map((sector, index) => {
+      const newSectorId = generateId();
+      return {
+        ...sector,
+        id: newSectorId,
+        name: `${sector.name} (cópia)`,
+        bounds: {
+          ...sector.bounds,
+          x: sector.bounds.x + 50 + (index * 10),
+          y: sector.bounds.y + 50 + (index * 10),
+        },
+        vertices: sector.vertices.map(v => ({
+          x: v.x + 50 + (index * 10),
+          y: v.y + 50 + (index * 10),
+        })),
+        seats: sector.seats.map(seat => ({
+          ...seat,
+          id: generateId(),
+          sectorId: newSectorId,
+          x: seat.x + 50 + (index * 10),
+          y: seat.y + 50 + (index * 10),
+        })),
+      };
+    });
+    
+    const updatedSectors = [...sectors, ...newSectors];
+    setSectors(updatedSectors);
+    pushHistory(updatedSectors);
+    setSelectedSectorIds(newSectors.map(s => s.id));
+    toast.success(`${newSectors.length} setor(es) colado(s)`);
+  }, [clipboardSectors, sectors, pushHistory]);
+
   // Atualiza configuração de numeração de uma fileira específica
   const handleUpdateRowConfig = useCallback((sectorId: string, rowLabel: string, config: import('@/types/mapStudio').RowNumberingConfig) => {
     setSectors(prev => {
@@ -1231,7 +1284,14 @@ export const MapStudio: React.FC = () => {
       }
 
       switch (e.key.toLowerCase()) {
-        case 'v': setActiveTool('select'); break;
+        case 'v': 
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            handlePasteSectors();
+          } else {
+            setActiveTool('select');
+          }
+          break;
         case 'h': setActiveTool('pan'); break;
         case 'r': setActiveTool('sector'); break;
         case 'g': 
@@ -1250,6 +1310,12 @@ export const MapStudio: React.FC = () => {
             handleDuplicate();
           }
           break;
+        case 'c':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            handleCopySectors();
+          }
+          break;
         case 'z':
           if (e.ctrlKey || e.metaKey) {
             e.preventDefault();
@@ -1265,7 +1331,7 @@ export const MapStudio: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleDelete, handleDuplicate, handleUndo, handleRedo, selectedSectorIds, selectedShapeIds, selectedElementIds, handleMoveSector, handleMoveShape, handleMoveElement]);
+  }, [handleDelete, handleDuplicate, handleCopySectors, handlePasteSectors, handleUndo, handleRedo, selectedSectorIds, selectedShapeIds, selectedElementIds, handleMoveSector, handleMoveShape, handleMoveElement]);
 
   // Dados para export
   const exportData = {
