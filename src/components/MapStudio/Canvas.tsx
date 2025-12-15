@@ -555,15 +555,30 @@ export const Canvas: React.FC<CanvasProps> = ({
           ctx.textBaseline = 'bottom';
           ctx.fillText('TOPO', topCenterX, topY - arrowSize - 8 / zoom);
           
-          // Handle de rotação (ícone circular com seta)
-          const rotateHandleX = bounds.x + bounds.width + 20 / zoom;
-          const rotateHandleY = bounds.y - 20 / zoom;
+          // Handle de rotação (ícone circular com seta) - posicionado fora do ctx.save/restore da rotação
+          // Para desenhar corretamente, salvamos e restauramos o contexto de rotação primeiro
+          ctx.restore(); // Restaura contexto SEM rotação para desenhar o handle
+          ctx.save(); // Salva novamente para outros elementos
+          
+          // Calcula posição do handle de rotação relativa ao bounds rotacionado
+          const rotHandleDistance = 35 / zoom;
+          const rotation = sector.rotation || 0;
+          const rad = (rotation * Math.PI) / 180;
+          
+          // Posição base: canto superior direito do bounds
+          const baseHandleX = bounds.x + bounds.width;
+          const baseHandleY = bounds.y;
+          
+          // Rotaciona a posição do handle ao redor do centro
+          const rotatedHandleX = centerX + (baseHandleX - centerX + rotHandleDistance) * Math.cos(rad) - (baseHandleY - centerY - rotHandleDistance) * Math.sin(rad);
+          const rotatedHandleY = centerY + (baseHandleX - centerX + rotHandleDistance) * Math.sin(rad) + (baseHandleY - centerY - rotHandleDistance) * Math.cos(rad);
+          
           const handleRadius = 12 / zoom;
           
           // Círculo do handle
           ctx.fillStyle = '#f59e0b';
           ctx.beginPath();
-          ctx.arc(rotateHandleX, rotateHandleY, handleRadius, 0, Math.PI * 2);
+          ctx.arc(rotatedHandleX, rotatedHandleY, handleRadius, 0, Math.PI * 2);
           ctx.fill();
           
           // Borda
@@ -576,13 +591,13 @@ export const Canvas: React.FC<CanvasProps> = ({
           ctx.lineWidth = 2 / zoom;
           ctx.beginPath();
           const arrowRadius = handleRadius * 0.6;
-          ctx.arc(rotateHandleX, rotateHandleY, arrowRadius, -Math.PI * 0.7, Math.PI * 0.3);
+          ctx.arc(rotatedHandleX, rotatedHandleY, arrowRadius, -Math.PI * 0.7, Math.PI * 0.3);
           ctx.stroke();
           
           // Ponta da seta
           const arrowTipAngle = Math.PI * 0.3;
-          const tipX = rotateHandleX + Math.cos(arrowTipAngle) * arrowRadius;
-          const tipY = rotateHandleY + Math.sin(arrowTipAngle) * arrowRadius;
+          const tipX = rotatedHandleX + Math.cos(arrowTipAngle) * arrowRadius;
+          const tipY = rotatedHandleY + Math.sin(arrowTipAngle) * arrowRadius;
           ctx.beginPath();
           ctx.moveTo(tipX, tipY);
           ctx.lineTo(tipX + 4 / zoom, tipY - 2 / zoom);
@@ -968,15 +983,25 @@ export const Canvas: React.FC<CanvasProps> = ({
         const sector = sectors.find(s => s.id === sectorId);
         if (sector && sector.vertices) {
           const bounds = getBoundsFromVertices(sector.vertices);
-          const rotateHandleX = bounds.x + bounds.width + 20 / zoom;
-          const rotateHandleY = bounds.y - 20 / zoom;
+          const centerX = bounds.x + bounds.width / 2;
+          const centerY = bounds.y + bounds.height / 2;
+          
+          // Calcula posição do handle de rotação (mesma lógica do render)
+          const rotHandleDistance = 35 / zoom;
+          const rotation = sector.rotation || 0;
+          const rad = (rotation * Math.PI) / 180;
+          
+          const baseHandleX = bounds.x + bounds.width;
+          const baseHandleY = bounds.y;
+          
+          const rotatedHandleX = centerX + (baseHandleX - centerX + rotHandleDistance) * Math.cos(rad) - (baseHandleY - centerY - rotHandleDistance) * Math.sin(rad);
+          const rotatedHandleY = centerY + (baseHandleX - centerX + rotHandleDistance) * Math.sin(rad) + (baseHandleY - centerY - rotHandleDistance) * Math.cos(rad);
+          
           const handleRadius = 12 / zoom;
           
-          const dist = Math.sqrt(Math.pow(pos.x - rotateHandleX, 2) + Math.pow(pos.y - rotateHandleY, 2));
+          const dist = Math.sqrt(Math.pow(pos.x - rotatedHandleX, 2) + Math.pow(pos.y - rotatedHandleY, 2));
           if (dist <= handleRadius) {
             setIsRotating(true);
-            const centerX = bounds.x + bounds.width / 2;
-            const centerY = bounds.y + bounds.height / 2;
             const startAngle = Math.atan2(pos.y - centerY, pos.x - centerX) * 180 / Math.PI;
             setRotatingStartAngle(startAngle - (sector.rotation || 0));
             setDragStart({ x: centerX, y: centerY });
@@ -1337,6 +1362,61 @@ export const Canvas: React.FC<CanvasProps> = ({
         onMouseUp={handleMouseUp}
         onContextMenu={handleContextMenu}
         onMouseLeave={handleMouseUp}
+        onDoubleClick={(e) => {
+          // Duplo clique em label de fileira abre editor
+          if (!onEditRow) return;
+          const pos = screenToCanvas(e.clientX, e.clientY);
+          
+          for (const sector of sectors) {
+            if (!sector.visible) continue;
+            
+            // Agrupa assentos por fileira
+            const seatsByRow: Record<string, Seat[]> = {};
+            sector.seats.forEach(seat => {
+              if (!seatsByRow[seat.row]) seatsByRow[seat.row] = [];
+              seatsByRow[seat.row].push(seat);
+            });
+            
+            // Verifica se clicou na área do label de alguma fileira
+            const rowLabelPos = sector.rowLabelPosition || 'left';
+            for (const [rowLabel, rowSeats] of Object.entries(seatsByRow)) {
+              if (rowSeats.length === 0) continue;
+              
+              const sortedByX = [...rowSeats].sort((a, b) => a.x - b.x);
+              const leftMost = sortedByX[0];
+              const rightMost = sortedByX[sortedByX.length - 1];
+              const seatSize = leftMost.tableConfig?.tableWidth || 14;
+              
+              // Área do label à esquerda
+              if (rowLabelPos === 'left' || rowLabelPos === 'both') {
+                const labelBounds = {
+                  x: leftMost.x - 40,
+                  y: leftMost.y - 5,
+                  width: 35,
+                  height: seatSize + 10
+                };
+                if (isPointInBounds(pos, labelBounds)) {
+                  onEditRow(sector.id, rowLabel);
+                  return;
+                }
+              }
+              
+              // Área do label à direita
+              if (rowLabelPos === 'right' || rowLabelPos === 'both') {
+                const labelBounds = {
+                  x: rightMost.x + seatSize + 5,
+                  y: rightMost.y - 5,
+                  width: 35,
+                  height: seatSize + 10
+                };
+                if (isPointInBounds(pos, labelBounds)) {
+                  onEditRow(sector.id, rowLabel);
+                  return;
+                }
+              }
+            }
+          }
+        }}
       />
       
       {/* Hint overlay */}

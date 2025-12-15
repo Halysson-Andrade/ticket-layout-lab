@@ -27,6 +27,7 @@ interface RowEditorModalProps {
   sector: Sector;
   rowLabel: string;
   onUpdateRow: (sectorId: string, rowLabel: string, config: RowNumberingConfig) => void;
+  onUpdateRowDescription?: (sectorId: string, rowLabel: string, description: string) => void;
 }
 
 export const RowEditorModal: React.FC<RowEditorModalProps> = ({
@@ -35,6 +36,7 @@ export const RowEditorModal: React.FC<RowEditorModalProps> = ({
   sector,
   rowLabel,
   onUpdateRow,
+  onUpdateRowDescription,
 }) => {
   const rowSeats = useMemo(() => {
     return sector.seats
@@ -44,31 +46,37 @@ export const RowEditorModal: React.FC<RowEditorModalProps> = ({
 
   // Obtém configuração existente ou cria padrão
   const existingConfig = sector.customPerRowNumbers?.[rowLabel];
+  const existingDescription = rowSeats[0]?.rowDescription || '';
   
   const [config, setConfig] = useState<{
     type: RowNumberingType;
     startNumber: number;
     customNumbers: string;
     direction: SeatNumberDirection;
+    description: string;
   }>({
     type: existingConfig?.type || 'numeric',
     startNumber: existingConfig?.startNumber || 1,
     customNumbers: existingConfig?.numbers?.join(', ') || '',
     direction: existingConfig?.direction || 'ltr',
+    description: existingDescription,
   });
 
   // Reset config quando modal abre
   useEffect(() => {
     if (open) {
       const existing = sector.customPerRowNumbers?.[rowLabel];
+      const seats = sector.seats.filter(s => s.row === rowLabel);
+      const desc = seats[0]?.rowDescription || '';
       setConfig({
         type: existing?.type || 'numeric',
         startNumber: existing?.startNumber || 1,
         customNumbers: existing?.numbers?.join(', ') || '',
         direction: existing?.direction || 'ltr',
+        description: desc,
       });
     }
-  }, [open, sector.customPerRowNumbers, rowLabel]);
+  }, [open, sector.customPerRowNumbers, rowLabel, sector.seats]);
 
   // Preview dos números gerados
   const previewNumbers = useMemo(() => {
@@ -120,6 +128,12 @@ export const RowEditorModal: React.FC<RowEditorModalProps> = ({
       numbers: parsedNumbers,
       direction: config.direction,
     });
+    
+    // Atualiza descrição da fileira se fornecida
+    if (onUpdateRowDescription) {
+      onUpdateRowDescription(sector.id, rowLabel, config.description);
+    }
+    
     onClose();
   };
 
@@ -137,6 +151,19 @@ export const RowEditorModal: React.FC<RowEditorModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Descrição da fileira */}
+          <div className="space-y-2">
+            <Label>Descrição da Fileira</Label>
+            <Input
+              value={config.description}
+              onChange={(e) => setConfig(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Ex: Primeira fila, Área VIP, etc."
+            />
+            <p className="text-xs text-muted-foreground">
+              Esta descrição aparecerá ao lado do rótulo da fileira no mapa
+            </p>
+          </div>
+
           {/* Tipo de numeração */}
           <div className="space-y-2">
             <Label>Tipo de Numeração</Label>
