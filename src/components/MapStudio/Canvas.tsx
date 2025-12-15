@@ -555,11 +555,7 @@ export const Canvas: React.FC<CanvasProps> = ({
           ctx.textBaseline = 'bottom';
           ctx.fillText('TOPO', topCenterX, topY - arrowSize - 8 / zoom);
           
-          // Handle de rotação (ícone circular com seta) - posicionado fora do ctx.save/restore da rotação
-          // Para desenhar corretamente, salvamos e restauramos o contexto de rotação primeiro
-          ctx.restore(); // Restaura contexto SEM rotação para desenhar o handle
-          ctx.save(); // Salva novamente para outros elementos
-          
+          // Handle de rotação (ícone circular com seta) - desenhado em coordenadas do mundo
           // Calcula posição do handle de rotação relativa ao bounds rotacionado
           const rotHandleDistance = 35 / zoom;
           const rotation = sector.rotation || 0;
@@ -569,16 +565,16 @@ export const Canvas: React.FC<CanvasProps> = ({
           const baseHandleX = bounds.x + bounds.width;
           const baseHandleY = bounds.y;
           
-          // Rotaciona a posição do handle ao redor do centro
-          const rotatedHandleX = centerX + (baseHandleX - centerX + rotHandleDistance) * Math.cos(rad) - (baseHandleY - centerY - rotHandleDistance) * Math.sin(rad);
-          const rotatedHandleY = centerY + (baseHandleX - centerX + rotHandleDistance) * Math.sin(rad) + (baseHandleY - centerY - rotHandleDistance) * Math.cos(rad);
+          // Rotaciona a posição do handle ao redor do centro (usando as mesmas coordenadas rotacionadas)
+          const rotatedHandleX = (baseHandleX - centerX + rotHandleDistance) * Math.cos(rad) - (baseHandleY - centerY - rotHandleDistance) * Math.sin(rad);
+          const rotatedHandleY = (baseHandleX - centerX + rotHandleDistance) * Math.sin(rad) + (baseHandleY - centerY - rotHandleDistance) * Math.cos(rad);
           
           const handleRadius = 12 / zoom;
           
-          // Círculo do handle
+          // Círculo do handle (desenha na posição rotacionada relativa ao centro já transformado)
           ctx.fillStyle = '#f59e0b';
           ctx.beginPath();
-          ctx.arc(rotatedHandleX, rotatedHandleY, handleRadius, 0, Math.PI * 2);
+          ctx.arc(centerX + rotatedHandleX, centerY + rotatedHandleY, handleRadius, 0, Math.PI * 2);
           ctx.fill();
           
           // Borda
@@ -591,13 +587,13 @@ export const Canvas: React.FC<CanvasProps> = ({
           ctx.lineWidth = 2 / zoom;
           ctx.beginPath();
           const arrowRadius = handleRadius * 0.6;
-          ctx.arc(rotatedHandleX, rotatedHandleY, arrowRadius, -Math.PI * 0.7, Math.PI * 0.3);
+          ctx.arc(centerX + rotatedHandleX, centerY + rotatedHandleY, arrowRadius, -Math.PI * 0.7, Math.PI * 0.3);
           ctx.stroke();
           
           // Ponta da seta
           const arrowTipAngle = Math.PI * 0.3;
-          const tipX = rotatedHandleX + Math.cos(arrowTipAngle) * arrowRadius;
-          const tipY = rotatedHandleY + Math.sin(arrowTipAngle) * arrowRadius;
+          const tipX = centerX + rotatedHandleX + Math.cos(arrowTipAngle) * arrowRadius;
+          const tipY = centerY + rotatedHandleY + Math.sin(arrowTipAngle) * arrowRadius;
           ctx.beginPath();
           ctx.moveTo(tipX, tipY);
           ctx.lineTo(tipX + 4 / zoom, tipY - 2 / zoom);
