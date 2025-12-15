@@ -679,6 +679,49 @@ export const MapStudio: React.FC = () => {
     });
   }, [pushHistory]);
 
+  // Centraliza os assentos na forma mantendo numeração
+  const handleCenterSeats = useCallback((sectorId: string) => {
+    setSectors(prev => {
+      const newSectors = prev.map(s => {
+        if (s.id !== sectorId || s.seats.length === 0) return s;
+        
+        const bounds = getBoundsFromVertices(s.vertices);
+        
+        // Calcula bounds atuais dos assentos
+        const seatXs = s.seats.map(seat => seat.x);
+        const seatYs = s.seats.map(seat => seat.y);
+        const seatMinX = Math.min(...seatXs);
+        const seatMaxX = Math.max(...seatXs);
+        const seatMinY = Math.min(...seatYs);
+        const seatMaxY = Math.max(...seatYs);
+        
+        const seatWidth = seatMaxX - seatMinX + 14;
+        const seatHeight = seatMaxY - seatMinY + 14;
+        
+        // Calcula offset para centralizar
+        const offsetX = bounds.x + (bounds.width - seatWidth) / 2 - seatMinX;
+        const offsetY = bounds.y + (bounds.height - seatHeight) / 2 - seatMinY;
+        
+        // Move todos os assentos
+        const centeredSeats = s.seats.map(seat => ({
+          ...seat,
+          x: seat.x + offsetX,
+          y: seat.y + offsetY,
+        }));
+        
+        return { ...s, seats: centeredSeats, centerSeats: true };
+      });
+      pushHistory(newSectors);
+      return newSectors;
+    });
+    toast.success('Assentos centralizados!');
+  }, [pushHistory]);
+
+  // Rotaciona setor via handle
+  const handleRotateSector = useCallback((sectorId: string, rotation: number) => {
+    setSectors(prev => prev.map(s => s.id === sectorId ? { ...s, rotation } : s));
+  }, []);
+
   const handleAddFurnitureToSector = useCallback((sectorId: string, position: { x: number; y: number }) => {
     setSectors(prev => {
       const newSectors = prev.map(s => {
@@ -1255,6 +1298,7 @@ export const MapStudio: React.FC = () => {
           onDuplicateSector={handleDuplicate}
           onDuplicateSectorById={handleDuplicateSectorById}
           onDeleteSector={handleDelete}
+          onRotateSector={handleRotateSector}
           geometricShapes={geometricShapes}
           selectedShapeIds={selectedShapeIds}
           onSelectShape={handleSelectShape}
@@ -1313,6 +1357,7 @@ export const MapStudio: React.FC = () => {
           onResizeSector={handleResizeSector}
           onLinkShapeToSector={handleLinkShapeToSector}
           onUpdateSpacing={handleUpdateSpacing}
+          onCenterSeats={handleCenterSeats}
           onGroupSectors={(sectorIds, categoryId) => {
             // Agrupa setores na mesma categoria
             const category = PREDEFINED_SECTORS.find(s => s.id === categoryId);

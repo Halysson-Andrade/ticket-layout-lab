@@ -47,6 +47,7 @@ interface CanvasProps {
   onDeleteSector?: () => void;
   onZoomToSector?: (sectorId: string) => void;
   onEditRow?: (sectorId: string, rowLabel: string) => void;
+  onRotateSector?: (sectorId: string, rotation: number) => void;
   geometricShapes?: GeometricShape[];
   selectedShapeIds?: string[];
   onSelectShape?: (id: string, additive: boolean) => void;
@@ -93,6 +94,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   onDeleteSector,
   onZoomToSector,
   onEditRow,
+  onRotateSector,
   geometricShapes = [],
   selectedShapeIds = [],
   onSelectShape,
@@ -115,6 +117,8 @@ export const Canvas: React.FC<CanvasProps> = ({
   const [activeVertexIndex, setActiveVertexIndex] = useState<number | null>(null);
   const [isResizingElement, setIsResizingElement] = useState(false);
   const [resizeCorner, setResizeCorner] = useState<'se' | 'sw' | 'ne' | 'nw' | null>(null);
+  const [isRotating, setIsRotating] = useState(false);
+  const [rotatingStartAngle, setRotatingStartAngle] = useState(0);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [drawStart, setDrawStart] = useState({ x: 0, y: 0 });
   const [drawCurrent, setDrawCurrent] = useState({ x: 0, y: 0 });
@@ -238,7 +242,8 @@ export const Canvas: React.FC<CanvasProps> = ({
   const renderTableWithChairs = useCallback((
     ctx: CanvasRenderingContext2D,
     seat: Seat,
-    isSelected: boolean
+    isSelected: boolean,
+    showNumbers: boolean = true
   ) => {
     const config = seat.tableConfig || { shape: 'round', chairCount: 4, tableWidth: 40, tableHeight: 40 };
     const tableX = seat.x;
@@ -272,7 +277,16 @@ export const Canvas: React.FC<CanvasProps> = ({
       }
     }
     
-    // Desenha cadeiras ao redor
+    // Número da mesa no centro
+    if (showNumbers && zoom > 0.6) {
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold ${10}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(seat.number, tableX + tableW / 2, tableY + tableH / 2);
+    }
+    
+    // Desenha cadeiras ao redor com números
     ctx.fillStyle = SEAT_COLORS[seat.type];
     const centerX = tableX + tableW / 2;
     const centerY = tableY + tableH / 2;
@@ -286,6 +300,16 @@ export const Canvas: React.FC<CanvasProps> = ({
       ctx.beginPath();
       ctx.arc(chairX, chairY, chairRadius, 0, Math.PI * 2);
       ctx.fill();
+      
+      // Número da cadeira
+      if (showNumbers && zoom > 0.8) {
+        ctx.fillStyle = '#fff';
+        ctx.font = `${7}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(i + 1), chairX, chairY);
+        ctx.fillStyle = SEAT_COLORS[seat.type]; // Restaura cor
+      }
     }
   }, [zoom]);
 
@@ -530,6 +554,42 @@ export const Canvas: React.FC<CanvasProps> = ({
           ctx.textAlign = 'center';
           ctx.textBaseline = 'bottom';
           ctx.fillText('TOPO', topCenterX, topY - arrowSize - 8 / zoom);
+          
+          // Handle de rotação (ícone circular com seta)
+          const rotateHandleX = bounds.x + bounds.width + 20 / zoom;
+          const rotateHandleY = bounds.y - 20 / zoom;
+          const handleRadius = 12 / zoom;
+          
+          // Círculo do handle
+          ctx.fillStyle = '#f59e0b';
+          ctx.beginPath();
+          ctx.arc(rotateHandleX, rotateHandleY, handleRadius, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Borda
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2 / zoom;
+          ctx.stroke();
+          
+          // Seta de rotação
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2 / zoom;
+          ctx.beginPath();
+          const arrowRadius = handleRadius * 0.6;
+          ctx.arc(rotateHandleX, rotateHandleY, arrowRadius, -Math.PI * 0.7, Math.PI * 0.3);
+          ctx.stroke();
+          
+          // Ponta da seta
+          const arrowTipAngle = Math.PI * 0.3;
+          const tipX = rotateHandleX + Math.cos(arrowTipAngle) * arrowRadius;
+          const tipY = rotateHandleY + Math.sin(arrowTipAngle) * arrowRadius;
+          ctx.beginPath();
+          ctx.moveTo(tipX, tipY);
+          ctx.lineTo(tipX + 4 / zoom, tipY - 2 / zoom);
+          ctx.lineTo(tipX + 2 / zoom, tipY + 4 / zoom);
+          ctx.closePath();
+          ctx.fillStyle = '#fff';
+          ctx.fill();
         }
       }
 
@@ -903,6 +963,28 @@ export const Canvas: React.FC<CanvasProps> = ({
     }
 
     if (activeTool === 'select' || activeTool === 'lasso') {
+      // Verifica click no handle de rotação de setor selecionado
+      for (const sectorId of selectedSectorIds) {
+        const sector = sectors.find(s => s.id === sectorId);
+        if (sector && sector.vertices) {
+          const bounds = getBoundsFromVertices(sector.vertices);
+          const rotateHandleX = bounds.x + bounds.width + 20 / zoom;
+          const rotateHandleY = bounds.y - 20 / zoom;
+          const handleRadius = 12 / zoom;
+          
+          const dist = Math.sqrt(Math.pow(pos.x - rotateHandleX, 2) + Math.pow(pos.y - rotateHandleY, 2));
+          if (dist <= handleRadius) {
+            setIsRotating(true);
+            const centerX = bounds.x + bounds.width / 2;
+            const centerY = bounds.y + bounds.height / 2;
+            const startAngle = Math.atan2(pos.y - centerY, pos.x - centerX) * 180 / Math.PI;
+            setRotatingStartAngle(startAngle - (sector.rotation || 0));
+            setDragStart({ x: centerX, y: centerY });
+            return;
+          }
+        }
+      }
+      
       // Verifica click em vértice de setor selecionado
       for (const sectorId of selectedSectorIds) {
         const sector = sectors.find(s => s.id === sectorId);
@@ -1062,6 +1144,19 @@ export const Canvas: React.FC<CanvasProps> = ({
       setDrawCurrent(pos);
     }
 
+    // Rotação de setor via handle
+    if (isRotating && selectedSectorIds.length === 1 && onRotateSector) {
+      const sector = sectors.find(s => s.id === selectedSectorIds[0]);
+      if (sector) {
+        const currentAngle = Math.atan2(pos.y - dragStart.y, pos.x - dragStart.x) * 180 / Math.PI;
+        let newRotation = currentAngle - rotatingStartAngle;
+        // Normaliza para 0-360
+        newRotation = ((newRotation % 360) + 360) % 360;
+        onRotateSector(sector.id, Math.round(newRotation));
+      }
+      return;
+    }
+
     if (isDraggingVertex && activeVertexIndex !== null && selectedSectorIds.length === 1) {
       const sector = sectors.find(s => s.id === selectedSectorIds[0]);
       if (sector && sector.vertices) {
@@ -1216,13 +1311,14 @@ export const Canvas: React.FC<CanvasProps> = ({
     setActiveVertexIndex(null);
     setIsResizingElement(false);
     setResizeCorner(null);
+    setIsRotating(false);
   }, [isDrawing, isDraggingSeat, activeTool, drawStart, drawCurrent, onCreateSector, isBoxSelecting, boxSelectStart, boxSelectCurrent, sectors, onSelectSeats, activeSeatType, onApplySeatType, onSeatMoveEnd]);
 
   return (
     <div 
       ref={containerRef}
       className="absolute inset-0 overflow-hidden bg-canvas-bg cursor-crosshair"
-      style={{ cursor: activeTool === 'pan' ? 'grab' : isPanning ? 'grabbing' : isDraggingVertex ? 'move' : isDraggingElement ? 'move' : isDraggingSeat ? 'grabbing' : isResizingElement ? 'nwse-resize' : isBoxSelecting ? 'crosshair' : 'default' }}
+      style={{ cursor: activeTool === 'pan' ? 'grab' : isPanning ? 'grabbing' : isRotating ? 'grabbing' : isDraggingVertex ? 'move' : isDraggingElement ? 'move' : isDraggingSeat ? 'grabbing' : isResizingElement ? 'nwse-resize' : isBoxSelecting ? 'crosshair' : 'default' }}
     >
       <canvas
         ref={canvasRef}
