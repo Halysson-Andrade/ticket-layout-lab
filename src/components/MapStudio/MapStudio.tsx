@@ -717,6 +717,45 @@ export const MapStudio: React.FC = () => {
     toast.success('Assentos centralizados!');
   }, [pushHistory]);
 
+  // Inverte setor horizontalmente ou verticalmente
+  const handleFlipSector = useCallback((sectorId: string, direction: 'horizontal' | 'vertical') => {
+    setSectors(prev => {
+      const newSectors = prev.map(s => {
+        if (s.id !== sectorId) return s;
+        
+        const bounds = getBoundsFromVertices(s.vertices);
+        const centerX = bounds.x + bounds.width / 2;
+        const centerY = bounds.y + bounds.height / 2;
+        
+        // Inverte vértices
+        const flippedVertices = s.vertices.map(v => {
+          if (direction === 'horizontal') {
+            return { x: centerX * 2 - v.x, y: v.y };
+          } else {
+            return { x: v.x, y: centerY * 2 - v.y };
+          }
+        });
+        
+        // Inverte posição dos assentos
+        const flippedSeats = s.seats.map(seat => {
+          const seatCenterX = seat.x + (seat.tableConfig?.tableWidth || 14) / 2;
+          const seatCenterY = seat.y + (seat.tableConfig?.tableHeight || 14) / 2;
+          
+          if (direction === 'horizontal') {
+            return { ...seat, x: centerX * 2 - seatCenterX - (seat.tableConfig?.tableWidth || 14) / 2 };
+          } else {
+            return { ...seat, y: centerY * 2 - seatCenterY - (seat.tableConfig?.tableHeight || 14) / 2 };
+          }
+        });
+        
+        return { ...s, vertices: flippedVertices, seats: flippedSeats };
+      });
+      pushHistory(newSectors);
+      return newSectors;
+    });
+    toast.success(`Setor invertido ${direction === 'horizontal' ? 'horizontalmente' : 'verticalmente'}!`);
+  }, [pushHistory]);
+
   // Rotaciona setor via handle
   const handleRotateSector = useCallback((sectorId: string, rotation: number) => {
     setSectors(prev => prev.map(s => s.id === sectorId ? { ...s, rotation } : s));
@@ -1358,6 +1397,7 @@ export const MapStudio: React.FC = () => {
           onLinkShapeToSector={handleLinkShapeToSector}
           onUpdateSpacing={handleUpdateSpacing}
           onCenterSeats={handleCenterSeats}
+          onFlipSector={handleFlipSector}
           onGroupSectors={(sectorIds, categoryId) => {
             // Agrupa setores na mesma categoria
             const category = PREDEFINED_SECTORS.find(s => s.id === categoryId);

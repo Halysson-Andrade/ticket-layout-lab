@@ -1163,7 +1163,15 @@ export const Canvas: React.FC<CanvasProps> = ({
         const newVertices = [...sector.vertices];
         // Aplica rotação inversa no ponto atual para atualizar o vértice corretamente
         const transformedPos = transformPointForSector(pos, sector);
-        newVertices[activeVertexIndex] = { x: transformedPos.x, y: transformedPos.y };
+        
+        // Calcula o delta do vértice (não a posição absoluta)
+        const oldVertex = sector.vertices[activeVertexIndex];
+        const dx = transformedPos.x - oldVertex.x;
+        const dy = transformedPos.y - oldVertex.y;
+        
+        // Atualiza apenas o vértice arrastado
+        newVertices[activeVertexIndex] = { x: oldVertex.x + dx, y: oldVertex.y + dy };
+        
         onUpdateSectorVertices(sector.id, newVertices);
       }
       return;

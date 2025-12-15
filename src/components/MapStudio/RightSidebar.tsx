@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3, CircleDot, Maximize2, Info, Link, ArrowLeftRight, ArrowUpDown, Circle, AlignCenter } from 'lucide-react';
+import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3, CircleDot, Maximize2, Info, Link, ArrowLeftRight, ArrowUpDown, Circle, AlignCenter, FlipHorizontal, FlipVertical } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ interface RightSidebarProps {
   onGroupSectors?: (sectorIds: string[], targetCategory: string) => void;
   onUpdateSpacing?: (sectorId: string, rowSpacing: number, colSpacing: number, seatSize: number) => void;
   onCenterSeats?: (sectorId: string) => void;
+  onFlipSector?: (sectorId: string, direction: 'horizontal' | 'vertical') => void;
 }
 
 const SEAT_TYPE_LABELS: Record<SeatType, string> = {
@@ -48,6 +49,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   onGroupSectors,
   onUpdateSpacing,
   onCenterSeats,
+  onFlipSector,
 }) => {
   // Local state para edição em tempo real com debounce
   const [localRotation, setLocalRotation] = useState(0);
@@ -530,20 +532,47 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                   </div>
                 </div>
 
-                {/* Centralizar assentos */}
-                {selectedSector.seats.length > 0 && onCenterSeats && (
+                {/* Centralizar e Inverter */}
+                {selectedSector.seats.length > 0 && (
                   <div className="space-y-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full h-8 text-xs gap-2"
-                      onClick={() => onCenterSeats(selectedSector.id)}
-                    >
-                      <AlignCenter className="h-3 w-3" />
-                      Centralizar Assentos
-                    </Button>
+                    <Label className="text-xs">Transformações</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {onCenterSeats && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs gap-1"
+                          onClick={() => onCenterSeats(selectedSector.id)}
+                          title="Centralizar Assentos"
+                        >
+                          <AlignCenter className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {onFlipSector && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs gap-1"
+                            onClick={() => onFlipSector(selectedSector.id, 'horizontal')}
+                            title="Inverter Horizontal"
+                          >
+                            <FlipHorizontal className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs gap-1"
+                            onClick={() => onFlipSector(selectedSector.id, 'vertical')}
+                            title="Inverter Vertical"
+                          >
+                            <FlipVertical className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                     <p className="text-[10px] text-muted-foreground">
-                      Centraliza os assentos na forma, mantendo a numeração.
+                      Centraliza ou inverte o setor mantendo a numeração.
                     </p>
                   </div>
                 )}
