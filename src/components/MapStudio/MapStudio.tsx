@@ -32,7 +32,7 @@ import {
   ELEMENT_ICONS,
   RowNumberingConfig
 } from '@/types/mapStudio';
-import { generateSeatsGrid, generateId, generateVerticesForShape, generateVerticesWithCurvature, getBoundsFromVertices, generateSeatsInsidePolygon, generateSeatsInsidePolygonSimple, repositionSeatsInsidePolygon } from '@/lib/mapUtils';
+import { generateSeatsGrid, generateId, generateVerticesForShape, generateVerticesWithCurvature, getBoundsFromVertices, generateSeatsInsidePolygon, generateSeatsInsidePolygonSimple, repositionSeatsInsidePolygon, getSeatLabel } from '@/lib/mapUtils';
 import { toast } from 'sonner';
 
 const CANVAS_WIDTH = 2000;
@@ -1253,7 +1253,6 @@ export const MapStudio: React.FC = () => {
           const seatIndex = rowSeats.findIndex(rs => rs.id === seat.id);
           if (seatIndex === -1) return seat;
           
-          const { getSeatLabel } = require('@/lib/mapUtils');
           const newNumber = getSeatLabel(
             seatIndex,
             rowSeats.length,
