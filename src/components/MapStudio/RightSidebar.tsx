@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3, CircleDot, Maximize2, Info, Link, ArrowLeftRight, ArrowUpDown, Circle } from 'lucide-react';
+import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3, CircleDot, Maximize2, Info, Link, ArrowLeftRight, ArrowUpDown, Circle, AlignCenter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ interface RightSidebarProps {
   onLinkShapeToSector?: (shapeId: string, sectorCategory: string) => void;
   onGroupSectors?: (sectorIds: string[], targetCategory: string) => void;
   onUpdateSpacing?: (sectorId: string, rowSpacing: number, colSpacing: number, seatSize: number) => void;
+  onCenterSeats?: (sectorId: string) => void;
 }
 
 const SEAT_TYPE_LABELS: Record<SeatType, string> = {
@@ -46,6 +47,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   onLinkShapeToSector,
   onGroupSectors,
   onUpdateSpacing,
+  onCenterSeats,
 }) => {
   // Local state para edição em tempo real com debounce
   const [localRotation, setLocalRotation] = useState(0);
@@ -527,6 +529,24 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                     </div>
                   </div>
                 </div>
+
+                {/* Centralizar assentos */}
+                {selectedSector.seats.length > 0 && onCenterSeats && (
+                  <div className="space-y-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full h-8 text-xs gap-2"
+                      onClick={() => onCenterSeats(selectedSector.id)}
+                    >
+                      <AlignCenter className="h-3 w-3" />
+                      Centralizar Assentos
+                    </Button>
+                    <p className="text-[10px] text-muted-foreground">
+                      Centraliza os assentos na forma, mantendo a numeração.
+                    </p>
+                  </div>
+                )}
 
                 {/* Espaçamento entre assentos */}
                 {selectedSector.seats.length > 0 && onUpdateSpacing && (

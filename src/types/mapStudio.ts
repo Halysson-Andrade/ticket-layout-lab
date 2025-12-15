@@ -126,6 +126,7 @@ export interface Sector {
   customPerRowNumbers?: Record<string, RowNumberingConfig>; // Configuração de numeração por fileira
   rowLabelPosition?: 'left' | 'right' | 'both'; // Posição do nome da fileira
   seatNumberDirection?: SeatNumberDirection; // Direção da numeração dos assentos
+  centerSeats?: boolean; // Centralizar assentos na forma
 }
 
 export interface VenueElement {
