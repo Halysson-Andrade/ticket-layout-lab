@@ -161,7 +161,7 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     return Object.keys(result).length > 0 ? result : undefined;
   }, [config.seatLabelType, config.customPerRowEnabled, config.customPerRowConfig]);
 
-  // Preview dimensions - usa geometria do setor (ou redimensionada)
+  // Preview dimensions - usa geometria do setor (ou redimensionada) e considera rotação
   const previewDimensions = useMemo(() => {
     const originalWidth = sector?.bounds.width || 450;
     const originalHeight = sector?.bounds.height || 280;
@@ -170,12 +170,26 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     const sectorWidth = config.resizeEnabled ? config.resizeWidth : originalWidth;
     const sectorHeight = config.resizeEnabled ? config.resizeHeight : originalHeight;
     
+    // Calcula o bounding box expandido para acomodar a rotação
+    const rotation = sector?.rotation || 0;
+    const radians = (rotation * Math.PI) / 180;
+    const cos = Math.abs(Math.cos(radians));
+    const sin = Math.abs(Math.sin(radians));
+    
+    // Bounding box rotacionado
+    const rotatedWidth = sectorWidth * cos + sectorHeight * sin;
+    const rotatedHeight = sectorWidth * sin + sectorHeight * cos;
+    
     const maxPreviewWidth = 320;
     const maxPreviewHeight = 200;
-    const scale = Math.min(maxPreviewWidth / sectorWidth, maxPreviewHeight / sectorHeight, 1);
+    const scale = Math.min(maxPreviewWidth / rotatedWidth, maxPreviewHeight / rotatedHeight, 1);
     
     const width = sectorWidth * scale;
     const height = sectorHeight * scale;
+    
+    // Dimensões do viewBox para acomodar rotação
+    const viewBoxWidth = rotatedWidth * scale;
+    const viewBoxHeight = rotatedHeight * scale;
     
     const baseSize = isTable ? 24 : 8;
     const scaledSeatSize = baseSize * scale;
@@ -185,6 +199,8 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     return { 
       width, 
       height, 
+      viewBoxWidth,
+      viewBoxHeight,
       seatSize: scaledSeatSize, 
       rowSpacing: scaledRowSpacing, 
       colSpacing: scaledColSpacing,
@@ -192,7 +208,8 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
       sectorWidth,
       sectorHeight,
       originalWidth,
-      originalHeight
+      originalHeight,
+      rotation
     };
   }, [config.resizeEnabled, config.resizeWidth, config.resizeHeight, config.rowSpacing, config.colSpacing, sector, isTable]);
 
@@ -856,15 +873,17 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
               <div className="text-sm font-medium">Preview em Tempo Real</div>
               
               {/* Preview canvas */}
-              <div className="bg-muted/50 rounded-lg p-3 flex items-center justify-center flex-1">
+              <div className="bg-muted/50 rounded-lg p-3 flex items-center justify-center flex-1 overflow-hidden">
                 <svg 
-                  width={previewDimensions.width} 
-                  height={previewDimensions.height}
-                  viewBox={`0 0 ${previewDimensions.width} ${previewDimensions.height}`}
+                  width={previewDimensions.viewBoxWidth} 
+                  height={previewDimensions.viewBoxHeight}
+                  viewBox={`0 0 ${previewDimensions.viewBoxWidth} ${previewDimensions.viewBoxHeight}`}
                   className="border rounded bg-background"
                 >
-                  {/* Grupo com rotação do setor aplicada */}
-                  <g transform={`rotate(${sector?.rotation || 0}, ${previewDimensions.width / 2}, ${previewDimensions.height / 2})`}>
+                  {/* Grupo com rotação do setor aplicada - centralizado no viewBox expandido */}
+                  <g transform={`rotate(${previewDimensions.rotation}, ${previewDimensions.viewBoxWidth / 2}, ${previewDimensions.viewBoxHeight / 2})`}>
+                    {/* Translação para centralizar a forma não rotacionada */}
+                    <g transform={`translate(${(previewDimensions.viewBoxWidth - previewDimensions.width) / 2}, ${(previewDimensions.viewBoxHeight - previewDimensions.height) / 2})`}>
                     {/* Polígono do setor se disponível (Melhoria 7) */}
                     {previewVertices ? (
                       <polygon
@@ -1015,19 +1034,20 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                         </React.Fragment>
                       );
                     })}
+                    </g>
                   </g>
                   
                   {/* Indicador de rotação (fora do grupo rotacionado) */}
-                  {(sector?.rotation || 0) !== 0 && (
+                  {(previewDimensions.rotation || 0) !== 0 && (
                     <text
-                      x={previewDimensions.width - 5}
+                      x={previewDimensions.viewBoxWidth - 5}
                       y={15}
                       textAnchor="end"
                       fontSize="9"
                       fontWeight="600"
                       fill="hsl(var(--primary))"
                     >
-                      {sector?.rotation}°
+                      {previewDimensions.rotation}°
                     </text>
                   )}
                 </svg>
