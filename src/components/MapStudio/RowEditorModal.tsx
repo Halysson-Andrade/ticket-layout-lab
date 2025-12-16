@@ -27,7 +27,7 @@ interface RowEditorModalProps {
   sector: Sector;
   rowLabel: string;
   onUpdateRow: (sectorId: string, rowLabel: string, config: RowNumberingConfig) => void;
-  onUpdateRowDescription?: (sectorId: string, rowLabel: string, description: string) => void;
+  onUpdateRowLabel?: (sectorId: string, oldRowLabel: string, newRowLabel: string) => void;
 }
 
 export const RowEditorModal: React.FC<RowEditorModalProps> = ({
@@ -36,7 +36,7 @@ export const RowEditorModal: React.FC<RowEditorModalProps> = ({
   sector,
   rowLabel,
   onUpdateRow,
-  onUpdateRowDescription,
+  onUpdateRowLabel,
 }) => {
   const rowSeats = useMemo(() => {
     return sector.seats
@@ -46,37 +46,34 @@ export const RowEditorModal: React.FC<RowEditorModalProps> = ({
 
   // Obtém configuração existente ou cria padrão
   const existingConfig = sector.customPerRowNumbers?.[rowLabel];
-  const existingDescription = rowSeats[0]?.rowDescription || '';
   
   const [config, setConfig] = useState<{
     type: RowNumberingType;
     startNumber: number;
     customNumbers: string;
     direction: SeatNumberDirection;
-    description: string;
+    newRowLabel: string;
   }>({
     type: existingConfig?.type || 'numeric',
     startNumber: existingConfig?.startNumber || 1,
     customNumbers: existingConfig?.numbers?.join(', ') || '',
     direction: existingConfig?.direction || 'ltr',
-    description: existingDescription,
+    newRowLabel: rowLabel,
   });
 
   // Reset config quando modal abre
   useEffect(() => {
     if (open) {
       const existing = sector.customPerRowNumbers?.[rowLabel];
-      const seats = sector.seats.filter(s => s.row === rowLabel);
-      const desc = seats[0]?.rowDescription || '';
       setConfig({
         type: existing?.type || 'numeric',
         startNumber: existing?.startNumber || 1,
         customNumbers: existing?.numbers?.join(', ') || '',
         direction: existing?.direction || 'ltr',
-        description: desc,
+        newRowLabel: rowLabel,
       });
     }
-  }, [open, sector.customPerRowNumbers, rowLabel, sector.seats]);
+  }, [open, sector.customPerRowNumbers, rowLabel]);
 
   // Preview dos números gerados
   const previewNumbers = useMemo(() => {
@@ -129,9 +126,9 @@ export const RowEditorModal: React.FC<RowEditorModalProps> = ({
       direction: config.direction,
     });
     
-    // Atualiza descrição da fileira se fornecida
-    if (onUpdateRowDescription) {
-      onUpdateRowDescription(sector.id, rowLabel, config.description);
+    // Atualiza nome da fileira se alterado
+    if (onUpdateRowLabel && config.newRowLabel && config.newRowLabel !== rowLabel) {
+      onUpdateRowLabel(sector.id, rowLabel, config.newRowLabel);
     }
     
     onClose();
@@ -151,16 +148,16 @@ export const RowEditorModal: React.FC<RowEditorModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Descrição da fileira */}
+          {/* Nome da fileira */}
           <div className="space-y-2">
-            <Label>Descrição da Fileira</Label>
+            <Label>Nome da Fileira</Label>
             <Input
-              value={config.description}
-              onChange={(e) => setConfig(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Ex: Primeira fila, Área VIP, etc."
+              value={config.newRowLabel}
+              onChange={(e) => setConfig(prev => ({ ...prev, newRowLabel: e.target.value }))}
+              placeholder={rowLabel}
             />
             <p className="text-xs text-muted-foreground">
-              Esta descrição aparecerá ao lado do rótulo da fileira no mapa
+              Altere o rótulo desta fileira (ex: A, B, 1, 2, VIP)
             </p>
           </div>
 

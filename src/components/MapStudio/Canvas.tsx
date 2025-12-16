@@ -555,26 +555,19 @@ export const Canvas: React.FC<CanvasProps> = ({
           ctx.textBaseline = 'bottom';
           ctx.fillText('TOPO', topCenterX, topY - arrowSize - 8 / zoom);
           
-          // Handle de rotação (ícone circular com seta) - desenhado em coordenadas do mundo
-          // Calcula posição do handle de rotação relativa ao bounds rotacionado
+          // Handle de rotação (ícone circular com seta) - desenhado em coordenadas locais do setor
+          // Como já estamos dentro do contexto rotacionado, desenhamos em posição fixa
           const rotHandleDistance = 35 / zoom;
-          const rotation = sector.rotation || 0;
-          const rad = (rotation * Math.PI) / 180;
-          
-          // Posição base: canto superior direito do bounds
-          const baseHandleX = bounds.x + bounds.width;
-          const baseHandleY = bounds.y;
-          
-          // Rotaciona a posição do handle ao redor do centro (usando as mesmas coordenadas rotacionadas)
-          const rotatedHandleX = (baseHandleX - centerX + rotHandleDistance) * Math.cos(rad) - (baseHandleY - centerY - rotHandleDistance) * Math.sin(rad);
-          const rotatedHandleY = (baseHandleX - centerX + rotHandleDistance) * Math.sin(rad) + (baseHandleY - centerY - rotHandleDistance) * Math.cos(rad);
-          
           const handleRadius = 12 / zoom;
           
-          // Círculo do handle (desenha na posição rotacionada relativa ao centro já transformado)
+          // Posição fixa: canto superior direito do bounds + offset (sem rotação adicional)
+          const handleX = bounds.x + bounds.width + rotHandleDistance;
+          const handleY = bounds.y - rotHandleDistance;
+          
+          // Círculo do handle
           ctx.fillStyle = '#f59e0b';
           ctx.beginPath();
-          ctx.arc(centerX + rotatedHandleX, centerY + rotatedHandleY, handleRadius, 0, Math.PI * 2);
+          ctx.arc(handleX, handleY, handleRadius, 0, Math.PI * 2);
           ctx.fill();
           
           // Borda
@@ -587,13 +580,13 @@ export const Canvas: React.FC<CanvasProps> = ({
           ctx.lineWidth = 2 / zoom;
           ctx.beginPath();
           const arrowRadius = handleRadius * 0.6;
-          ctx.arc(centerX + rotatedHandleX, centerY + rotatedHandleY, arrowRadius, -Math.PI * 0.7, Math.PI * 0.3);
+          ctx.arc(handleX, handleY, arrowRadius, -Math.PI * 0.7, Math.PI * 0.3);
           ctx.stroke();
           
           // Ponta da seta
           const arrowTipAngle = Math.PI * 0.3;
-          const tipX = centerX + rotatedHandleX + Math.cos(arrowTipAngle) * arrowRadius;
-          const tipY = centerY + rotatedHandleY + Math.sin(arrowTipAngle) * arrowRadius;
+          const tipX = handleX + Math.cos(arrowTipAngle) * arrowRadius;
+          const tipY = handleY + Math.sin(arrowTipAngle) * arrowRadius;
           ctx.beginPath();
           ctx.moveTo(tipX, tipY);
           ctx.lineTo(tipX + 4 / zoom, tipY - 2 / zoom);
@@ -982,20 +975,24 @@ export const Canvas: React.FC<CanvasProps> = ({
           const centerX = bounds.x + bounds.width / 2;
           const centerY = bounds.y + bounds.height / 2;
           
-          // Calcula posição do handle de rotação (mesma lógica do render)
+          // Posição fixa do handle no espaço local (não rotacionado)
           const rotHandleDistance = 35 / zoom;
+          const localHandleX = bounds.x + bounds.width + rotHandleDistance;
+          const localHandleY = bounds.y - rotHandleDistance;
+          
+          // Transforma o clique para o espaço local do setor (aplica rotação inversa)
           const rotation = sector.rotation || 0;
-          const rad = (rotation * Math.PI) / 180;
+          const rad = (-rotation * Math.PI) / 180; // Rotação inversa
           
-          const baseHandleX = bounds.x + bounds.width;
-          const baseHandleY = bounds.y;
-          
-          const rotatedHandleX = centerX + (baseHandleX - centerX + rotHandleDistance) * Math.cos(rad) - (baseHandleY - centerY - rotHandleDistance) * Math.sin(rad);
-          const rotatedHandleY = centerY + (baseHandleX - centerX + rotHandleDistance) * Math.sin(rad) + (baseHandleY - centerY - rotHandleDistance) * Math.cos(rad);
+          // Translada para origem, rotaciona inversamente, translada de volta
+          const relX = pos.x - centerX;
+          const relY = pos.y - centerY;
+          const localClickX = centerX + relX * Math.cos(rad) - relY * Math.sin(rad);
+          const localClickY = centerY + relX * Math.sin(rad) + relY * Math.cos(rad);
           
           const handleRadius = 12 / zoom;
           
-          const dist = Math.sqrt(Math.pow(pos.x - rotatedHandleX, 2) + Math.pow(pos.y - rotatedHandleY, 2));
+          const dist = Math.sqrt(Math.pow(localClickX - localHandleX, 2) + Math.pow(localClickY - localHandleY, 2));
           if (dist <= handleRadius) {
             setIsRotating(true);
             const startAngle = Math.atan2(pos.y - centerY, pos.x - centerX) * 180 / Math.PI;
