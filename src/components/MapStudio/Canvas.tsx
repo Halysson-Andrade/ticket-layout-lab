@@ -42,6 +42,7 @@ interface CanvasProps {
   onSeatMoveEnd?: () => void;
   onAddVertex?: (sectorId: string, edgeIndex: number, position: { x: number; y: number }) => void;
   onRemoveVertex?: (sectorId: string, vertexIndex: number) => void;
+  onVertexMoveEnd?: () => void;
   onDuplicateSector?: () => void;
   onDuplicateSectorById?: (sectorId: string) => void;
   onDeleteSector?: () => void;
@@ -89,6 +90,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   onSeatMoveEnd,
   onAddVertex,
   onRemoveVertex,
+  onVertexMoveEnd,
   onDuplicateSector,
   onDuplicateSectorById,
   onDeleteSector,
@@ -1009,6 +1011,11 @@ export const Canvas: React.FC<CanvasProps> = ({
         if (sector && sector.vertices) {
           const vertexIndex = getVertexAtPoint(pos, sector);
           if (vertexIndex !== null) {
+            // Salva estado inicial para undo ANTES de começar o drag
+            if (onSeatMoveEnd) {
+              // Usamos onSeatMoveEnd como proxy para pushHistory
+              // O histórico será salvo quando soltar o mouse
+            }
             setIsDraggingVertex(true);
             setActiveVertexIndex(vertexIndex);
             setDragStart(pos);
@@ -1333,11 +1340,16 @@ export const Canvas: React.FC<CanvasProps> = ({
       onSeatMoveEnd();
     }
 
-    // Finaliza rotação - transforma coordenadas reais dos vértices e assentos
+    // Salva histórico se estava arrastando vértice
+    if (isDraggingVertex && onVertexMoveEnd) {
+      onVertexMoveEnd();
+    }
+
+    // Finaliza rotação - apenas marca como finalizado para salvar no histórico
     if (isRotating && selectedSectorIds.length === 1 && onRotateSector) {
       const sector = sectors.find(s => s.id === selectedSectorIds[0]);
-      if (sector && sector.rotation && sector.rotation !== 0) {
-        onRotateSector(sector.id, sector.rotation, true); // finalize = true
+      if (sector) {
+        onRotateSector(sector.id, sector.rotation || 0, true); // finalize = true para salvar histórico
       }
     }
 
@@ -1354,7 +1366,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     setIsResizingElement(false);
     setResizeCorner(null);
     setIsRotating(false);
-  }, [isDrawing, isDraggingSeat, activeTool, drawStart, drawCurrent, onCreateSector, isBoxSelecting, boxSelectStart, boxSelectCurrent, sectors, onSelectSeats, activeSeatType, onApplySeatType, onSeatMoveEnd, isRotating, selectedSectorIds, onRotateSector]);
+  }, [isDrawing, isDraggingSeat, isDraggingVertex, activeTool, drawStart, drawCurrent, onCreateSector, isBoxSelecting, boxSelectStart, boxSelectCurrent, sectors, onSelectSeats, activeSeatType, onApplySeatType, onSeatMoveEnd, onVertexMoveEnd, isRotating, selectedSectorIds, onRotateSector]);
 
   return (
     <div 
