@@ -863,156 +863,173 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                   viewBox={`0 0 ${previewDimensions.width} ${previewDimensions.height}`}
                   className="border rounded bg-background"
                 >
-                  {/* Polígono do setor se disponível (Melhoria 7) */}
-                  {previewVertices ? (
-                    <polygon
-                      points={previewVertices.map(v => `${v.x},${v.y}`).join(' ')}
-                      fill="none"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth="2"
-                      strokeDasharray="4 2"
-                      opacity="0.5"
-                    />
-                  ) : (
-                    <rect 
-                      x="10" y="10" 
-                      width={previewDimensions.width - 20} 
-                      height={previewDimensions.height - 20} 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="1" 
-                      strokeDasharray="4 2"
-                      opacity="0.3"
-                    />
-                  )}
-                  
-                  {/* Row labels na lateral esquerda */}
-                  {(() => {
-                    const rowLabelsShown = new Set<string>();
-                    return previewData.seats
-                      .filter(seat => seat.isInside && seat.col === 0)
-                      .map((seat, i) => {
-                        if (rowLabelsShown.has(seat.rowLabel)) return null;
-                        rowLabelsShown.add(seat.rowLabel);
-                        return (
-                          <text
-                            key={`row-${i}`}
-                            x={8}
-                            y={seat.y + 3}
-                            fontSize="9"
-                            fontWeight="600"
-                            fill="hsl(var(--primary))"
-                          >
-                            {seat.rowLabel}
-                          </text>
-                        );
-                      });
-                  })()}
-                  
-                  {/* Seats/Tables com indicação de dentro/fora e labels */}
-                  {previewData.seats.map((seat, i) => {
-                    const seatRadius = isTable ? previewDimensions.seatSize : (config.seatSize * previewDimensions.scale) / 2;
-                    const showLabel = seatRadius >= 4; // Só mostra label se o assento for grande o suficiente
+                  {/* Grupo com rotação do setor aplicada */}
+                  <g transform={`rotate(${sector?.rotation || 0}, ${previewDimensions.width / 2}, ${previewDimensions.height / 2})`}>
+                    {/* Polígono do setor se disponível (Melhoria 7) */}
+                    {previewVertices ? (
+                      <polygon
+                        points={previewVertices.map(v => `${v.x},${v.y}`).join(' ')}
+                        fill="none"
+                        stroke="hsl(var(--primary))"
+                        strokeWidth="2"
+                        strokeDasharray="4 2"
+                        opacity="0.5"
+                      />
+                    ) : (
+                      <rect 
+                        x="10" y="10" 
+                        width={previewDimensions.width - 20} 
+                        height={previewDimensions.height - 20} 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="1" 
+                        strokeDasharray="4 2"
+                        opacity="0.3"
+                      />
+                    )}
                     
-                    return (
-                      <React.Fragment key={i}>
-                        {isTable ? (
-                          <g opacity={seat.isInside ? 1 : 0.2}>
-                            {/* Mesa */}
-                            {config.tableShape === 'round' ? (
+                    {/* Row labels na lateral esquerda */}
+                    {(() => {
+                      const rowLabelsShown = new Set<string>();
+                      return previewData.seats
+                        .filter(seat => seat.isInside && seat.col === 0)
+                        .map((seat, i) => {
+                          if (rowLabelsShown.has(seat.rowLabel)) return null;
+                          rowLabelsShown.add(seat.rowLabel);
+                          return (
+                            <text
+                              key={`row-${i}`}
+                              x={8}
+                              y={seat.y + 3}
+                              fontSize="9"
+                              fontWeight="600"
+                              fill="hsl(var(--primary))"
+                            >
+                              {seat.rowLabel}
+                            </text>
+                          );
+                        });
+                    })()}
+                    
+                    {/* Seats/Tables com indicação de dentro/fora e labels */}
+                    {previewData.seats.map((seat, i) => {
+                      const seatRadius = isTable ? previewDimensions.seatSize : (config.seatSize * previewDimensions.scale) / 2;
+                      const showLabel = seatRadius >= 4; // Só mostra label se o assento for grande o suficiente
+                      
+                      return (
+                        <React.Fragment key={i}>
+                          {isTable ? (
+                            <g opacity={seat.isInside ? 1 : 0.2}>
+                              {/* Mesa */}
+                              {config.tableShape === 'round' ? (
+                                <circle
+                                  cx={seat.x}
+                                  cy={seat.y}
+                                  r={previewDimensions.seatSize}
+                                  fill="hsl(var(--muted))"
+                                  stroke={seat.isInside ? "hsl(var(--border))" : "hsl(var(--destructive))"}
+                                  strokeWidth="1"
+                                />
+                              ) : config.tableShape === 'rectangular' ? (
+                                <rect
+                                  x={seat.x - previewDimensions.seatSize * 1.2}
+                                  y={seat.y - previewDimensions.seatSize * 0.7}
+                                  width={previewDimensions.seatSize * 2.4}
+                                  height={previewDimensions.seatSize * 1.4}
+                                  fill="hsl(var(--muted))"
+                                  stroke={seat.isInside ? "hsl(var(--border))" : "hsl(var(--destructive))"}
+                                  strokeWidth="1"
+                                  rx="2"
+                                />
+                              ) : (
+                                <rect
+                                  x={seat.x - previewDimensions.seatSize}
+                                  y={seat.y - previewDimensions.seatSize}
+                                  width={previewDimensions.seatSize * 2}
+                                  height={previewDimensions.seatSize * 2}
+                                  fill="hsl(var(--muted))"
+                                  stroke={seat.isInside ? "hsl(var(--border))" : "hsl(var(--destructive))"}
+                                  strokeWidth="1"
+                                  rx="2"
+                                />
+                              )}
+                              {/* Número da mesa */}
+                              {showLabel && (
+                                <text
+                                  x={seat.x}
+                                  y={seat.y + 3}
+                                  textAnchor="middle"
+                                  fontSize="8"
+                                  fontWeight="500"
+                                  fill="hsl(var(--foreground))"
+                                >
+                                  {seat.seatLabel}
+                                </text>
+                              )}
+                              {/* Cadeiras ao redor da mesa */}
+                              {Array.from({ length: config.chairsPerTable }).map((_, ci) => {
+                                const angle = (ci / config.chairsPerTable) * Math.PI * 2 - Math.PI / 2;
+                                const chairR = config.tableShape === 'rectangular' 
+                                  ? previewDimensions.seatSize * 1.8
+                                  : previewDimensions.seatSize * 1.5;
+                                const cx = seat.x + Math.cos(angle) * chairR;
+                                const cy = seat.y + Math.sin(angle) * chairR;
+                                return (
+                                  <circle
+                                    key={ci}
+                                    cx={cx}
+                                    cy={cy}
+                                    r={previewDimensions.seatSize * 0.35}
+                                    fill={SEAT_COLORS[config.seatType]}
+                                    stroke="hsl(var(--background))"
+                                    strokeWidth="0.5"
+                                  />
+                                );
+                              })}
+                            </g>
+                          ) : (
+                            <g opacity={seat.isInside ? 1 : 0.2}>
                               <circle
                                 cx={seat.x}
                                 cy={seat.y}
-                                r={previewDimensions.seatSize}
-                                fill="hsl(var(--muted))"
-                                stroke={seat.isInside ? "hsl(var(--border))" : "hsl(var(--destructive))"}
-                                strokeWidth="1"
+                                r={seatRadius}
+                                fill={SEAT_COLORS[config.seatType]}
+                                stroke={seat.isInside ? "hsl(var(--background))" : "hsl(var(--destructive))"}
+                                strokeWidth="0.5"
                               />
-                            ) : config.tableShape === 'rectangular' ? (
-                              <rect
-                                x={seat.x - previewDimensions.seatSize * 1.2}
-                                y={seat.y - previewDimensions.seatSize * 0.7}
-                                width={previewDimensions.seatSize * 2.4}
-                                height={previewDimensions.seatSize * 1.4}
-                                fill="hsl(var(--muted))"
-                                stroke={seat.isInside ? "hsl(var(--border))" : "hsl(var(--destructive))"}
-                                strokeWidth="1"
-                                rx="2"
-                              />
-                            ) : (
-                              <rect
-                                x={seat.x - previewDimensions.seatSize}
-                                y={seat.y - previewDimensions.seatSize}
-                                width={previewDimensions.seatSize * 2}
-                                height={previewDimensions.seatSize * 2}
-                                fill="hsl(var(--muted))"
-                                stroke={seat.isInside ? "hsl(var(--border))" : "hsl(var(--destructive))"}
-                                strokeWidth="1"
-                                rx="2"
-                              />
-                            )}
-                            {/* Número da mesa */}
-                            {showLabel && (
-                              <text
-                                x={seat.x}
-                                y={seat.y + 3}
-                                textAnchor="middle"
-                                fontSize="8"
-                                fontWeight="500"
-                                fill="hsl(var(--foreground))"
-                              >
-                                {seat.seatLabel}
-                              </text>
-                            )}
-                            {/* Cadeiras ao redor da mesa */}
-                            {Array.from({ length: config.chairsPerTable }).map((_, ci) => {
-                              const angle = (ci / config.chairsPerTable) * Math.PI * 2 - Math.PI / 2;
-                              const chairR = config.tableShape === 'rectangular' 
-                                ? previewDimensions.seatSize * 1.8
-                                : previewDimensions.seatSize * 1.5;
-                              const cx = seat.x + Math.cos(angle) * chairR;
-                              const cy = seat.y + Math.sin(angle) * chairR;
-                              return (
-                                <circle
-                                  key={ci}
-                                  cx={cx}
-                                  cy={cy}
-                                  r={previewDimensions.seatSize * 0.35}
-                                  fill={SEAT_COLORS[config.seatType]}
-                                  stroke="hsl(var(--background))"
-                                  strokeWidth="0.5"
-                                />
-                              );
-                            })}
-                          </g>
-                        ) : (
-                          <g opacity={seat.isInside ? 1 : 0.2}>
-                            <circle
-                              cx={seat.x}
-                              cy={seat.y}
-                              r={seatRadius}
-                              fill={SEAT_COLORS[config.seatType]}
-                              stroke={seat.isInside ? "hsl(var(--background))" : "hsl(var(--destructive))"}
-                              strokeWidth="0.5"
-                            />
-                            {/* Número do assento */}
-                            {showLabel && seat.isInside && (
-                              <text
-                                x={seat.x}
-                                y={seat.y + 2.5}
-                                textAnchor="middle"
-                                fontSize={Math.max(5, seatRadius * 0.9)}
-                                fontWeight="500"
-                                fill="white"
-                              >
-                                {seat.seatLabel}
-                              </text>
-                            )}
-                          </g>
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
+                              {/* Número do assento */}
+                              {showLabel && seat.isInside && (
+                                <text
+                                  x={seat.x}
+                                  y={seat.y + 2.5}
+                                  textAnchor="middle"
+                                  fontSize={Math.max(5, seatRadius * 0.9)}
+                                  fontWeight="500"
+                                  fill="white"
+                                >
+                                  {seat.seatLabel}
+                                </text>
+                              )}
+                            </g>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </g>
+                  
+                  {/* Indicador de rotação (fora do grupo rotacionado) */}
+                  {(sector?.rotation || 0) !== 0 && (
+                    <text
+                      x={previewDimensions.width - 5}
+                      y={15}
+                      textAnchor="end"
+                      fontSize="9"
+                      fontWeight="600"
+                      fill="hsl(var(--primary))"
+                    >
+                      {sector?.rotation}°
+                    </text>
+                  )}
                 </svg>
               </div>
 

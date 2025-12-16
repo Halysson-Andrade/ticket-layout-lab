@@ -763,62 +763,16 @@ export const MapStudio: React.FC = () => {
     toast.success(`Setor invertido ${direction === 'horizontal' ? 'horizontalmente' : 'verticalmente'}!`);
   }, [pushHistory]);
 
-  // Rotaciona setor via handle - transforma coordenadas reais dos vértices e assentos
+  // Rotaciona setor via handle - mantém rotação como propriedade persistente
+  // NÃO transforma coordenadas, apenas atualiza o valor de rotação
+  // O Canvas renderiza visualmente usando ctx.rotate()
   const handleRotateSector = useCallback((sectorId: string, rotation: number, finalize: boolean = false) => {
     setSectors(prev => {
       const newSectors = prev.map(s => {
         if (s.id !== sectorId) return s;
-        
-        if (!finalize) {
-          // Durante o arraste, apenas atualiza a propriedade de rotação (visual)
-          return { ...s, rotation };
-        }
-        
-        // Ao finalizar, transforma as coordenadas reais
-        const bounds = {
-          x: Math.min(...s.vertices.map(v => v.x)),
-          y: Math.min(...s.vertices.map(v => v.y)),
-          width: Math.max(...s.vertices.map(v => v.x)) - Math.min(...s.vertices.map(v => v.x)),
-          height: Math.max(...s.vertices.map(v => v.y)) - Math.min(...s.vertices.map(v => v.y)),
-        };
-        const centerX = bounds.x + bounds.width / 2;
-        const centerY = bounds.y + bounds.height / 2;
-        const rad = (rotation * Math.PI) / 180;
-        
-        // Função para rotacionar um ponto ao redor do centro
-        const rotatePoint = (x: number, y: number) => {
-          const dx = x - centerX;
-          const dy = y - centerY;
-          return {
-            x: centerX + dx * Math.cos(rad) - dy * Math.sin(rad),
-            y: centerY + dx * Math.sin(rad) + dy * Math.cos(rad),
-          };
-        };
-        
-        // Rotaciona vértices
-        const newVertices = s.vertices.map(v => rotatePoint(v.x, v.y));
-        
-        // Rotaciona assentos
-        const newSeats = s.seats.map(seat => {
-          const rotated = rotatePoint(seat.x, seat.y);
-          return { ...seat, x: rotated.x, y: rotated.y };
-        });
-        
-        // Recalcula bounds após rotação
-        const newBounds = {
-          x: Math.min(...newVertices.map(v => v.x)),
-          y: Math.min(...newVertices.map(v => v.y)),
-          width: Math.max(...newVertices.map(v => v.x)) - Math.min(...newVertices.map(v => v.x)),
-          height: Math.max(...newVertices.map(v => v.y)) - Math.min(...newVertices.map(v => v.y)),
-        };
-        
-        return {
-          ...s,
-          vertices: newVertices,
-          seats: newSeats,
-          bounds: newBounds,
-          rotation: 0, // Reseta rotação pois coordenadas já foram transformadas
-        };
+        // Sempre apenas atualiza a propriedade de rotação
+        // O Canvas aplica a rotação visualmente via ctx.rotate()
+        return { ...s, rotation };
       });
       
       // Salva no histórico quando finaliza a rotação
@@ -932,6 +886,11 @@ export const MapStudio: React.FC = () => {
 
   // Salva histórico após finalizar movimento de assento
   const handleSeatMoveEnd = useCallback(() => {
+    pushHistory(sectors);
+  }, [sectors, pushHistory]);
+
+  // Salva histórico após finalizar movimento de vértice
+  const handleVertexMoveEnd = useCallback(() => {
     pushHistory(sectors);
   }, [sectors, pushHistory]);
 
@@ -1498,6 +1457,7 @@ export const MapStudio: React.FC = () => {
           onMoveSeat={handleMoveSeat}
           onMoveSelectedSeats={handleMoveSelectedSeats}
           onSeatMoveEnd={handleSeatMoveEnd}
+          onVertexMoveEnd={handleVertexMoveEnd}
           onAddVertex={handleAddVertex}
           onRemoveVertex={handleRemoveVertex}
           onDuplicateSector={handleDuplicate}
