@@ -1276,18 +1276,34 @@ export const MapStudio: React.FC = () => {
   }, [pushHistory]);
 
   // Atualiza descrição de uma fileira (afeta todos os assentos da fileira)
-  const handleUpdateRowDescription = useCallback((sectorId: string, rowLabel: string, description: string) => {
+  const handleUpdateRowLabel = useCallback((sectorId: string, oldRowLabel: string, newRowLabel: string) => {
+    if (!newRowLabel || newRowLabel === oldRowLabel) return;
+    
     setSectors(prev => {
       const newSectors = prev.map(s => {
         if (s.id !== sectorId) return s;
         
-        // Atualiza descrição em todos os assentos da fileira
+        // Atualiza o rótulo da fileira em todos os assentos
         const updatedSeats = s.seats.map(seat => {
-          if (seat.row !== rowLabel) return seat;
-          return { ...seat, rowDescription: description };
+          if (seat.row !== oldRowLabel) return seat;
+          return { ...seat, row: newRowLabel };
         });
         
-        return { ...s, seats: updatedSeats };
+        // Atualiza as configurações de numeração por fileira
+        const updatedCustomPerRowNumbers = { ...s.customPerRowNumbers };
+        if (updatedCustomPerRowNumbers[oldRowLabel]) {
+          updatedCustomPerRowNumbers[newRowLabel] = {
+            ...updatedCustomPerRowNumbers[oldRowLabel],
+            rowLabel: newRowLabel
+          };
+          delete updatedCustomPerRowNumbers[oldRowLabel];
+        }
+        
+        return { 
+          ...s, 
+          seats: updatedSeats,
+          customPerRowNumbers: updatedCustomPerRowNumbers
+        };
       });
       pushHistory(newSectors);
       return newSectors;
@@ -1752,7 +1768,7 @@ export const MapStudio: React.FC = () => {
           sector={sectors.find(s => s.id === editingRow.sectorId)!}
           rowLabel={editingRow.rowLabel}
           onUpdateRow={handleUpdateRowConfig}
-          onUpdateRowDescription={handleUpdateRowDescription}
+          onUpdateRowLabel={handleUpdateRowLabel}
         />
       )}
     </div>
