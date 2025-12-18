@@ -26,6 +26,9 @@ const sections: ShortcutSection[] = [
       { keys: ['Scroll'], description: 'Zoom in/out' },
       { keys: ['Clique direito', 'Arrastar'], description: 'Pan (mover canvas)' },
       { keys: ['Espaço', 'Arrastar'], description: 'Pan temporário' },
+      { keys: ['Ctrl', '+'], description: 'Zoom in' },
+      { keys: ['Ctrl', '-'], description: 'Zoom out' },
+      { keys: ['Ctrl', '0'], description: 'Ajustar à tela' },
     ],
   },
   {
@@ -33,7 +36,8 @@ const sections: ShortcutSection[] = [
     shortcuts: [
       { keys: ['Clique'], description: 'Selecionar setor/assento' },
       { keys: ['Shift', 'Clique'], description: 'Adicionar à seleção' },
-      { keys: ['Arrastar'], description: 'Seleção em caixa' },
+      { keys: ['Arrastar'], description: 'Seleção em caixa (lasso)' },
+      { keys: ['Ctrl', 'A'], description: 'Selecionar todos' },
       { keys: ['Esc'], description: 'Limpar seleção' },
     ],
   },
@@ -42,10 +46,12 @@ const sections: ShortcutSection[] = [
     shortcuts: [
       { keys: ['Ctrl', 'Z'], description: 'Desfazer' },
       { keys: ['Ctrl', 'Shift', 'Z'], description: 'Refazer' },
+      { keys: ['Ctrl', 'Y'], description: 'Refazer (alternativo)' },
       { keys: ['Ctrl', 'C'], description: 'Copiar setor(es)' },
       { keys: ['Ctrl', 'V'], description: 'Colar setor(es)' },
       { keys: ['Ctrl', 'D'], description: 'Duplicar setor(es)' },
       { keys: ['Delete'], description: 'Excluir selecionado' },
+      { keys: ['Backspace'], description: 'Excluir selecionado' },
     ],
   },
   {
@@ -54,6 +60,17 @@ const sections: ShortcutSection[] = [
       { keys: ['V'], description: 'Ferramenta de seleção' },
       { keys: ['H'], description: 'Ferramenta de pan' },
       { keys: ['S'], description: 'Criar setor' },
+      { keys: ['G'], description: 'Gerador de assentos' },
+      { keys: ['E'], description: 'Adicionar elemento' },
+    ],
+  },
+  {
+    title: 'Formas e Setores',
+    shortcuts: [
+      { keys: ['R'], description: 'Rotacionar 90° horário' },
+      { keys: ['Shift', 'R'], description: 'Rotacionar 90° anti-horário' },
+      { keys: ['F'], description: 'Espelhar horizontal' },
+      { keys: ['Shift', 'F'], description: 'Espelhar vertical' },
     ],
   },
 ];

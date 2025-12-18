@@ -34,7 +34,7 @@ interface CanvasProps {
   onCreateSector: (bounds: { x: number; y: number; width: number; height: number }) => void;
   onMoveSector: (id: string, dx: number, dy: number) => void;
   onMoveElement: (id: string, dx: number, dy: number) => void;
-  onResizeElement: (id: string, width: number, height: number) => void;
+  onResizeElement: (id: string, width: number, height: number, x?: number, y?: number) => void;
   onUpdateSectorVertices: (id: string, vertices: Vertex[]) => void;
   onApplySeatType: (ids: string[], type: SeatType) => void;
   onMoveSeat: (seatId: string, sectorId: string, x: number, y: number) => void;
@@ -1214,24 +1214,38 @@ export const Canvas: React.FC<CanvasProps> = ({
     if (isResizingElement && selectedElementIds.length === 1 && resizeCorner) {
       const el = elements.find(e => e.id === selectedElementIds[0]);
       if (el) {
+        let newX = el.bounds.x;
+        let newY = el.bounds.y;
         let newWidth = el.bounds.width;
         let newHeight = el.bounds.height;
         
         if (resizeCorner === 'se') {
+          // Canto inferior direito: ancora no topo-esquerdo
           newWidth = Math.max(50, pos.x - el.bounds.x);
           newHeight = Math.max(30, pos.y - el.bounds.y);
         } else if (resizeCorner === 'ne') {
+          // Canto superior direito: ancora no inferior-esquerdo
           newWidth = Math.max(50, pos.x - el.bounds.x);
-          newHeight = Math.max(30, el.bounds.y + el.bounds.height - pos.y);
+          const proposedHeight = Math.max(30, el.bounds.y + el.bounds.height - pos.y);
+          newY = el.bounds.y + el.bounds.height - proposedHeight;
+          newHeight = proposedHeight;
         } else if (resizeCorner === 'sw') {
-          newWidth = Math.max(50, el.bounds.x + el.bounds.width - pos.x);
+          // Canto inferior esquerdo: ancora no topo-direito
+          const proposedWidth = Math.max(50, el.bounds.x + el.bounds.width - pos.x);
+          newX = el.bounds.x + el.bounds.width - proposedWidth;
+          newWidth = proposedWidth;
           newHeight = Math.max(30, pos.y - el.bounds.y);
         } else if (resizeCorner === 'nw') {
-          newWidth = Math.max(50, el.bounds.x + el.bounds.width - pos.x);
-          newHeight = Math.max(30, el.bounds.y + el.bounds.height - pos.y);
+          // Canto superior esquerdo: ancora no inferior-direito
+          const proposedWidth = Math.max(50, el.bounds.x + el.bounds.width - pos.x);
+          const proposedHeight = Math.max(30, el.bounds.y + el.bounds.height - pos.y);
+          newX = el.bounds.x + el.bounds.width - proposedWidth;
+          newY = el.bounds.y + el.bounds.height - proposedHeight;
+          newWidth = proposedWidth;
+          newHeight = proposedHeight;
         }
         
-        onResizeElement(el.id, newWidth, newHeight);
+        onResizeElement(el.id, newWidth, newHeight, newX, newY);
       }
       return;
     }

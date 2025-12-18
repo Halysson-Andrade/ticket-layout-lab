@@ -90,6 +90,7 @@ export interface Seat {
   furnitureType?: FurnitureType;
   tableConfig?: TableConfig;
   rowDescription?: string; // Descrição customizada da fileira
+  description?: string; // Motivo de bloqueio ou nota sobre o assento
 }
 
 export interface Sector {

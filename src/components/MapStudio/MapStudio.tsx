@@ -651,26 +651,43 @@ export const MapStudio: React.FC = () => {
           
           // Calcula nova posição baseada no espaçamento
           const bounds = getBoundsFromVertices(s.vertices);
-          const startX = bounds.x + 20;
-          const startY = bounds.y + 20;
+          const safetyPadding = 10;
           
           // Usa configuração de mesa se aplicável
           const furnitureType = s.furnitureType || s.seats[0]?.furnitureType || 'chair';
           const isTable = furnitureType === 'table' || furnitureType === 'bistro';
           const itemSize = isTable ? (s.seats[0]?.tableConfig?.tableWidth || 60) : seatSize;
-          const step = itemSize + colSpacing;
+          const colStep = itemSize + colSpacing;
           const rowStep = itemSize + rowSpacing;
+          
+          // Preserva o alinhamento original do setor
+          const rowAlignment = s.rowAlignment || 'center';
           
           // Recalcula posição de cada assento mantendo IDs, tipos, números, descrições, etc.
           const repositionedSeats: Seat[] = [];
+          const startY = bounds.y + safetyPadding;
+          
           sortedRows.forEach((rowLabel, rowIndex) => {
             const rowSeats = seatsByRow[rowLabel];
+            const colsInRow = rowSeats.length;
+            const rowGridWidth = colsInRow * colStep;
             const rowY = startY + rowIndex * rowStep;
+            
+            // Calcula offset X baseado no alinhamento preservado
+            let rowOffsetX: number;
+            if (rowAlignment === 'left') {
+              rowOffsetX = bounds.x + safetyPadding;
+            } else if (rowAlignment === 'right') {
+              rowOffsetX = bounds.x + bounds.width - rowGridWidth - safetyPadding + itemSize;
+            } else {
+              // Centralizado (padrão)
+              rowOffsetX = bounds.x + (bounds.width - rowGridWidth) / 2 + itemSize / 2;
+            }
             
             rowSeats.forEach((seat, colIndex) => {
               repositionedSeats.push({
                 ...seat, // Mantém ID, tipo, número, descrição, tudo!
-                x: startX + colIndex * step,
+                x: rowOffsetX + colIndex * colStep - itemSize / 2,
                 y: rowY,
               });
             });
@@ -848,12 +865,17 @@ export const MapStudio: React.FC = () => {
   }, []);
 
   // Redimensiona elemento
-  const handleResizeElement = useCallback((id: string, width: number, height: number) => {
+  const handleResizeElement = useCallback((id: string, width: number, height: number, x?: number, y?: number) => {
     setElements(prev => prev.map(el => {
       if (el.id !== id) return el;
       return {
         ...el,
-        bounds: { ...el.bounds, width, height },
+        bounds: { 
+          x: x !== undefined ? x : el.bounds.x, 
+          y: y !== undefined ? y : el.bounds.y, 
+          width, 
+          height 
+        },
       };
     }));
   }, []);
@@ -1329,7 +1351,31 @@ export const MapStudio: React.FC = () => {
           }
           break;
         case 'h': setActiveTool('pan'); break;
-        case 'r': setActiveTool('sector'); break;
+        case 'r': 
+          if (!e.ctrlKey && !e.metaKey) {
+            if (e.shiftKey && selectedSectorIds.length === 1) {
+              // Rotacionar 90° anti-horário
+              const sector = sectors.find(s => s.id === selectedSectorIds[0]);
+              if (sector) {
+                handleUpdateSector(sector.id, { rotation: ((sector.rotation || 0) - 90 + 360) % 360 });
+              }
+            } else if (selectedSectorIds.length === 1) {
+              // Rotacionar 90° horário
+              const sector = sectors.find(s => s.id === selectedSectorIds[0]);
+              if (sector) {
+                handleUpdateSector(sector.id, { rotation: ((sector.rotation || 0) + 90) % 360 });
+              }
+            } else {
+              setActiveTool('sector');
+            }
+          }
+          break;
+        case 'f':
+          if (!e.ctrlKey && !e.metaKey && selectedSectorIds.length === 1) {
+            e.preventDefault();
+            handleFlipSector(selectedSectorIds[0], e.shiftKey ? 'vertical' : 'horizontal');
+          }
+          break;
         case 'g': 
           if (selectedSectorIds.length === 1) {
             setShowGridGenerator(true);
@@ -1338,6 +1384,27 @@ export const MapStudio: React.FC = () => {
         case 's': setActiveTool('seat-single'); break;
         case 'e': setActiveTool('element'); break;
         case 't': setActiveTool('table'); break;
+        case 'a':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            // Selecionar todos os setores
+            setSelectedSectorIds(sectors.filter(s => s.visible).map(s => s.id));
+          }
+          break;
+        case 'y':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            handleRedo();
+          }
+          break;
+        case '0':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            // Ajustar à tela
+            setZoom(1);
+            setPan({ x: 0, y: 0 });
+          }
+          break;
         case 'delete':
         case 'backspace': handleDelete(); break;
         case 'd':
