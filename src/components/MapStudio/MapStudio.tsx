@@ -1218,19 +1218,37 @@ export const MapStudio: React.FC = () => {
   }, [clipboardSectors, sectors, pushHistory]);
 
   // Atualiza configuração de numeração de uma fileira específica
-  const handleUpdateRowConfig = useCallback((sectorId: string, rowLabel: string, config: import('@/types/mapStudio').RowNumberingConfig) => {
+  const handleUpdateRowConfig = useCallback((sectorId: string, rowLabel: string, config: import('@/types/mapStudio').RowNumberingConfig, newRowLabel?: string) => {
     setSectors(prev => {
       const newSectors = prev.map(s => {
         if (s.id !== sectorId) return s;
         
-        const newCustomPerRowNumbers = { ...(s.customPerRowNumbers || {}), [rowLabel]: config };
+        const effectiveNewRowLabel = newRowLabel || rowLabel;
         
-        // Atualiza os números dos assentos da fileira
-        const updatedSeats = s.seats.map(seat => {
-          if (seat.row !== rowLabel) return seat;
+        // Se o nome da fileira mudou, precisamos atualizar os assentos primeiro
+        let seatsWithUpdatedRow = s.seats;
+        if (newRowLabel && newRowLabel !== rowLabel) {
+          seatsWithUpdatedRow = s.seats.map(seat => {
+            if (seat.row !== rowLabel) return seat;
+            return { ...seat, row: newRowLabel };
+          });
+        }
+        
+        // Configura o objeto customPerRowNumbers
+        const newCustomPerRowNumbers = { ...(s.customPerRowNumbers || {}) };
+        // Remove a chave antiga se o nome mudou
+        if (newRowLabel && newRowLabel !== rowLabel) {
+          delete newCustomPerRowNumbers[rowLabel];
+        }
+        // Adiciona a config com o novo nome
+        newCustomPerRowNumbers[effectiveNewRowLabel] = config;
+        
+        // Atualiza os números dos assentos da fileira com o novo rowLabel
+        const updatedSeats = seatsWithUpdatedRow.map(seat => {
+          if (seat.row !== effectiveNewRowLabel) return seat;
           
           // Recalcula o número baseado na nova configuração
-          const rowSeats = s.seats.filter(rs => rs.row === rowLabel).sort((a, b) => a.x - b.x);
+          const rowSeats = seatsWithUpdatedRow.filter(rs => rs.row === effectiveNewRowLabel).sort((a, b) => a.x - b.x);
           const seatIndex = rowSeats.findIndex(rs => rs.id === seat.id);
           if (seatIndex === -1) return seat;
           
@@ -1253,7 +1271,7 @@ export const MapStudio: React.FC = () => {
       pushHistory(newSectors);
       return newSectors;
     });
-    toast.success(`Fileira ${rowLabel} atualizada`);
+    toast.success(`Fileira ${newRowLabel || rowLabel} atualizada`);
   }, [pushHistory]);
 
   // Atualiza descrição de uma fileira (afeta todos os assentos da fileira)
@@ -1795,7 +1813,6 @@ export const MapStudio: React.FC = () => {
           sector={sectors.find(s => s.id === editingRow.sectorId)!}
           rowLabel={editingRow.rowLabel}
           onUpdateRow={handleUpdateRowConfig}
-          onUpdateRowLabel={handleUpdateRowLabel}
         />
       )}
     </div>
