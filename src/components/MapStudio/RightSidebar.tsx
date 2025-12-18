@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3, CircleDot, Maximize2, Info, Link, ArrowLeftRight, ArrowUpDown, Circle, AlignCenter, FlipHorizontal, FlipVertical } from 'lucide-react';
+import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3, CircleDot, Maximize2, Info, Link, ArrowLeftRight, ArrowUpDown, Circle, AlignCenter, FlipHorizontal, FlipVertical, Ban } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Slider } from '@/components/ui/slider';
 import { Sector, Seat, SeatType, SEAT_COLORS, SECTOR_COLORS, SHAPE_NAMES, GeometricShape, PREDEFINED_SECTORS } from '@/types/mapStudio';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { BlockSeatModal } from './BlockSeatModal';
 
 interface RightSidebarProps {
   selectedSector: Sector | null;
@@ -60,8 +61,10 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   const [localRowSpacing, setLocalRowSpacing] = useState(4);
   const [localColSpacing, setLocalColSpacing] = useState(2);
   const [localSeatSize, setLocalSeatSize] = useState(14);
+  const [blockModalOpen, setBlockModalOpen] = useState(false);
   
   const debounceRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
+
 
   // Sincroniza com setor selecionado
   useEffect(() => {
@@ -860,16 +863,17 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full text-xs"
-                    onClick={() => onUpdateSeats(selectedSeats.map(s => s.id), { type: 'blocked' })}
+                    className="w-full text-xs gap-2"
+                    onClick={() => setBlockModalOpen(true)}
                   >
+                    <Ban className="h-3 w-3" />
                     Bloquear Selecionados
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="w-full text-xs"
-                    onClick={() => onUpdateSeats(selectedSeats.map(s => s.id), { type: 'normal' })}
+                    onClick={() => onUpdateSeats(selectedSeats.map(s => s.id), { type: 'normal', description: undefined })}
                   >
                     Restaurar para Normal
                   </Button>
@@ -878,6 +882,19 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
             )}
           </div>
         </ScrollArea>
+        
+        {/* Modal de bloqueio com motivo */}
+        <BlockSeatModal
+          open={blockModalOpen}
+          onOpenChange={setBlockModalOpen}
+          seatCount={selectedSeats.length}
+          onConfirm={(description) => {
+            onUpdateSeats(selectedSeats.map(s => s.id), { 
+              type: 'blocked', 
+              description: description 
+            });
+          }}
+        />
       </div>
     </TooltipProvider>
   );
