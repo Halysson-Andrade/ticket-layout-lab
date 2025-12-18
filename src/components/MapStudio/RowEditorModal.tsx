@@ -26,8 +26,7 @@ interface RowEditorModalProps {
   onClose: () => void;
   sector: Sector;
   rowLabel: string;
-  onUpdateRow: (sectorId: string, rowLabel: string, config: RowNumberingConfig) => void;
-  onUpdateRowLabel?: (sectorId: string, oldRowLabel: string, newRowLabel: string) => void;
+  onUpdateRow: (sectorId: string, rowLabel: string, config: RowNumberingConfig, newRowLabel?: string) => void;
 }
 
 export const RowEditorModal: React.FC<RowEditorModalProps> = ({
@@ -36,7 +35,6 @@ export const RowEditorModal: React.FC<RowEditorModalProps> = ({
   sector,
   rowLabel,
   onUpdateRow,
-  onUpdateRowLabel,
 }) => {
   const rowSeats = useMemo(() => {
     return sector.seats
@@ -118,18 +116,18 @@ export const RowEditorModal: React.FC<RowEditorModalProps> = ({
       ? config.customNumbers.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n))
       : undefined;
     
+    const newRowLabelToUse = config.newRowLabel && config.newRowLabel !== rowLabel 
+      ? config.newRowLabel 
+      : rowLabel;
+    
+    // Passa o novo rowLabel na config para manter a referência correta
     onUpdateRow(sector.id, rowLabel, {
-      rowLabel,
+      rowLabel: newRowLabelToUse,
       type: config.type,
       startNumber: config.startNumber,
       numbers: parsedNumbers,
       direction: config.direction,
-    });
-    
-    // Atualiza nome da fileira se alterado
-    if (onUpdateRowLabel && config.newRowLabel && config.newRowLabel !== rowLabel) {
-      onUpdateRowLabel(sector.id, rowLabel, config.newRowLabel);
-    }
+    }, newRowLabelToUse !== rowLabel ? newRowLabelToUse : undefined);
     
     onClose();
   };
