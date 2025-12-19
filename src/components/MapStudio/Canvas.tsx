@@ -138,6 +138,13 @@ export const Canvas: React.FC<CanvasProps> = ({
     sectorId: string | null;
   } | null>(null);
 
+  // Tooltip state para assentos bloqueados
+  const [hoveredBlockedSeat, setHoveredBlockedSeat] = useState<{
+    seat: Seat;
+    screenX: number;
+    screenY: number;
+  } | null>(null);
+
   // Estado para forçar re-render quando imagem carrega
   const [bgImageLoaded, setBgImageLoaded] = useState(false);
 
@@ -1123,12 +1130,14 @@ export const Canvas: React.FC<CanvasProps> = ({
         if (!sector.visible || sector.locked) continue;
         if (sector.vertices && sector.vertices.length > 2) {
           if (isPointInSector(pos, sector)) {
-            // CTRL+Click em setor = duplicar setor com assentos
-            if ((e.ctrlKey || e.metaKey) && onDuplicateSectorById) {
-              onDuplicateSectorById(sector.id);
+            // CTRL+Click em setor = multi-seleção (adiciona/remove da seleção)
+            if (e.ctrlKey || e.metaKey) {
+              onSelectSector(sector.id, true); // additive = true
+              setIsDragging(true);
+              setDragStart(pos);
               return;
             }
-            // Se o setor já está selecionado (em seleção múltipla), não deseleciona os outros
+            // Click normal: seleciona apenas este setor (a menos que já selecionado em multi-seleção)
             const isAlreadySelected = selectedSectorIds.includes(sector.id);
             if (!isAlreadySelected || selectedSectorIds.length === 1) {
               onSelectSector(sector.id, e.shiftKey);
@@ -1138,12 +1147,14 @@ export const Canvas: React.FC<CanvasProps> = ({
             return;
           }
         } else if (isPointInBounds(pos, sector.bounds)) {
-          // CTRL+Click em setor = duplicar setor com assentos
-          if ((e.ctrlKey || e.metaKey) && onDuplicateSectorById) {
-            onDuplicateSectorById(sector.id);
+          // CTRL+Click em setor = multi-seleção (adiciona/remove da seleção)
+          if (e.ctrlKey || e.metaKey) {
+            onSelectSector(sector.id, true); // additive = true
+            setIsDragging(true);
+            setDragStart(pos);
             return;
           }
-          // Se o setor já está selecionado (em seleção múltipla), não deseleciona os outros
+          // Click normal: seleciona apenas este setor (a menos que já selecionado em multi-seleção)
           const isAlreadySelected = selectedSectorIds.includes(sector.id);
           if (!isAlreadySelected || selectedSectorIds.length === 1) {
             onSelectSector(sector.id, e.shiftKey);
@@ -1297,7 +1308,35 @@ export const Canvas: React.FC<CanvasProps> = ({
     if (isBoxSelecting) {
       setBoxSelectCurrent(pos);
     }
-  }, [isPanning, isDrawing, isDragging, isDraggingShape, isDraggingElement, isDraggingVertex, isDraggingSeat, draggingSeatInfo, isResizingElement, resizeCorner, activeVertexIndex, isBoxSelecting, activeTool, dragStart, screenToCanvas, selectedSectorIds, selectedShapeIds, selectedElementIds, sectors, elements, onPanChange, onMoveSector, onMoveShape, onMoveElement, onResizeElement, onMoveSeat, onUpdateSectorVertices, onMoveSelectedSeats, selectedSeatIds, isPointInSector, transformPointForSector]);
+
+    // Detecta hover em assentos bloqueados para mostrar tooltip
+    if (!isPanning && !isDragging && !isBoxSelecting && !isDraggingSeat) {
+      let foundBlockedSeat = false;
+      for (const sector of sectors) {
+        if (!sector.visible) continue;
+        for (const seat of sector.seats) {
+          if (seat.type === 'blocked') {
+            const seatW = seat.tableConfig?.tableWidth || 14;
+            const seatH = seat.tableConfig?.tableHeight || 14;
+            const seatBounds = { x: seat.x, y: seat.y, width: seatW, height: seatH };
+            if (isPointInBounds(pos, seatBounds)) {
+              setHoveredBlockedSeat({
+                seat,
+                screenX: e.clientX,
+                screenY: e.clientY,
+              });
+              foundBlockedSeat = true;
+              break;
+            }
+          }
+        }
+        if (foundBlockedSeat) break;
+      }
+      if (!foundBlockedSeat && hoveredBlockedSeat) {
+        setHoveredBlockedSeat(null);
+      }
+    }
+  }, [isPanning, isDrawing, isDragging, isDraggingShape, isDraggingElement, isDraggingVertex, isDraggingSeat, draggingSeatInfo, isResizingElement, resizeCorner, activeVertexIndex, isBoxSelecting, activeTool, dragStart, screenToCanvas, selectedSectorIds, selectedShapeIds, selectedElementIds, sectors, elements, onPanChange, onMoveSector, onMoveShape, onMoveElement, onResizeElement, onMoveSeat, onUpdateSectorVertices, onMoveSelectedSeats, selectedSeatIds, isPointInSector, transformPointForSector, hoveredBlockedSeat]);
 
   // Mouse up
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
@@ -1321,24 +1360,48 @@ export const Canvas: React.FC<CanvasProps> = ({
       
       // Só seleciona se a box tiver tamanho mínimo
       if (maxX - minX > 5 && maxY - minY > 5) {
-        const selectedIds: string[] = [];
-        sectors.forEach(sector => {
-          if (!sector.visible) return;
-          sector.seats.forEach(seat => {
-            const seatCenterX = seat.x + 7;
-            const seatCenterY = seat.y + 7;
-            if (seatCenterX >= minX && seatCenterX <= maxX && 
-                seatCenterY >= minY && seatCenterY <= maxY) {
-              selectedIds.push(seat.id);
+        // CTRL pressionado = seleciona assentos; sem CTRL = seleciona setores
+        if (e.ctrlKey || e.metaKey) {
+          // Seleciona assentos dentro da box
+          const selectedIds: string[] = [];
+          sectors.forEach(sector => {
+            if (!sector.visible) return;
+            sector.seats.forEach(seat => {
+              const seatCenterX = seat.x + 7;
+              const seatCenterY = seat.y + 7;
+              if (seatCenterX >= minX && seatCenterX <= maxX && 
+                  seatCenterY >= minY && seatCenterY <= maxY) {
+                selectedIds.push(seat.id);
+              }
+            });
+          });
+          if (selectedIds.length > 0) {
+            onSelectSeats(selectedIds, e.shiftKey);
+            
+            // Aplica tipo se não for normal
+            if (activeSeatType !== 'normal') {
+              onApplySeatType(selectedIds, activeSeatType);
+            }
+          }
+        } else {
+          // Seleciona setores que intersectam a box
+          const selectedSectorIdsList: string[] = [];
+          sectors.forEach(sector => {
+            if (!sector.visible || sector.locked) return;
+            const bounds = getBoundsFromVertices(sector.vertices);
+            // Verifica se o centro do setor está dentro da box
+            const centerX = bounds.x + bounds.width / 2;
+            const centerY = bounds.y + bounds.height / 2;
+            if (centerX >= minX && centerX <= maxX && 
+                centerY >= minY && centerY <= maxY) {
+              selectedSectorIdsList.push(sector.id);
             }
           });
-        });
-        if (selectedIds.length > 0) {
-          onSelectSeats(selectedIds, e.shiftKey);
-          
-          // Aplica tipo se não for normal
-          if (activeSeatType !== 'normal') {
-            onApplySeatType(selectedIds, activeSeatType);
+          if (selectedSectorIdsList.length > 0) {
+            // Seleciona todos os setores encontrados
+            selectedSectorIdsList.forEach((id, index) => {
+              onSelectSector(id, index > 0 || e.shiftKey);
+            });
           }
         }
       } else {
@@ -1457,7 +1520,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       {/* Hint overlay */}
       {selectedSeatIds.length === 0 && sectors.length > 0 && !isBoxSelecting && !selectedSectorIds.length && (
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-background/90 backdrop-blur-sm px-4 py-2 rounded-lg text-sm text-muted-foreground pointer-events-none">
-          Ctrl+click no assento para selecionar • Arraste para box selection
+          Arraste para selecionar setores • Ctrl+arraste para selecionar assentos • Ctrl+click para multi-seleção
         </div>
       )}
       
@@ -1507,6 +1570,29 @@ export const Canvas: React.FC<CanvasProps> = ({
           onDuplicate={onDuplicateSector}
           onDelete={onDeleteSector}
         />
+      )}
+      
+      {/* Tooltip para assentos bloqueados */}
+      {hoveredBlockedSeat && (
+        <div 
+          className="fixed z-50 bg-destructive text-destructive-foreground px-3 py-2 rounded-lg shadow-lg text-xs max-w-[200px] pointer-events-none"
+          style={{
+            left: hoveredBlockedSeat.screenX + 12,
+            top: hoveredBlockedSeat.screenY + 12,
+          }}
+        >
+          <div className="font-semibold flex items-center gap-1.5">
+            🚫 Assento Bloqueado
+          </div>
+          <div className="text-destructive-foreground/90 mt-1">
+            {hoveredBlockedSeat.seat.row}-{hoveredBlockedSeat.seat.number}
+          </div>
+          {hoveredBlockedSeat.seat.description && (
+            <div className="text-destructive-foreground/80 mt-1 border-t border-destructive-foreground/20 pt-1">
+              <strong>Motivo:</strong> {hoveredBlockedSeat.seat.description}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
