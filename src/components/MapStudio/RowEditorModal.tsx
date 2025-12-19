@@ -42,7 +42,46 @@ export const RowEditorModal: React.FC<RowEditorModalProps> = ({
       .sort((a, b) => a.x - b.x);
   }, [sector.seats, rowLabel]);
 
-  // Obtém configuração existente ou cria padrão
+  // Detecta padrão de numeração atual dos assentos
+  const detectedConfig = useMemo(() => {
+    if (rowSeats.length < 2) return { type: 'numeric' as RowNumberingType, startNumber: 1, direction: 'ltr' as SeatNumberDirection };
+    
+    const numbers = rowSeats.map(s => parseInt(s.number)).filter(n => !isNaN(n));
+    if (numbers.length < 2) return { type: 'numeric' as RowNumberingType, startNumber: 1, direction: 'ltr' as SeatNumberDirection };
+    
+    // Detecta se é sequencial, ímpares ou pares
+    const isAllOdd = numbers.every(n => n % 2 === 1);
+    const isAllEven = numbers.every(n => n % 2 === 0);
+    
+    // Detecta direção
+    const isAscending = numbers[0] < numbers[numbers.length - 1];
+    const direction: SeatNumberDirection = isAscending ? 'ltr' : 'rtl';
+    
+    // Detecta se é sequencial com passo 1
+    const diffs = numbers.slice(1).map((n, i) => Math.abs(n - numbers[i]));
+    const isStep1 = diffs.every(d => d === 1);
+    const isStep2 = diffs.every(d => d === 2);
+    
+    if (isAllOdd && isStep2) {
+      return { type: 'odd' as RowNumberingType, startNumber: Math.min(...numbers), direction };
+    }
+    if (isAllEven && isStep2) {
+      return { type: 'even' as RowNumberingType, startNumber: Math.min(...numbers), direction };
+    }
+    if (isStep1) {
+      return { type: 'numeric' as RowNumberingType, startNumber: Math.min(...numbers), direction };
+    }
+    
+    // Se não detectou padrão, assume customizado
+    return { 
+      type: 'custom' as RowNumberingType, 
+      startNumber: numbers[0], 
+      direction,
+      customNumbers: numbers.join(', ')
+    };
+  }, [rowSeats]);
+
+  // Obtém configuração existente ou usa a detectada
   const existingConfig = sector.customPerRowNumbers?.[rowLabel];
   
   const [config, setConfig] = useState<{
@@ -52,10 +91,10 @@ export const RowEditorModal: React.FC<RowEditorModalProps> = ({
     direction: SeatNumberDirection;
     newRowLabel: string;
   }>({
-    type: existingConfig?.type || 'numeric',
-    startNumber: existingConfig?.startNumber || 1,
-    customNumbers: existingConfig?.numbers?.join(', ') || '',
-    direction: existingConfig?.direction || 'ltr',
+    type: existingConfig?.type || detectedConfig.type,
+    startNumber: existingConfig?.startNumber || detectedConfig.startNumber,
+    customNumbers: existingConfig?.numbers?.join(', ') || (detectedConfig as any).customNumbers || '',
+    direction: existingConfig?.direction || detectedConfig.direction,
     newRowLabel: rowLabel,
   });
 
@@ -64,14 +103,14 @@ export const RowEditorModal: React.FC<RowEditorModalProps> = ({
     if (open) {
       const existing = sector.customPerRowNumbers?.[rowLabel];
       setConfig({
-        type: existing?.type || 'numeric',
-        startNumber: existing?.startNumber || 1,
-        customNumbers: existing?.numbers?.join(', ') || '',
-        direction: existing?.direction || 'ltr',
+        type: existing?.type || detectedConfig.type,
+        startNumber: existing?.startNumber || detectedConfig.startNumber,
+        customNumbers: existing?.numbers?.join(', ') || (detectedConfig as any).customNumbers || '',
+        direction: existing?.direction || detectedConfig.direction,
         newRowLabel: rowLabel,
       });
     }
-  }, [open, sector.customPerRowNumbers, rowLabel]);
+  }, [open, sector.customPerRowNumbers, rowLabel, detectedConfig]);
 
   // Preview dos números gerados
   const previewNumbers = useMemo(() => {

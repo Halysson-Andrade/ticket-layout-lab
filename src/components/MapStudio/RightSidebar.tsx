@@ -63,29 +63,37 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   const [localSeatSize, setLocalSeatSize] = useState(14);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   
+  // Flag para evitar sync circular durante edição
+  const [isEditing, setIsEditing] = useState<string | null>(null);
+  
   const debounceRef = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
 
-  // Sincroniza com setor selecionado
+  // Sincroniza com setor selecionado (apenas quando não está editando)
   useEffect(() => {
     if (selectedSector) {
-      setLocalRotation(selectedSector.rotation);
-      setLocalCurvature(selectedSector.curvature || 0);
-      setLocalWidth(selectedSector.bounds.width);
-      setLocalHeight(selectedSector.bounds.height);
-      setLocalOpacity(selectedSector.opacity ?? 60);
-      setLocalRowSpacing(selectedSector.rowSpacing ?? 4);
-      setLocalColSpacing(selectedSector.colSpacing ?? 2);
-      setLocalSeatSize(selectedSector.seatSize ?? 14);
+      if (isEditing !== 'rotation') setLocalRotation(selectedSector.rotation);
+      if (isEditing !== 'curvature') setLocalCurvature(selectedSector.curvature || 0);
+      if (isEditing !== 'width') setLocalWidth(selectedSector.bounds.width);
+      if (isEditing !== 'height') setLocalHeight(selectedSector.bounds.height);
+      if (isEditing !== 'opacity') setLocalOpacity(selectedSector.opacity ?? 60);
+      if (isEditing !== 'rowSpacing') setLocalRowSpacing(selectedSector.rowSpacing ?? 4);
+      if (isEditing !== 'colSpacing') setLocalColSpacing(selectedSector.colSpacing ?? 2);
+      if (isEditing !== 'seatSize') setLocalSeatSize(selectedSector.seatSize ?? 14);
     }
-  }, [selectedSector?.id, selectedSector?.rotation, selectedSector?.curvature, selectedSector?.bounds.width, selectedSector?.bounds.height, selectedSector?.opacity, selectedSector?.rowSpacing, selectedSector?.colSpacing, selectedSector?.seatSize]);
+  }, [selectedSector?.id, selectedSector?.rotation, selectedSector?.curvature, selectedSector?.bounds.width, selectedSector?.bounds.height, selectedSector?.opacity, selectedSector?.rowSpacing, selectedSector?.colSpacing, selectedSector?.seatSize, isEditing]);
 
   // Debounced update helper
   const debouncedUpdate = useCallback((key: string, fn: () => void, delay: number = 150) => {
+    setIsEditing(key);
     if (debounceRef.current[key]) {
       clearTimeout(debounceRef.current[key]);
     }
-    debounceRef.current[key] = setTimeout(fn, delay);
+    debounceRef.current[key] = setTimeout(() => {
+      fn();
+      // Limpa flag de edição após o update ser aplicado
+      setTimeout(() => setIsEditing(null), 50);
+    }, delay);
   }, []);
 
   const handleRotationChange = useCallback((value: number) => {
@@ -847,6 +855,25 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                         />
                       </div>
                     </div>
+                    
+                    {/* Motivo do bloqueio */}
+                    {selectedSeats[0].type === 'blocked' && (
+                      <div className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                        <Label className="text-xs text-destructive flex items-center gap-2">
+                          <Ban className="h-3 w-3" />
+                          Assento Bloqueado
+                        </Label>
+                        {selectedSeats[0].description ? (
+                          <p className="text-xs mt-1 text-muted-foreground">
+                            <strong>Motivo:</strong> {selectedSeats[0].description}
+                          </p>
+                        ) : (
+                          <p className="text-xs mt-1 text-muted-foreground italic">
+                            Nenhum motivo informado
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
