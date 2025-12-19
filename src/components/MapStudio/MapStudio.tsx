@@ -1454,25 +1454,76 @@ export const MapStudio: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleDelete, handleDuplicate, handleCopySectors, handlePasteSectors, handleUndo, handleRedo, selectedSectorIds, selectedShapeIds, selectedElementIds, handleMoveSector, handleMoveShape, handleMoveElement]);
 
-  // Dados para export
+  // Dados para export - inclui todas as configurações do mapa
   const exportData = {
     ...mapData,
     sectors: sectors.map(s => ({
       id: s.id,
       name: s.name,
       color: s.color,
+      opacity: s.opacity,
       bounds: s.bounds,
+      vertices: s.vertices,
+      shape: s.shape,
+      rotation: s.rotation,
+      curvature: s.curvature,
+      categoryId: s.categoryId,
+      visible: s.visible,
+      locked: s.locked,
+      furnitureType: s.furnitureType,
+      // Configurações de espaçamento
+      rowSpacing: s.rowSpacing,
+      colSpacing: s.colSpacing,
+      seatSize: s.seatSize,
+      // Configurações de labels
+      rowLabelType: s.rowLabelType,
+      seatLabelType: s.seatLabelType,
+      rowLabelStart: s.rowLabelStart,
+      seatLabelStart: s.seatLabelStart,
+      labelPrefix: s.labelPrefix,
+      // Configurações de grid e layout
+      tableConfig: s.tableConfig,
+      gridRows: s.gridRows,
+      gridCols: s.gridCols,
+      rowAlignment: s.rowAlignment,
+      seatsPerRow: s.seatsPerRow,
+      customNumbers: s.customNumbers,
+      customPerRowNumbers: s.customPerRowNumbers,
+      rowLabelPosition: s.rowLabelPosition,
+      seatNumberDirection: s.seatNumberDirection,
+      centerSeats: s.centerSeats,
+      // Assentos com todas as propriedades
       seats: s.seats.map(seat => ({
         id: seat.id,
+        sectorId: seat.sectorId,
         row: seat.row,
         number: seat.number,
         type: seat.type,
         status: seat.status,
         x: seat.x,
         y: seat.y,
+        rotation: seat.rotation,
+        price: seat.price,
+        categoryId: seat.categoryId,
+        furnitureType: seat.furnitureType,
+        tableConfig: seat.tableConfig,
+        rowDescription: seat.rowDescription,
+        description: seat.description,
       })),
     })),
-    elements,
+    elements: elements.map(e => ({
+      id: e.id,
+      type: e.type,
+      label: e.label,
+      bounds: e.bounds,
+      rotation: e.rotation,
+      color: e.color,
+    })),
+    // Metadados de exportação
+    exportedAt: new Date().toISOString(),
+    totalSeats: sectors.reduce((acc, s) => acc + s.seats.length, 0),
+    totalSectors: sectors.length,
+    totalElements: elements.length,
   };
 
   const selectedSector = sectors.find(s => selectedSectorIds.includes(s.id)) || null;
