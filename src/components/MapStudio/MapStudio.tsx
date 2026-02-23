@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { LayoutGrid, FileJson, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toolbar } from './Toolbar';
+import { AlignmentBar, AlignType } from './AlignmentBar';
 import { LeftSidebar } from './LeftSidebar';
 import { RightSidebar } from './RightSidebar';
 import { Canvas } from './Canvas';
@@ -921,6 +922,115 @@ export const MapStudio: React.FC = () => {
     pushHistory(sectors);
   }, [sectors, pushHistory]);
 
+  // Alinhamento de múltiplos setores
+  const handleAlignSectors = useCallback((type: AlignType) => {
+    if (selectedSectorIds.length < 2) return;
+    
+    const selected = sectors.filter(s => selectedSectorIds.includes(s.id));
+    const boundsArr = selected.map(s => getBoundsFromVertices(s.vertices));
+    
+    // Calcula limites globais
+    const globalMinX = Math.min(...boundsArr.map(b => b.x));
+    const globalMaxX = Math.max(...boundsArr.map(b => b.x + b.width));
+    const globalMinY = Math.min(...boundsArr.map(b => b.y));
+    const globalMaxY = Math.max(...boundsArr.map(b => b.y + b.height));
+    const globalCenterX = (globalMinX + globalMaxX) / 2;
+    const globalCenterY = (globalMinY + globalMaxY) / 2;
+
+    const moves: { id: string; dx: number; dy: number }[] = [];
+
+    selected.forEach((sector, i) => {
+      const b = boundsArr[i];
+      const cx = b.x + b.width / 2;
+      const cy = b.y + b.height / 2;
+      let dx = 0, dy = 0;
+
+      switch (type) {
+        case 'left':
+          dx = globalMinX - b.x;
+          break;
+        case 'right':
+          dx = globalMaxX - (b.x + b.width);
+          break;
+        case 'center-h':
+          dx = globalCenterX - cx;
+          break;
+        case 'top':
+          dy = globalMinY - b.y;
+          break;
+        case 'bottom':
+          dy = globalMaxY - (b.y + b.height);
+          break;
+        case 'center-v':
+          dy = globalCenterY - cy;
+          break;
+      }
+
+      if (type !== 'distribute-h' && type !== 'distribute-v') {
+        if (dx !== 0 || dy !== 0) moves.push({ id: sector.id, dx, dy });
+      }
+    });
+
+    // Distribuição
+    if (type === 'distribute-h' || type === 'distribute-v') {
+      const isH = type === 'distribute-h';
+      // Ordena por posição
+      const sorted = selected.map((s, i) => ({ sector: s, bounds: boundsArr[i] }))
+        .sort((a, b) => isH 
+          ? (a.bounds.x - b.bounds.x) 
+          : (a.bounds.y - b.bounds.y));
+      
+      if (sorted.length >= 3) {
+        const first = sorted[0].bounds;
+        const last = sorted[sorted.length - 1].bounds;
+        
+        if (isH) {
+          const totalSpace = (last.x + last.width) - first.x;
+          const totalSectorWidth = sorted.reduce((sum, s) => sum + s.bounds.width, 0);
+          const gap = (totalSpace - totalSectorWidth) / (sorted.length - 1);
+          
+          let currentX = first.x;
+          sorted.forEach((item, idx) => {
+            if (idx === 0) { currentX += item.bounds.width + gap; return; }
+            const dx = currentX - item.bounds.x;
+            if (dx !== 0) moves.push({ id: item.sector.id, dx, dy: 0 });
+            currentX += item.bounds.width + gap;
+          });
+        } else {
+          const totalSpace = (last.y + last.height) - first.y;
+          const totalSectorHeight = sorted.reduce((sum, s) => sum + s.bounds.height, 0);
+          const gap = (totalSpace - totalSectorHeight) / (sorted.length - 1);
+          
+          let currentY = first.y;
+          sorted.forEach((item, idx) => {
+            if (idx === 0) { currentY += item.bounds.height + gap; return; }
+            const dy = currentY - item.bounds.y;
+            if (dy !== 0) moves.push({ id: item.sector.id, dx: 0, dy });
+            currentY += item.bounds.height + gap;
+          });
+        }
+      }
+    }
+
+    if (moves.length === 0) return;
+
+    // Aplica movimentos
+    setSectors(prev => {
+      const newSectors = prev.map(s => {
+        const move = moves.find(m => m.id === s.id);
+        if (!move) return s;
+        return {
+          ...s,
+          bounds: { ...s.bounds, x: s.bounds.x + move.dx, y: s.bounds.y + move.dy },
+          vertices: s.vertices.map(v => ({ ...v, x: v.x + move.dx, y: v.y + move.dy })),
+          seats: s.seats.map(seat => ({ ...seat, x: seat.x + move.dx, y: seat.y + move.dy })),
+        };
+      });
+      pushHistory(newSectors);
+      return newSectors;
+    });
+  }, [selectedSectorIds, sectors, pushHistory]);
+
   // Adiciona vértice em uma aresta do polígono
   const handleAddVertex = useCallback((sectorId: string, edgeIndex: number, position: { x: number; y: number }) => {
     pushHistory(sectors);
@@ -1632,6 +1742,14 @@ export const MapStudio: React.FC = () => {
           hasSelection={selectedSectorIds.length > 0 || selectedSeatIds.length > 0}
           zoom={zoom}
         />
+
+        {/* Alignment Bar - aparece quando 2+ setores selecionados */}
+        {selectedSectorIds.length >= 2 && (
+          <AlignmentBar
+            onAlign={handleAlignSectors}
+            sectorCount={selectedSectorIds.length}
+          />
+        )}
 
         {/* Left Sidebar */}
         <LeftSidebar
