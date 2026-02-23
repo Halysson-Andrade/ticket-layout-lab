@@ -40,6 +40,7 @@ interface CanvasProps {
   onMoveSeat: (seatId: string, sectorId: string, x: number, y: number) => void;
   onMoveSelectedSeats?: (dx: number, dy: number) => void;
   onSeatMoveEnd?: () => void;
+  onSectorMoveEnd?: () => void;
   onAddVertex?: (sectorId: string, edgeIndex: number, position: { x: number; y: number }) => void;
   onRemoveVertex?: (sectorId: string, vertexIndex: number) => void;
   onVertexMoveEnd?: () => void;
@@ -88,6 +89,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   onMoveSeat,
   onMoveSelectedSeats,
   onSeatMoveEnd,
+  onSectorMoveEnd,
   onAddVertex,
   onRemoveVertex,
   onVertexMoveEnd,
@@ -1125,6 +1127,18 @@ export const Canvas: React.FC<CanvasProps> = ({
         setCurvingVertexInfo(null);
       }
 
+      // Se múltiplos setores estão selecionados e clicou dentro de um deles, inicia drag do grupo
+      if (selectedSectorIds.length > 1) {
+        for (const sectorId of selectedSectorIds) {
+          const sector = sectors.find(s => s.id === sectorId);
+          if (sector && isPointInSector(pos, sector)) {
+            setIsDragging(true);
+            setDragStart(pos);
+            return;
+          }
+        }
+      }
+
       // Verifica click em assento (sem precisar de Ctrl)
       for (const sector of sectors) {
         if (!sector.visible) continue;
@@ -1471,6 +1485,11 @@ export const Canvas: React.FC<CanvasProps> = ({
         setIsCurvingVertex(false);
         setCurvingVertexInfo(null);
       }
+    }
+
+    // Salva histórico se estava arrastando setor
+    if (isDragging && onSectorMoveEnd) {
+      onSectorMoveEnd();
     }
 
     // Finaliza rotação - apenas marca como finalizado para salvar no histórico

@@ -916,6 +916,11 @@ export const MapStudio: React.FC = () => {
     pushHistory(sectors);
   }, [sectors, pushHistory]);
 
+  // Salva histórico após finalizar movimento de setor (drag)
+  const handleSectorMoveEnd = useCallback(() => {
+    pushHistory(sectors);
+  }, [sectors, pushHistory]);
+
   // Adiciona vértice em uma aresta do polígono
   const handleAddVertex = useCallback((sectorId: string, edgeIndex: number, position: { x: number; y: number }) => {
     pushHistory(sectors);
@@ -1593,6 +1598,7 @@ export const MapStudio: React.FC = () => {
           onMoveSeat={handleMoveSeat}
           onMoveSelectedSeats={handleMoveSelectedSeats}
           onSeatMoveEnd={handleSeatMoveEnd}
+          onSectorMoveEnd={handleSectorMoveEnd}
           onVertexMoveEnd={handleVertexMoveEnd}
           onAddVertex={handleAddVertex}
           onRemoveVertex={handleRemoveVertex}
