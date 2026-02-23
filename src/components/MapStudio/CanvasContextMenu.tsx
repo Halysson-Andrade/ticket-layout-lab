@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Trash2, Copy, Link2 } from 'lucide-react';
+import { Plus, Trash2, Copy, Link2, Spline } from 'lucide-react';
 
 interface ContextMenuProps {
   x: number;
@@ -7,6 +7,7 @@ interface ContextMenuProps {
   onClose: () => void;
   onAddVertex?: () => void;
   onRemoveVertex?: () => void;
+  onCurveVertex?: () => void;
   onDuplicate?: () => void;
   onDelete?: () => void;
   onGroupToSector?: () => void;
@@ -15,6 +16,7 @@ interface ContextMenuProps {
   showGroupOption?: boolean;
   canRemoveVertex: boolean;
   selectedCount?: number;
+  isVertexContext?: boolean; // true quando clicou em um vértice (não aresta)
 }
 
 export const CanvasContextMenu: React.FC<ContextMenuProps> = ({
@@ -23,6 +25,7 @@ export const CanvasContextMenu: React.FC<ContextMenuProps> = ({
   onClose,
   onAddVertex,
   onRemoveVertex,
+  onCurveVertex,
   onDuplicate,
   onDelete,
   onGroupToSector,
@@ -31,6 +34,7 @@ export const CanvasContextMenu: React.FC<ContextMenuProps> = ({
   showGroupOption = false,
   canRemoveVertex,
   selectedCount = 1,
+  isVertexContext = false,
 }) => {
   return (
     <>
@@ -63,6 +67,16 @@ export const CanvasContextMenu: React.FC<ContextMenuProps> = ({
               >
                 <Trash2 className="w-4 h-4 text-destructive" />
                 Remover ponto
+              </button>
+            )}
+
+            {isVertexContext && onCurveVertex && (
+              <button
+                onClick={() => { onCurveVertex(); onClose(); }}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors"
+              >
+                <Spline className="w-4 h-4 text-primary" />
+                Curvar ponto
               </button>
             )}
             

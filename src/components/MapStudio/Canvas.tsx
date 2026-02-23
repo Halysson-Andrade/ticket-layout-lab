@@ -121,6 +121,8 @@ export const Canvas: React.FC<CanvasProps> = ({
   const [resizeCorner, setResizeCorner] = useState<'se' | 'sw' | 'ne' | 'nw' | null>(null);
   const [isRotating, setIsRotating] = useState(false);
   const [rotatingStartAngle, setRotatingStartAngle] = useState(0);
+  const [isCurvingVertex, setIsCurvingVertex] = useState(false);
+  const [curvingVertexInfo, setCurvingVertexInfo] = useState<{ sectorId: string; vertexIndex: number } | null>(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [drawStart, setDrawStart] = useState({ x: 0, y: 0 });
   const [drawCurrent, setDrawCurrent] = useState({ x: 0, y: 0 });
@@ -481,10 +483,15 @@ export const Canvas: React.FC<CanvasProps> = ({
             ctx.quadraticCurveTo(cpX, cpY, next.x, next.y);
           }
         } else {
-          // Desenha linhas retas entre vértices (formas naturalmente curvas já têm muitos vértices)
+          // Desenha linhas/curvas entre vértices, usando controlPoints quando disponíveis
           ctx.moveTo(sector.vertices[0].x, sector.vertices[0].y);
-          for (let i = 1; i < sector.vertices.length; i++) {
-            ctx.lineTo(sector.vertices[i].x, sector.vertices[i].y);
+          for (let i = 0; i < sector.vertices.length; i++) {
+            const next = sector.vertices[(i + 1) % sector.vertices.length];
+            if (next.controlPoint) {
+              ctx.quadraticCurveTo(next.controlPoint.x, next.controlPoint.y, next.x, next.y);
+            } else {
+              ctx.lineTo(next.x, next.y);
+            }
           }
           ctx.closePath();
         }
@@ -521,19 +528,44 @@ export const Canvas: React.FC<CanvasProps> = ({
         if (isSelected && activeTool === 'select') {
           sector.vertices.forEach((vertex, i) => {
             const handleSize = HANDLE_SIZE / zoom;
+            const hasCurve = !!vertex.controlPoint;
             
             // Handle background
-            ctx.fillStyle = '#1e2330';
-            ctx.fillRect(vertex.x - handleSize / 2, vertex.y - handleSize / 2, handleSize, handleSize);
-            
-            // Handle border
-            ctx.strokeStyle = '#3b82f6';
-            ctx.lineWidth = 2 / zoom;
-            ctx.strokeRect(vertex.x - handleSize / 2, vertex.y - handleSize / 2, handleSize, handleSize);
+            ctx.fillStyle = hasCurve ? '#f59e0b' : '#1e2330';
+            if (hasCurve) {
+              // Vértice com curva: desenha círculo
+              ctx.beginPath();
+              ctx.arc(vertex.x, vertex.y, handleSize / 2, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.strokeStyle = '#f59e0b';
+              ctx.lineWidth = 2 / zoom;
+              ctx.stroke();
+              
+              // Desenha linha do control point
+              ctx.strokeStyle = 'rgba(245, 158, 11, 0.5)';
+              ctx.lineWidth = 1 / zoom;
+              ctx.setLineDash([4 / zoom, 2 / zoom]);
+              ctx.beginPath();
+              ctx.moveTo(vertex.x, vertex.y);
+              ctx.lineTo(vertex.controlPoint!.x, vertex.controlPoint!.y);
+              ctx.stroke();
+              ctx.setLineDash([]);
+              
+              // Handle do control point
+              ctx.fillStyle = '#f59e0b';
+              ctx.beginPath();
+              ctx.arc(vertex.controlPoint!.x, vertex.controlPoint!.y, handleSize / 3, 0, Math.PI * 2);
+              ctx.fill();
+            } else {
+              ctx.fillRect(vertex.x - handleSize / 2, vertex.y - handleSize / 2, handleSize, handleSize);
+              ctx.strokeStyle = '#3b82f6';
+              ctx.lineWidth = 2 / zoom;
+              ctx.strokeRect(vertex.x - handleSize / 2, vertex.y - handleSize / 2, handleSize, handleSize);
+            }
             
             // Número do vértice
             if (zoom > 0.6) {
-              ctx.fillStyle = '#3b82f6';
+              ctx.fillStyle = hasCurve ? '#f59e0b' : '#3b82f6';
               ctx.font = `${10 / zoom}px sans-serif`;
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
@@ -837,6 +869,19 @@ export const Canvas: React.FC<CanvasProps> = ({
     return () => clearTimeout(timer);
   }, []);
 
+  // ESC para cancelar modo curvar
+  useEffect(() => {
+    if (!isCurvingVertex) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsCurvingVertex(false);
+        setCurvingVertexInfo(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCurvingVertex]);
+
   // Mouse wheel zoom - precisa usar listener nativo para passive: false
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -1063,52 +1108,44 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
       }
 
-      // Se já há assentos selecionados, verifica se clicou em um deles para mover
-      if (selectedSeatIds.length > 0) {
-        for (const sector of sectors) {
-          if (!sector.visible) continue;
-          for (const seat of sector.seats) {
-            const seatW = seat.tableConfig?.tableWidth || 14;
-            const seatH = seat.tableConfig?.tableHeight || 14;
-            const seatBounds = { x: seat.x, y: seat.y, width: seatW, height: seatH };
-            if (isPointInBounds(pos, seatBounds)) {
-              // Clicou em um assento
-              if (selectedSeatIds.includes(seat.id)) {
-                // Assento já selecionado - inicia arraste (sem precisar de Ctrl)
-                setIsDraggingSeat(true);
-                setDraggingSeatInfo({ seatId: seat.id, sectorId: sector.id });
-                setDragStart(pos);
-                return;
-              } else if (e.ctrlKey || e.metaKey) {
-                // Ctrl+click em assento não selecionado - adiciona à seleção
-                onSelectSeats([seat.id], true);
-                return;
-              }
-              // Clicou em assento não selecionado sem Ctrl - continua para limpar seleção
-            }
+      // Modo de curvar vértice ativo: clique no vértice inicia arraste do control point
+      if (isCurvingVertex && curvingVertexInfo) {
+        const sector = sectors.find(s => s.id === curvingVertexInfo.sectorId);
+        if (sector) {
+          const vertexIndex = getVertexAtPoint(pos, sector);
+          if (vertexIndex === curvingVertexInfo.vertexIndex) {
+            setIsDraggingVertex(true);
+            setActiveVertexIndex(vertexIndex);
+            setDragStart(pos);
+            return;
           }
         }
-        
-        // Clicou fora dos assentos selecionados - limpa seleção de assentos
-        // e verifica se clicou em um setor ou no vazio
-        onSelectSeats([], false);
+        // Clicou fora do vértice - cancela modo curvar
+        setIsCurvingVertex(false);
+        setCurvingVertexInfo(null);
       }
 
-      // CTRL+click para selecionar assento individual (quando não há assentos selecionados)
-      if (e.ctrlKey || e.metaKey) {
-        for (const sector of sectors) {
-          if (!sector.visible) continue;
-          for (const seat of sector.seats) {
-            const seatW = seat.tableConfig?.tableWidth || 14;
-            const seatH = seat.tableConfig?.tableHeight || 14;
-            const seatBounds = { x: seat.x, y: seat.y, width: seatW, height: seatH };
-            if (isPointInBounds(pos, seatBounds)) {
-              onSelectSeats([seat.id], e.shiftKey);
-              if (activeSeatType !== 'normal') {
-                onApplySeatType([seat.id], activeSeatType);
-              }
+      // Verifica click em assento (sem precisar de Ctrl)
+      for (const sector of sectors) {
+        if (!sector.visible) continue;
+        for (const seat of sector.seats) {
+          const seatW = seat.tableConfig?.tableWidth || 14;
+          const seatH = seat.tableConfig?.tableHeight || 14;
+          const seatBounds = { x: seat.x, y: seat.y, width: seatW, height: seatH };
+          if (isPointInBounds(pos, seatBounds)) {
+            if (selectedSeatIds.includes(seat.id)) {
+              // Assento já selecionado - inicia arraste
+              setIsDraggingSeat(true);
+              setDraggingSeatInfo({ seatId: seat.id, sectorId: sector.id });
+              setDragStart(pos);
               return;
             }
+            // Seleciona o assento (Ctrl = adiciona à seleção)
+            onSelectSeats([seat.id], e.ctrlKey || e.metaKey);
+            if (activeSeatType !== 'normal') {
+              onApplySeatType([seat.id], activeSeatType);
+            }
+            return;
           }
         }
       }
@@ -1205,16 +1242,25 @@ export const Canvas: React.FC<CanvasProps> = ({
       const sector = sectors.find(s => s.id === selectedSectorIds[0]);
       if (sector && sector.vertices) {
         const newVertices = [...sector.vertices];
-        // Aplica rotação inversa no ponto atual para atualizar o vértice corretamente
         const transformedPos = transformPointForSector(pos, sector);
         
-        // Calcula o delta do vértice (não a posição absoluta)
-        const oldVertex = sector.vertices[activeVertexIndex];
-        const dx = transformedPos.x - oldVertex.x;
-        const dy = transformedPos.y - oldVertex.y;
-        
-        // Atualiza apenas o vértice arrastado
-        newVertices[activeVertexIndex] = { x: oldVertex.x + dx, y: oldVertex.y + dy };
+        if (isCurvingVertex && curvingVertexInfo) {
+          // Modo curvar: atualiza o controlPoint do vértice em vez de mover
+          newVertices[activeVertexIndex] = {
+            ...newVertices[activeVertexIndex],
+            controlPoint: { x: transformedPos.x, y: transformedPos.y },
+          };
+        } else {
+          // Modo normal: move o vértice
+          const oldVertex = sector.vertices[activeVertexIndex];
+          const dx = transformedPos.x - oldVertex.x;
+          const dy = transformedPos.y - oldVertex.y;
+          newVertices[activeVertexIndex] = { 
+            x: oldVertex.x + dx, 
+            y: oldVertex.y + dy,
+            controlPoint: oldVertex.controlPoint, // preserva control point
+          };
+        }
         
         onUpdateSectorVertices(sector.id, newVertices);
       }
@@ -1420,6 +1466,11 @@ export const Canvas: React.FC<CanvasProps> = ({
     // Salva histórico se estava arrastando vértice
     if (isDraggingVertex && onVertexMoveEnd) {
       onVertexMoveEnd();
+      // Finaliza modo curvar após soltar
+      if (isCurvingVertex) {
+        setIsCurvingVertex(false);
+        setCurvingVertexInfo(null);
+      }
     }
 
     // Finaliza rotação - apenas marca como finalizado para salvar no histórico
@@ -1449,7 +1500,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     <div 
       ref={containerRef}
       className="absolute inset-0 overflow-hidden bg-canvas-bg cursor-crosshair"
-      style={{ cursor: activeTool === 'pan' ? 'grab' : isPanning ? 'grabbing' : isRotating ? 'grabbing' : isDraggingVertex ? 'move' : isDraggingElement ? 'move' : isDraggingSeat ? 'grabbing' : isResizingElement ? 'nwse-resize' : isBoxSelecting ? 'crosshair' : 'default' }}
+      style={{ cursor: isCurvingVertex ? 'crosshair' : activeTool === 'pan' ? 'grab' : isPanning ? 'grabbing' : isRotating ? 'grabbing' : isDraggingVertex ? 'move' : isDraggingElement ? 'move' : isDraggingSeat ? 'grabbing' : isResizingElement ? 'nwse-resize' : isBoxSelecting ? 'crosshair' : 'default' }}
     >
       <canvas
         ref={canvasRef}
@@ -1525,9 +1576,16 @@ export const Canvas: React.FC<CanvasProps> = ({
       )}
       
       {/* Vertex editing hint */}
-      {selectedSectorIds.length === 1 && activeTool === 'select' && !contextMenu && (
+      {selectedSectorIds.length === 1 && activeTool === 'select' && !contextMenu && !isCurvingVertex && (
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-primary/90 backdrop-blur-sm px-4 py-2 rounded-lg text-sm text-primary-foreground pointer-events-none">
-          Arraste os vértices para ajustar • Botão direito para adicionar/remover pontos
+          Arraste os vértices para ajustar • Ctrl+botão direito para adicionar/remover/curvar pontos
+        </div>
+      )}
+
+      {/* Curving vertex hint */}
+      {isCurvingVertex && curvingVertexInfo && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-amber-500/90 backdrop-blur-sm px-4 py-2 rounded-lg text-sm text-white pointer-events-none font-medium">
+          🎯 Clique e arraste o ponto {curvingVertexInfo.vertexIndex + 1} para curvar • ESC para cancelar
         </div>
       )}
       
@@ -1553,6 +1611,7 @@ export const Canvas: React.FC<CanvasProps> = ({
           onClose={() => setContextMenu(null)}
           showVertexOptions={contextMenu.edgeIndex !== null || contextMenu.vertexIndex !== null}
           showElementOptions={contextMenu.sectorId !== null && contextMenu.edgeIndex === null && contextMenu.vertexIndex === null}
+          isVertexContext={contextMenu.vertexIndex !== null}
           canRemoveVertex={contextMenu.vertexIndex !== null && (() => {
             const sector = sectors.find(s => s.id === contextMenu.sectorId);
             return sector ? sector.vertices.length > 3 : false;
@@ -1565,6 +1624,13 @@ export const Canvas: React.FC<CanvasProps> = ({
           onRemoveVertex={() => {
             if (contextMenu.sectorId && contextMenu.vertexIndex !== null) {
               onRemoveVertex?.(contextMenu.sectorId, contextMenu.vertexIndex);
+            }
+          }}
+          onCurveVertex={() => {
+            if (contextMenu.sectorId && contextMenu.vertexIndex !== null) {
+              setIsCurvingVertex(true);
+              setCurvingVertexInfo({ sectorId: contextMenu.sectorId, vertexIndex: contextMenu.vertexIndex });
+              toast.info('Clique e arraste o ponto para curvar as arestas');
             }
           }}
           onDuplicate={onDuplicateSector}
