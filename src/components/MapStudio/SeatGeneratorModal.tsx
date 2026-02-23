@@ -30,7 +30,7 @@ import {
   SeatNumberDirection
 } from '@/types/mapStudio';
 import { cn } from '@/lib/utils';
-import { isPointInPolygon, getBoundsFromVertices, getRowLabel, getSeatLabel } from '@/lib/mapUtils';
+import { isPointInPolygon, getBoundsFromVertices, getRowLabel, getSeatLabel, getPolygonHorizontalExtent } from '@/lib/mapUtils';
 
 interface SeatGeneratorModalProps {
   open: boolean;
@@ -270,12 +270,10 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     const step = itemSize + spacing;
     const rowStep = itemSize + rSpacing;
     
-    // Calcula o tamanho total do grid
-    const gridWidth = config.cols * step;
+    // Calcula o tamanho total do grid (apenas para altura)
     const gridHeight = config.rows * rowStep;
     
-    // Centraliza o grid dentro do preview (mesma lógica de generateSeatsInsidePolygon)
-    const offsetX = (width - gridWidth) / 2 + itemSize / 2;
+    // Centraliza verticalmente
     const offsetY = (height - gridHeight) / 2 + itemSize / 2;
     
     let insideCount = 0;
@@ -283,29 +281,43 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     
     for (let r = 0; r < config.rows; r++) {
       const rowLabel = getPreviewRowLabel(r);
+      const y = offsetY + r * rowStep;
       
       // Quantidade de assentos nesta fileira
       const colsInRow = parsedSeatsPerRow && parsedSeatsPerRow[r] !== undefined ? parsedSeatsPerRow[r] : config.cols;
       
-      // Calcula offset X baseado no alinhamento - MESMA LÓGICA de generateSeatsInsidePolygon
+      // === SHAPE-ADAPTIVE: calcula extensão horizontal da forma nesta altura ===
+      let extentMinX = itemSize / 2;
+      let extentMaxX = width - itemSize / 2;
+      
+      if (previewVertices) {
+        const extent = getPolygonHorizontalExtent(previewVertices, y);
+        if (extent) {
+          extentMinX = extent.minX + itemSize / 2;
+          extentMaxX = extent.maxX - itemSize / 2;
+        }
+      }
+      const availableWidth = extentMaxX - extentMinX;
+      
+      // Se não há espaço suficiente, pula
+      if (availableWidth < itemSize) continue;
+      
+      // Calcula offset X baseado no alinhamento dentro da extensão da forma
       const rowGridWidth = colsInRow * step;
-      const safetyPadding = itemSize / 2 + 10 * scale;
       let rowOffsetX: number;
       if (config.seatsPerRowEnabled && config.rowAlignment === 'left') {
-        // Para esquerda, começa com padding de segurança
-        rowOffsetX = safetyPadding;
+        rowOffsetX = extentMinX;
       } else if (config.seatsPerRowEnabled && config.rowAlignment === 'right') {
-        // Para direita
-        rowOffsetX = width - rowGridWidth - safetyPadding + itemSize;
+        rowOffsetX = extentMaxX - rowGridWidth + step;
       } else {
-        rowOffsetX = (width - rowGridWidth) / 2 + itemSize / 2; // Centralizado (padrão)
+        // Centralizado dentro da extensão da forma
+        rowOffsetX = extentMinX + (availableWidth - rowGridWidth) / 2 + step / 2;
       }
       
       for (let c = 0; c < colsInRow; c++) {
         const x = rowOffsetX + c * step;
-        const y = offsetY + r * rowStep;
         
-        // Verifica se está dentro do polígono (sem rotação - a rotação é visual no Canvas)
+        // Verifica se está dentro do polígono
         let isInside = true;
         if (previewVertices) {
           isInside = isPointInPolygon({ x, y }, previewVertices);
