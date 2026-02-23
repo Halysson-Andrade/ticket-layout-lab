@@ -234,7 +234,12 @@ export const MapStudio: React.FC = () => {
     toast.success(`Setor "${newSector.name}" criado!`);
   }, [sectors, pushHistory]);
 
-  
+  // Atualiza propriedades de um elemento
+  const handleUpdateElement = useCallback((id: string, updates: Partial<VenueElement>) => {
+    setElements(prev => prev.map(el => el.id === id ? { ...el, ...updates } : el));
+  }, []);
+
+
   const handleSelectSector = useCallback((id: string, additive: boolean) => {
     if (additive) {
       setSelectedSectorIds(prev => 
@@ -1711,6 +1716,7 @@ export const MapStudio: React.FC = () => {
           onMoveSector={handleMoveSector}
           onMoveElement={handleMoveElement}
           onResizeElement={handleResizeElement}
+          onUpdateElement={handleUpdateElement}
           onUpdateSectorVertices={handleUpdateSectorVertices}
           onApplySeatType={handleApplySeatType}
           onMoveSeat={handleMoveSeat}
