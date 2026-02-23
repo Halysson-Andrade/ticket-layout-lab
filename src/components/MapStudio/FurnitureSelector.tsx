@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Armchair, Square, Circle, RectangleHorizontal } from 'lucide-react';
+import { Armchair, Square, Circle, RectangleHorizontal, RotateCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
@@ -118,6 +118,21 @@ export const FurnitureSelector: React.FC<FurnitureSelectorProps> = ({
             </div>
           </div>
 
+          <div>
+            <Label className="text-xs text-muted-foreground mb-2 block flex items-center gap-1">
+              <RotateCw className="h-3 w-3" />
+              Direção das Cadeiras: {tableConfig.chairStartAngle || 0}°
+            </Label>
+            <Slider
+              value={[tableConfig.chairStartAngle || 0]}
+              onValueChange={([value]) => onTableConfigChange({ ...tableConfig, chairStartAngle: value })}
+              min={0}
+              max={360}
+              step={5}
+              className="w-full"
+            />
+          </div>
+
           {/* Preview da mesa */}
           <div className="border border-border rounded-lg p-4 bg-muted/30">
             <Label className="text-xs text-muted-foreground mb-2 block">Preview</Label>
@@ -142,11 +157,12 @@ const TablePreview: React.FC<{ config: TableConfig; type: FurnitureType }> = ({ 
     const chairs: React.ReactNode[] = [];
     const tw = tableWidth * scale;
     const th = tableHeight * scale;
+    const startAngle = ((config.chairStartAngle || 0) * Math.PI) / 180;
     
     if (shape === 'round') {
       // Cadeiras em círculo ao redor da mesa
       for (let i = 0; i < chairCount; i++) {
-        const angle = (i * 2 * Math.PI / chairCount) - Math.PI / 2;
+        const angle = startAngle + (i * 2 * Math.PI / chairCount) - Math.PI / 2;
         const radius = Math.max(tw, th) / 2 + chairOffset;
         const cx = tw / 2 + radius * Math.cos(angle);
         const cy = th / 2 + radius * Math.sin(angle);
@@ -163,30 +179,16 @@ const TablePreview: React.FC<{ config: TableConfig; type: FurnitureType }> = ({ 
         );
       }
     } else {
-      // Distribuir cadeiras nos lados
-      const perSide = Math.floor(chairCount / 4);
-      const extra = chairCount % 4;
-      const sides = [perSide + (extra > 0 ? 1 : 0), perSide + (extra > 1 ? 1 : 0), perSide + (extra > 2 ? 1 : 0), perSide];
-      
-      // Top
-      for (let i = 0; i < sides[0]; i++) {
-        const cx = (tw / (sides[0] + 1)) * (i + 1);
-        chairs.push(<circle key={`t${i}`} cx={cx} cy={-chairOffset} r={chairSize / 2} fill="hsl(var(--primary))" />);
-      }
-      // Right
-      for (let i = 0; i < sides[1]; i++) {
-        const cy = (th / (sides[1] + 1)) * (i + 1);
-        chairs.push(<circle key={`r${i}`} cx={tw + chairOffset} cy={cy} r={chairSize / 2} fill="hsl(var(--primary))" />);
-      }
-      // Bottom
-      for (let i = 0; i < sides[2]; i++) {
-        const cx = (tw / (sides[2] + 1)) * (i + 1);
-        chairs.push(<circle key={`b${i}`} cx={cx} cy={th + chairOffset} r={chairSize / 2} fill="hsl(var(--primary))" />);
-      }
-      // Left
-      for (let i = 0; i < sides[3]; i++) {
-        const cy = (th / (sides[3] + 1)) * (i + 1);
-        chairs.push(<circle key={`l${i}`} cx={-chairOffset} cy={cy} r={chairSize / 2} fill="hsl(var(--primary))" />);
+      // Para mesas quadradas/retangulares, também distribui em círculo para suportar rotação
+      for (let i = 0; i < chairCount; i++) {
+        const angle = startAngle + (i * 2 * Math.PI / chairCount) - Math.PI / 2;
+        const radiusX = tw / 2 + chairOffset;
+        const radiusY = th / 2 + chairOffset;
+        const cx = tw / 2 + radiusX * Math.cos(angle);
+        const cy = th / 2 + radiusY * Math.sin(angle);
+        chairs.push(
+          <circle key={`s${i}`} cx={cx} cy={cy} r={chairSize / 2} fill="hsl(var(--primary))" />
+        );
       }
     }
     return chairs;

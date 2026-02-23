@@ -74,6 +74,7 @@ export interface TableConfig {
   chairCount: number;
   tableWidth: number;
   tableHeight: number;
+  chairStartAngle?: number; // Ângulo inicial das cadeiras em graus (0-360)
 }
 
 export interface Seat {
