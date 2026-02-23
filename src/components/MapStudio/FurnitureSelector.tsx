@@ -160,32 +160,29 @@ const TablePreview: React.FC<{ config: TableConfig; type: FurnitureType }> = ({ 
     const startAngle = ((config.chairStartAngle || 0) * Math.PI) / 180;
     
     if (shape === 'round') {
-      // Cadeiras em círculo ao redor da mesa
       for (let i = 0; i < chairCount; i++) {
         const angle = startAngle + (i * 2 * Math.PI / chairCount) - Math.PI / 2;
-        const radius = Math.max(tw, th) / 2 + chairOffset;
-        const cx = tw / 2 + radius * Math.cos(angle);
-        const cy = th / 2 + radius * Math.sin(angle);
+        const tableRadius = Math.min(tw, th) / 2;
+        const dist = tableRadius + chairSize / 2 + 1;
+        const cx = tw / 2 + dist * Math.cos(angle);
+        const cy = th / 2 + dist * Math.sin(angle);
         chairs.push(
-          <circle
-            key={i}
-            cx={cx}
-            cy={cy}
-            r={chairSize / 2}
-            fill="hsl(var(--primary))"
-            stroke="hsl(var(--primary-foreground))"
-            strokeWidth="1"
-          />
+          <circle key={i} cx={cx} cy={cy} r={chairSize / 2}
+            fill="hsl(var(--primary))" stroke="hsl(var(--primary-foreground))" strokeWidth="1" />
         );
       }
     } else {
-      // Para mesas quadradas/retangulares, também distribui em círculo para suportar rotação
+      const halfW = tw / 2;
+      const halfH = th / 2;
       for (let i = 0; i < chairCount; i++) {
         const angle = startAngle + (i * 2 * Math.PI / chairCount) - Math.PI / 2;
-        const radiusX = tw / 2 + chairOffset;
-        const radiusY = th / 2 + chairOffset;
-        const cx = tw / 2 + radiusX * Math.cos(angle);
-        const cy = th / 2 + radiusY * Math.sin(angle);
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        const scaleX = cos !== 0 ? Math.abs(halfW / cos) : Infinity;
+        const scaleY = sin !== 0 ? Math.abs(halfH / sin) : Infinity;
+        const s = Math.min(scaleX, scaleY);
+        const cx = tw / 2 + cos * (s + chairSize / 2 + 1);
+        const cy = th / 2 + sin * (s + chairSize / 2 + 1);
         chairs.push(
           <circle key={`s${i}`} cx={cx} cy={cy} r={chairSize / 2} fill="hsl(var(--primary))" />
         );
