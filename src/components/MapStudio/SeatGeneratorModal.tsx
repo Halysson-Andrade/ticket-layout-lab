@@ -227,6 +227,10 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
     return sector.vertices.map(v => ({
       x: (v.x - minX) * scaleX * scale,
       y: (v.y - minY) * scaleY * scale,
+      controlPoint: v.controlPoint ? {
+        x: (v.controlPoint.x - minX) * scaleX * scale,
+        y: (v.controlPoint.y - minY) * scaleY * scale,
+      } : undefined,
     }));
   }, [sector?.vertices, previewDimensions, config.resizeEnabled]);
 
@@ -886,8 +890,26 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                     <g transform={`translate(${(previewDimensions.viewBoxWidth - previewDimensions.width) / 2}, ${(previewDimensions.viewBoxHeight - previewDimensions.height) / 2})`}>
                     {/* Polígono do setor se disponível (Melhoria 7) */}
                     {previewVertices ? (
-                      <polygon
-                        points={previewVertices.map(v => `${v.x},${v.y}`).join(' ')}
+                      <path
+                        d={(() => {
+                          const verts = previewVertices;
+                          let d = `M ${verts[0].x},${verts[0].y}`;
+                          for (let i = 1; i < verts.length; i++) {
+                            const v = verts[i];
+                            if (v.controlPoint) {
+                              d += ` Q ${v.controlPoint.x},${v.controlPoint.y} ${v.x},${v.y}`;
+                            } else {
+                              d += ` L ${v.x},${v.y}`;
+                            }
+                          }
+                          // Fechar o path - verificar se o primeiro vértice tem controlPoint
+                          if (verts[0].controlPoint) {
+                            d += ` Q ${verts[0].controlPoint.x},${verts[0].controlPoint.y} ${verts[0].x},${verts[0].y}`;
+                          } else {
+                            d += ' Z';
+                          }
+                          return d;
+                        })()}
                         fill="none"
                         stroke="hsl(var(--primary))"
                         strokeWidth="2"
