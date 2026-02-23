@@ -75,6 +75,8 @@ export interface TableConfig {
   tableWidth: number;
   tableHeight: number;
   chairStartAngle?: number; // Ângulo inicial das cadeiras em graus (0-360)
+  chairRadius?: number; // Raio das cadeiras (padrão 6)
+  tableColor?: string; // Cor da mesa (padrão depende do tipo)
 }
 
 export interface Seat {

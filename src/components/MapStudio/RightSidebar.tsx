@@ -855,6 +855,121 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                         />
                       </div>
                     </div>
+
+                    {/* Propriedades de Mesa/Bistrô */}
+                    {(selectedSeats[0].furnitureType === 'table' || selectedSeats[0].furnitureType === 'bistro') && selectedSeats[0].tableConfig && (
+                      <div className="space-y-3 pt-3 border-t border-border">
+                        <Label className="text-xs font-medium">Configuração da Mesa</Label>
+                        
+                        {/* Tamanho da cadeira */}
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground">
+                            Tamanho da Cadeira: {selectedSeats[0].tableConfig.chairRadius || 6}px
+                          </Label>
+                          <Slider
+                            value={[selectedSeats[0].tableConfig.chairRadius || 6]}
+                            onValueChange={([v]) => onUpdateSeats([selectedSeats[0].id], { 
+                              tableConfig: { ...selectedSeats[0].tableConfig!, chairRadius: v } 
+                            })}
+                            min={3}
+                            max={16}
+                            step={1}
+                          />
+                        </div>
+
+                        {/* Cadeiras por mesa */}
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground">
+                            Cadeiras: {selectedSeats[0].tableConfig.chairCount}
+                          </Label>
+                          <Slider
+                            value={[selectedSeats[0].tableConfig.chairCount]}
+                            onValueChange={([v]) => onUpdateSeats([selectedSeats[0].id], { 
+                              tableConfig: { ...selectedSeats[0].tableConfig!, chairCount: v } 
+                            })}
+                            min={1}
+                            max={12}
+                            step={1}
+                          />
+                        </div>
+
+                        {/* Direção das cadeiras */}
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground">
+                            Direção: {selectedSeats[0].tableConfig.chairStartAngle || 0}°
+                          </Label>
+                          <Slider
+                            value={[selectedSeats[0].tableConfig.chairStartAngle || 0]}
+                            onValueChange={([v]) => onUpdateSeats([selectedSeats[0].id], { 
+                              tableConfig: { ...selectedSeats[0].tableConfig!, chairStartAngle: v } 
+                            })}
+                            min={0}
+                            max={360}
+                            step={5}
+                          />
+                        </div>
+
+                        {/* Tamanho da mesa */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-muted-foreground">
+                              Largura: {selectedSeats[0].tableConfig.tableWidth}px
+                            </Label>
+                            <Slider
+                              value={[selectedSeats[0].tableConfig.tableWidth]}
+                              onValueChange={([v]) => onUpdateSeats([selectedSeats[0].id], { 
+                                tableConfig: { ...selectedSeats[0].tableConfig!, tableWidth: v } 
+                              })}
+                              min={20}
+                              max={120}
+                              step={5}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[10px] text-muted-foreground">
+                              Altura: {selectedSeats[0].tableConfig.tableHeight}px
+                            </Label>
+                            <Slider
+                              value={[selectedSeats[0].tableConfig.tableHeight]}
+                              onValueChange={([v]) => onUpdateSeats([selectedSeats[0].id], { 
+                                tableConfig: { ...selectedSeats[0].tableConfig!, tableHeight: v } 
+                              })}
+                              min={20}
+                              max={120}
+                              step={5}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Cor da mesa */}
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground flex items-center gap-1">
+                            <Palette className="h-3 w-3" />
+                            Cor da Mesa
+                          </Label>
+                          <div className="grid grid-cols-6 gap-1">
+                            {[
+                              '#64748b', '#8b5cf6', '#3b82f6', '#10b981', 
+                              '#f59e0b', '#ef4444', '#ec4899', '#06b6d4',
+                              '#84cc16', '#f97316', '#6366f1', '#14b8a6'
+                            ].map((color) => (
+                              <button
+                                key={color}
+                                className={`w-full aspect-square rounded border-2 transition-all hover:scale-110 ${
+                                  (selectedSeats[0].tableConfig?.tableColor || (selectedSeats[0].furnitureType === 'bistro' ? '#8b5cf6' : '#64748b')) === color
+                                    ? 'border-primary ring-1 ring-primary/30 scale-105'
+                                    : 'border-transparent hover:border-primary/50'
+                                }`}
+                                style={{ backgroundColor: color }}
+                                onClick={() => onUpdateSeats([selectedSeats[0].id], { 
+                                  tableConfig: { ...selectedSeats[0].tableConfig!, tableColor: color } 
+                                })}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     
                     {/* Motivo do bloqueio */}
                     {selectedSeats[0].type === 'blocked' && (
