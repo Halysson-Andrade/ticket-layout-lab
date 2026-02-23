@@ -35,6 +35,7 @@ interface CanvasProps {
   onMoveSector: (id: string, dx: number, dy: number) => void;
   onMoveElement: (id: string, dx: number, dy: number) => void;
   onResizeElement: (id: string, width: number, height: number, x?: number, y?: number) => void;
+  onUpdateElement?: (id: string, updates: Partial<VenueElement>) => void;
   onUpdateSectorVertices: (id: string, vertices: Vertex[]) => void;
   onApplySeatType: (ids: string[], type: SeatType) => void;
   onMoveSeat: (seatId: string, sectorId: string, x: number, y: number) => void;
@@ -85,6 +86,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   onMoveSector,
   onMoveElement,
   onResizeElement,
+  onUpdateElement,
   onUpdateSectorVertices,
   onApplySeatType,
   onMoveSeat,
@@ -126,6 +128,11 @@ export const Canvas: React.FC<CanvasProps> = ({
   const [isRotating, setIsRotating] = useState(false);
   const [rotatingStartAngle, setRotatingStartAngle] = useState(0);
   const [isCurvingVertex, setIsCurvingVertex] = useState(false);
+  const [isRotatingElement, setIsRotatingElement] = useState(false);
+  const [rotatingElementStartAngle, setRotatingElementStartAngle] = useState(0);
+  const [editingElementId, setEditingElementId] = useState<string | null>(null);
+  const [editingElementLabel, setEditingElementLabel] = useState('');
+  const editInputRef = useRef<HTMLInputElement>(null);
   const [curvingVertexInfo, setCurvingVertexInfo] = useState<{ sectorId: string; vertexIndex: number } | null>(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [drawStart, setDrawStart] = useState({ x: 0, y: 0 });
@@ -409,6 +416,17 @@ export const Canvas: React.FC<CanvasProps> = ({
     // Elementos (palco, bar, etc) - selecionáveis, móveis e redimensionáveis
     elements.forEach(el => {
       const isElSelected = selectedElementIds.includes(el.id);
+      const elCenterX = el.bounds.x + el.bounds.width / 2;
+      const elCenterY = el.bounds.y + el.bounds.height / 2;
+      
+      ctx.save();
+      
+      // Aplica rotação do elemento
+      if (el.rotation && el.rotation !== 0) {
+        ctx.translate(elCenterX, elCenterY);
+        ctx.rotate((el.rotation * Math.PI) / 180);
+        ctx.translate(-elCenterX, -elCenterY);
+      }
       
       ctx.fillStyle = el.color || '#4a5568';
       ctx.fillRect(el.bounds.x, el.bounds.y, el.bounds.width, el.bounds.height);
@@ -424,31 +442,74 @@ export const Canvas: React.FC<CanvasProps> = ({
         // Desenha handles de redimensionamento nos cantos
         const handleSize = 8 / zoom;
         ctx.fillStyle = '#3b82f6';
-        // NE
         ctx.fillRect(el.bounds.x + el.bounds.width - handleSize/2, el.bounds.y - handleSize/2, handleSize, handleSize);
-        // NW
         ctx.fillRect(el.bounds.x - handleSize/2, el.bounds.y - handleSize/2, handleSize, handleSize);
-        // SE
         ctx.fillRect(el.bounds.x + el.bounds.width - handleSize/2, el.bounds.y + el.bounds.height - handleSize/2, handleSize, handleSize);
-        // SW
         ctx.fillRect(el.bounds.x - handleSize/2, el.bounds.y + el.bounds.height - handleSize/2, handleSize, handleSize);
+        
+        // Handle de rotação
+        const rotHandleDistance = 30 / zoom;
+        const rotHandleRadius = 10 / zoom;
+        const rotHandleX = el.bounds.x + el.bounds.width + rotHandleDistance;
+        const rotHandleY = el.bounds.y - rotHandleDistance;
+        
+        // Linha conectora
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 1.5 / zoom;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(el.bounds.x + el.bounds.width, el.bounds.y);
+        ctx.lineTo(rotHandleX, rotHandleY);
+        ctx.stroke();
+        
+        // Círculo do handle
+        ctx.beginPath();
+        ctx.arc(rotHandleX, rotHandleY, rotHandleRadius, 0, Math.PI * 2);
+        ctx.fillStyle = '#3b82f6';
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5 / zoom;
+        ctx.stroke();
+        
+        // Ícone de rotação
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1.5 / zoom;
+        const arrowR = rotHandleRadius * 0.5;
+        ctx.beginPath();
+        ctx.arc(rotHandleX, rotHandleY, arrowR, -Math.PI * 0.8, Math.PI * 0.3);
+        ctx.stroke();
+        // Seta
+        const tipAngle = Math.PI * 0.3;
+        const tipX = rotHandleX + arrowR * Math.cos(tipAngle);
+        const tipY = rotHandleY + arrowR * Math.sin(tipAngle);
+        ctx.beginPath();
+        ctx.moveTo(tipX - 3/zoom, tipY - 3/zoom);
+        ctx.lineTo(tipX, tipY);
+        ctx.lineTo(tipX + 3/zoom, tipY - 1/zoom);
+        ctx.stroke();
       }
       
-      ctx.fillStyle = '#fff';
-      ctx.font = `${Math.min(el.bounds.width, el.bounds.height) * 0.3}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(
-        ELEMENT_ICONS[el.type] || '📦',
-        el.bounds.x + el.bounds.width / 2,
-        el.bounds.y + el.bounds.height / 2
-      );
-      ctx.font = '10px sans-serif';
-      ctx.fillText(
-        el.label,
-        el.bounds.x + el.bounds.width / 2,
-        el.bounds.y + el.bounds.height + 12
-      );
+      // Ícone e label dentro do elemento
+      if (editingElementId !== el.id) {
+        ctx.fillStyle = '#fff';
+        const iconSize = Math.min(el.bounds.width, el.bounds.height) * 0.25;
+        ctx.font = `${iconSize}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(
+          ELEMENT_ICONS[el.type] || '📦',
+          elCenterX,
+          elCenterY - (el.label ? 8 : 0)
+        );
+        
+        // Label dentro do elemento
+        if (el.label) {
+          ctx.font = `bold ${Math.min(12, el.bounds.width * 0.12)}px sans-serif`;
+          ctx.fillText(el.label, elCenterX, elCenterY + iconSize * 0.6);
+        }
+      }
+      
+      ctx.restore();
     });
 
     // Setores e Assentos
@@ -1101,6 +1162,38 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
       }
 
+      // Verifica click em handle de rotação de elemento selecionado
+      for (const elId of selectedElementIds) {
+        const el = elements.find(e => e.id === elId);
+        if (el) {
+          const elCenterX = el.bounds.x + el.bounds.width / 2;
+          const elCenterY = el.bounds.y + el.bounds.height / 2;
+          const rotHandleDistance = 30 / zoom;
+          const rotHandleRadius = 12 / zoom;
+          
+          // Posição do handle no espaço local
+          const localHandleX = el.bounds.x + el.bounds.width + rotHandleDistance;
+          const localHandleY = el.bounds.y - rotHandleDistance;
+          
+          // Transforma clique para espaço local do elemento
+          const rotation = el.rotation || 0;
+          const rad = (-rotation * Math.PI) / 180;
+          const relX = pos.x - elCenterX;
+          const relY = pos.y - elCenterY;
+          const localClickX = elCenterX + relX * Math.cos(rad) - relY * Math.sin(rad);
+          const localClickY = elCenterY + relX * Math.sin(rad) + relY * Math.cos(rad);
+          
+          const dist = Math.sqrt(Math.pow(localClickX - localHandleX, 2) + Math.pow(localClickY - localHandleY, 2));
+          if (dist <= rotHandleRadius) {
+            setIsRotatingElement(true);
+            const startAngle = Math.atan2(pos.y - elCenterY, pos.x - elCenterX) * 180 / Math.PI;
+            setRotatingElementStartAngle(startAngle - (el.rotation || 0));
+            setDragStart({ x: elCenterX, y: elCenterY });
+            return;
+          }
+        }
+      }
+
       // Verifica click em handle de redimensionamento de elemento selecionado
       for (const elId of selectedElementIds) {
         const el = elements.find(e => e.id === elId);
@@ -1288,6 +1381,20 @@ export const Canvas: React.FC<CanvasProps> = ({
         // Normaliza para 0-360
         newRotation = ((newRotation % 360) + 360) % 360;
         onRotateSector(sector.id, Math.round(newRotation));
+      }
+      return;
+    }
+
+    // Rotação de elemento via handle
+    if (isRotatingElement && selectedElementIds.length === 1 && onUpdateElement) {
+      const el = elements.find(e => e.id === selectedElementIds[0]);
+      if (el) {
+        const elCenterX = el.bounds.x + el.bounds.width / 2;
+        const elCenterY = el.bounds.y + el.bounds.height / 2;
+        const currentAngle = Math.atan2(pos.y - elCenterY, pos.x - elCenterX) * 180 / Math.PI;
+        let newRotation = currentAngle - rotatingElementStartAngle;
+        newRotation = ((newRotation % 360) + 360) % 360;
+        onUpdateElement(el.id, { rotation: Math.round(newRotation) });
       }
       return;
     }
@@ -1553,13 +1660,14 @@ export const Canvas: React.FC<CanvasProps> = ({
     setIsResizingElement(false);
     setResizeCorner(null);
     setIsRotating(false);
-  }, [isDrawing, isDraggingSeat, isDraggingVertex, activeTool, drawStart, drawCurrent, onCreateSector, isBoxSelecting, boxSelectStart, boxSelectCurrent, sectors, onSelectSeats, activeSeatType, onApplySeatType, onSeatMoveEnd, onVertexMoveEnd, isRotating, selectedSectorIds, onRotateSector]);
+    setIsRotatingElement(false);
+  }, [isDrawing, isDraggingSeat, isDraggingVertex, activeTool, drawStart, drawCurrent, onCreateSector, isBoxSelecting, boxSelectStart, boxSelectCurrent, sectors, onSelectSeats, activeSeatType, onApplySeatType, onSeatMoveEnd, onVertexMoveEnd, isRotating, isRotatingElement, selectedSectorIds, selectedElementIds, onRotateSector]);
 
   return (
     <div 
       ref={containerRef}
       className="absolute inset-0 overflow-hidden bg-canvas-bg cursor-crosshair"
-      style={{ cursor: isCurvingVertex ? 'crosshair' : activeTool === 'pan' ? 'grab' : isPanning ? 'grabbing' : isRotating ? 'grabbing' : isDraggingVertex ? 'move' : isDraggingElement ? 'move' : isDraggingSeat ? 'grabbing' : isResizingElement ? 'nwse-resize' : isBoxSelecting ? 'crosshair' : 'default' }}
+      style={{ cursor: isCurvingVertex ? 'crosshair' : activeTool === 'pan' ? 'grab' : isPanning ? 'grabbing' : isRotating || isRotatingElement ? 'grabbing' : isDraggingVertex ? 'move' : isDraggingElement ? 'move' : isDraggingSeat ? 'grabbing' : isResizingElement ? 'nwse-resize' : isBoxSelecting ? 'crosshair' : 'default' }}
     >
       <canvas
         ref={canvasRef}
@@ -1571,21 +1679,30 @@ export const Canvas: React.FC<CanvasProps> = ({
         onContextMenu={handleContextMenu}
         onMouseLeave={handleMouseUp}
         onDoubleClick={(e) => {
+          const pos = screenToCanvas(e.clientX, e.clientY);
+          
+          // Duplo clique em elemento - edita label inline
+          for (const el of elements) {
+            if (isPointInBounds(pos, el.bounds)) {
+              setEditingElementId(el.id);
+              setEditingElementLabel(el.label);
+              setTimeout(() => editInputRef.current?.focus(), 50);
+              return;
+            }
+          }
+          
           // Duplo clique em label de fileira abre editor
           if (!onEditRow) return;
-          const pos = screenToCanvas(e.clientX, e.clientY);
           
           for (const sector of sectors) {
             if (!sector.visible) continue;
             
-            // Agrupa assentos por fileira
             const seatsByRow: Record<string, Seat[]> = {};
             sector.seats.forEach(seat => {
               if (!seatsByRow[seat.row]) seatsByRow[seat.row] = [];
               seatsByRow[seat.row].push(seat);
             });
             
-            // Verifica se clicou na área do label de alguma fileira
             const rowLabelPos = sector.rowLabelPosition || 'left';
             for (const [rowLabel, rowSeats] of Object.entries(seatsByRow)) {
               if (rowSeats.length === 0) continue;
@@ -1595,7 +1712,6 @@ export const Canvas: React.FC<CanvasProps> = ({
               const rightMost = sortedByX[sortedByX.length - 1];
               const seatSize = leftMost.tableConfig?.tableWidth || 14;
               
-              // Área do label à esquerda
               if (rowLabelPos === 'left' || rowLabelPos === 'both') {
                 const labelBounds = {
                   x: leftMost.x - 40,
@@ -1609,7 +1725,6 @@ export const Canvas: React.FC<CanvasProps> = ({
                 }
               }
               
-              // Área do label à direita
               if (rowLabelPos === 'right' || rowLabelPos === 'both') {
                 const labelBounds = {
                   x: rightMost.x + seatSize + 5,
@@ -1656,11 +1771,56 @@ export const Canvas: React.FC<CanvasProps> = ({
       )}
       
       {/* Element resize hint */}
-      {selectedElementIds.length === 1 && (
+      {selectedElementIds.length === 1 && !editingElementId && (
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-accent/90 backdrop-blur-sm px-4 py-2 rounded-lg text-sm text-accent-foreground pointer-events-none">
-          Arraste os cantos para redimensionar o elemento
+          Arraste os cantos para redimensionar • Handle para rotacionar • Duplo clique para editar texto
         </div>
       )}
+      
+      {/* Inline element label editor */}
+      {editingElementId && (() => {
+        const el = elements.find(e => e.id === editingElementId);
+        if (!el) return null;
+        const rect = canvasRef.current?.getBoundingClientRect();
+        if (!rect) return null;
+        const screenX = el.bounds.x * zoom + pan.x + rect.left;
+        const screenY = el.bounds.y * zoom + pan.y + rect.top;
+        const screenW = el.bounds.width * zoom;
+        const screenH = el.bounds.height * zoom;
+        return (
+          <div
+            className="fixed z-50 flex items-center justify-center"
+            style={{
+              left: screenX,
+              top: screenY,
+              width: screenW,
+              height: screenH,
+              transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
+              transformOrigin: 'center center',
+            }}
+          >
+            <input
+              ref={editInputRef}
+              className="bg-background/90 border border-primary rounded px-2 py-1 text-sm text-foreground text-center outline-none focus:ring-2 focus:ring-primary"
+              style={{ maxWidth: screenW - 8 }}
+              value={editingElementLabel}
+              onChange={(e) => setEditingElementLabel(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  onUpdateElement?.(editingElementId!, { label: editingElementLabel });
+                  setEditingElementId(null);
+                } else if (e.key === 'Escape') {
+                  setEditingElementId(null);
+                }
+              }}
+              onBlur={() => {
+                onUpdateElement?.(editingElementId!, { label: editingElementLabel });
+                setEditingElementId(null);
+              }}
+            />
+          </div>
+        );
+      })()}
       
       {/* Context menu */}
       {contextMenu && (
