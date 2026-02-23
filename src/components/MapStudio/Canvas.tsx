@@ -1406,10 +1406,23 @@ export const Canvas: React.FC<CanvasProps> = ({
         const transformedPos = transformPointForSector(pos, sector);
         
         if (isCurvingVertex && curvingVertexInfo) {
-          // Modo curvar: atualiza o controlPoint do vértice em vez de mover
+          // Modo curvar: posiciona o controlPoint no meio da aresta para a curva pegar a linha inteira
+          const vertexIndex = activeVertexIndex;
+          const prevIndex = (vertexIndex - 1 + newVertices.length) % newVertices.length;
+          const prevVertex = newVertices[prevIndex];
+          const currentVertex = newVertices[vertexIndex];
+          
+          // Ponto médio da aresta (de prev para current)
+          const midX = (prevVertex.x + currentVertex.x) / 2;
+          const midY = (prevVertex.y + currentVertex.y) / 2;
+          
+          // O offset do mouse em relação ao vértice é aplicado ao ponto médio
+          const offsetX = transformedPos.x - currentVertex.x;
+          const offsetY = transformedPos.y - currentVertex.y;
+          
           newVertices[activeVertexIndex] = {
             ...newVertices[activeVertexIndex],
-            controlPoint: { x: transformedPos.x, y: transformedPos.y },
+            controlPoint: { x: midX + offsetX, y: midY + offsetY },
           };
         } else {
           // Modo normal: move o vértice
