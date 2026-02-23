@@ -189,14 +189,15 @@ export const Canvas: React.FC<CanvasProps> = ({
   }, [pan, zoom]);
 
   // Transforma ponto aplicando rotação inversa do setor
-  const transformPointForSector = useCallback((pos: { x: number; y: number }, sector: Sector, stableCenter?: { x: number; y: number }): { x: number; y: number } => {
+  // SEMPRE usa sector.bounds como centro para garantir paridade com a renderização
+  const transformPointForSector = useCallback((pos: { x: number; y: number }, sector: Sector): { x: number; y: number } => {
     if (!sector.rotation || sector.rotation === 0) {
       return pos;
     }
-    const center = stableCenter || (() => {
-      const bounds = getBoundsFromVertices(sector.vertices);
-      return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
-    })();
+    const center = {
+      x: sector.bounds.x + sector.bounds.width / 2,
+      y: sector.bounds.y + sector.bounds.height / 2,
+    };
     const rad = (-sector.rotation * Math.PI) / 180;
     const dx = pos.x - center.x;
     const dy = pos.y - center.y;
@@ -1413,7 +1414,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       const sector = sectors.find(s => s.id === selectedSectorIds[0]);
       if (sector && sector.vertices) {
         const newVertices = [...sector.vertices];
-        const transformedPos = transformPointForSector(pos, sector, dragCenterRef.current || undefined);
+        const transformedPos = transformPointForSector(pos, sector);
         
         if (isCurvingVertex && curvingVertexInfo) {
           // Modo curvar: posiciona o controlPoint no meio da aresta para a curva pegar a linha inteira
