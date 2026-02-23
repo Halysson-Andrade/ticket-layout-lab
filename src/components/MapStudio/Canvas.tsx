@@ -1146,10 +1146,28 @@ export const Canvas: React.FC<CanvasProps> = ({
       for (const sector of sectors) {
         if (!sector.visible) continue;
         for (const seat of sector.seats) {
-          const seatW = seat.tableConfig?.tableWidth || 14;
-          const seatH = seat.tableConfig?.tableHeight || 14;
-          const seatBounds = { x: seat.x, y: seat.y, width: seatW, height: seatH };
-          if (isPointInBounds(pos, seatBounds)) {
+          let hitDetected = false;
+          
+          if (seat.furnitureType === 'table' || seat.furnitureType === 'bistro') {
+            // Para mesas/bistrôs, expande hitbox para incluir cadeiras ao redor
+            const config = seat.tableConfig || { shape: 'round', chairCount: 4, tableWidth: 40, tableHeight: 40, chairStartAngle: 0 };
+            const chairRadius = 6;
+            const extraRadius = chairRadius + 4; // mesmo offset usado na renderização
+            const expandedBounds = {
+              x: seat.x - extraRadius,
+              y: seat.y - extraRadius,
+              width: config.tableWidth + extraRadius * 2,
+              height: config.tableHeight + extraRadius * 2,
+            };
+            hitDetected = isPointInBounds(pos, expandedBounds);
+          } else {
+            const seatW = 14;
+            const seatH = 14;
+            const seatBounds = { x: seat.x, y: seat.y, width: seatW, height: seatH };
+            hitDetected = isPointInBounds(pos, seatBounds);
+          }
+          
+          if (hitDetected) {
             if (selectedSeatIds.includes(seat.id)) {
               // Assento já selecionado - inicia arraste
               setIsDraggingSeat(true);
