@@ -363,12 +363,39 @@ export function getBoundsFromVertices(vertices: Vertex[]): Bounds {
   };
 }
 
-// Verifica se ponto está dentro de polígono
+// Tessela polígono com curvas Bezier em pontos lineares para hit detection
+export function tessellatePolygon(vertices: Vertex[], samplesPerCurve: number = 8): { x: number; y: number }[] {
+  const result: { x: number; y: number }[] = [];
+  for (let i = 0; i < vertices.length; i++) {
+    const current = vertices[i];
+    const next = vertices[(i + 1) % vertices.length];
+    result.push({ x: current.x, y: current.y });
+    if (next.controlPoint) {
+      // Sample quadratic Bezier: current -> controlPoint -> next
+      const cp = next.controlPoint;
+      for (let t = 1; t < samplesPerCurve; t++) {
+        const tt = t / samplesPerCurve;
+        const u = 1 - tt;
+        result.push({
+          x: u * u * current.x + 2 * u * tt * cp.x + tt * tt * next.x,
+          y: u * u * current.y + 2 * u * tt * cp.y + tt * tt * next.y,
+        });
+      }
+    }
+  }
+  return result;
+}
+
+// Verifica se ponto está dentro de polígono (com suporte a curvas Bezier)
 export function isPointInPolygon(point: { x: number; y: number }, vertices: Vertex[]): boolean {
+  // Tessela curvas se houver controlPoints
+  const hasCurves = vertices.some(v => v.controlPoint);
+  const pts = hasCurves ? tessellatePolygon(vertices) : vertices;
+  
   let inside = false;
-  for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
-    const xi = vertices[i].x, yi = vertices[i].y;
-    const xj = vertices[j].x, yj = vertices[j].y;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const xi = pts[i].x, yi = pts[i].y;
+    const xj = pts[j].x, yj = pts[j].y;
     
     if (((yi > point.y) !== (yj > point.y)) &&
         (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi)) {

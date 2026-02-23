@@ -135,6 +135,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   const editInputRef = useRef<HTMLInputElement>(null);
   const [curvingVertexInfo, setCurvingVertexInfo] = useState<{ sectorId: string; vertexIndex: number } | null>(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const dragCenterRef = useRef<{ x: number; y: number } | null>(null);
   const [drawStart, setDrawStart] = useState({ x: 0, y: 0 });
   const [drawCurrent, setDrawCurrent] = useState({ x: 0, y: 0 });
   const [boxSelectStart, setBoxSelectStart] = useState({ x: 0, y: 0 });
@@ -188,19 +189,20 @@ export const Canvas: React.FC<CanvasProps> = ({
   }, [pan, zoom]);
 
   // Transforma ponto aplicando rotação inversa do setor
-  const transformPointForSector = useCallback((pos: { x: number; y: number }, sector: Sector): { x: number; y: number } => {
+  const transformPointForSector = useCallback((pos: { x: number; y: number }, sector: Sector, stableCenter?: { x: number; y: number }): { x: number; y: number } => {
     if (!sector.rotation || sector.rotation === 0) {
       return pos;
     }
-    const bounds = getBoundsFromVertices(sector.vertices);
-    const centerX = bounds.x + bounds.width / 2;
-    const centerY = bounds.y + bounds.height / 2;
-    const rad = (-sector.rotation * Math.PI) / 180; // Rotação inversa
-    const dx = pos.x - centerX;
-    const dy = pos.y - centerY;
+    const center = stableCenter || (() => {
+      const bounds = getBoundsFromVertices(sector.vertices);
+      return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+    })();
+    const rad = (-sector.rotation * Math.PI) / 180;
+    const dx = pos.x - center.x;
+    const dy = pos.y - center.y;
     return {
-      x: centerX + dx * Math.cos(rad) - dy * Math.sin(rad),
-      y: centerY + dx * Math.sin(rad) + dy * Math.cos(rad),
+      x: center.x + dx * Math.cos(rad) - dy * Math.sin(rad),
+      y: center.y + dx * Math.sin(rad) + dy * Math.cos(rad),
     };
   }, []);
 
@@ -1149,11 +1151,12 @@ export const Canvas: React.FC<CanvasProps> = ({
         if (sector && sector.vertices) {
           const vertexIndex = getVertexAtPoint(pos, sector);
           if (vertexIndex !== null) {
-            // Salva estado inicial para undo ANTES de começar o drag
-            if (onSeatMoveEnd) {
-              // Usamos onSeatMoveEnd como proxy para pushHistory
-              // O histórico será salvo quando soltar o mouse
-            }
+            // Store stable center for rotation calculations during drag
+            const bounds = getBoundsFromVertices(sector.vertices);
+            dragCenterRef.current = {
+              x: bounds.x + bounds.width / 2,
+              y: bounds.y + bounds.height / 2,
+            };
             setIsDraggingVertex(true);
             setActiveVertexIndex(vertexIndex);
             setDragStart(pos);
@@ -1229,14 +1232,20 @@ export const Canvas: React.FC<CanvasProps> = ({
       // Modo de curvar vértice ativo: clique no vértice inicia arraste do control point
       if (isCurvingVertex && curvingVertexInfo) {
         const sector = sectors.find(s => s.id === curvingVertexInfo.sectorId);
-        if (sector) {
-          const vertexIndex = getVertexAtPoint(pos, sector);
-          if (vertexIndex === curvingVertexInfo.vertexIndex) {
-            setIsDraggingVertex(true);
-            setActiveVertexIndex(vertexIndex);
-            setDragStart(pos);
-            return;
-          }
+          if (sector) {
+            const vertexIndex = getVertexAtPoint(pos, sector);
+            if (vertexIndex === curvingVertexInfo.vertexIndex) {
+              // Store stable center
+              const bounds = getBoundsFromVertices(sector.vertices);
+              dragCenterRef.current = {
+                x: bounds.x + bounds.width / 2,
+                y: bounds.y + bounds.height / 2,
+              };
+              setIsDraggingVertex(true);
+              setActiveVertexIndex(vertexIndex);
+              setDragStart(pos);
+              return;
+            }
         }
         // Clicou fora do vértice - cancela modo curvar
         setIsCurvingVertex(false);
@@ -1403,7 +1412,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       const sector = sectors.find(s => s.id === selectedSectorIds[0]);
       if (sector && sector.vertices) {
         const newVertices = [...sector.vertices];
-        const transformedPos = transformPointForSector(pos, sector);
+        const transformedPos = transformPointForSector(pos, sector, dragCenterRef.current || undefined);
         
         if (isCurvingVertex && curvingVertexInfo) {
           // Modo curvar: posiciona o controlPoint no meio da aresta para a curva pegar a linha inteira
@@ -1669,6 +1678,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     setDraggingSeatInfo(null);
     setIsBoxSelecting(false);
     setIsDraggingVertex(false);
+    dragCenterRef.current = null;
     setActiveVertexIndex(null);
     setIsResizingElement(false);
     setResizeCorner(null);
