@@ -306,13 +306,32 @@ export const Canvas: React.FC<CanvasProps> = ({
     ctx.fillStyle = SEAT_COLORS[seat.type];
     const centerX = tableX + tableW / 2;
     const centerY = tableY + tableH / 2;
-    const radius = (Math.max(tableW, tableH) / 2) + chairRadius + 4;
     
     const startAngle = ((config.chairStartAngle || 0) * Math.PI) / 180;
     for (let i = 0; i < config.chairCount; i++) {
       const angle = startAngle + (i / config.chairCount) * Math.PI * 2 - Math.PI / 2;
-      const chairX = centerX + Math.cos(angle) * radius;
-      const chairY = centerY + Math.sin(angle) * radius;
+      
+      // Posiciona cadeiras encostadas na borda da mesa
+      let chairX: number, chairY: number;
+      if (config.shape === 'round') {
+        // Para mesa redonda: cadeira encostada no raio
+        const tableRadius = Math.min(tableW, tableH) / 2;
+        const dist = tableRadius + chairRadius + 1;
+        chairX = centerX + Math.cos(angle) * dist;
+        chairY = centerY + Math.sin(angle) * dist;
+      } else {
+        // Para mesa quadrada/retangular: cadeira encostada na borda
+        const halfW = tableW / 2;
+        const halfH = tableH / 2;
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        // Calcula interseção com o retângulo
+        const scaleX = cos !== 0 ? Math.abs(halfW / cos) : Infinity;
+        const scaleY = sin !== 0 ? Math.abs(halfH / sin) : Infinity;
+        const scale = Math.min(scaleX, scaleY);
+        chairX = centerX + cos * (scale + chairRadius + 1);
+        chairY = centerY + sin * (scale + chairRadius + 1);
+      }
       
       ctx.beginPath();
       ctx.arc(chairX, chairY, chairRadius, 0, Math.PI * 2);
