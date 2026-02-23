@@ -265,10 +265,11 @@ export const Canvas: React.FC<CanvasProps> = ({
     const tableY = seat.y;
     const tableW = config.tableWidth;
     const tableH = config.tableHeight;
-    const chairRadius = 6;
+    const chairRadius = config.chairRadius || 6;
     
     // Cor da mesa
-    ctx.fillStyle = isSelected ? '#3b82f6' : (seat.furnitureType === 'bistro' ? '#8b5cf6' : '#64748b');
+    const defaultColor = seat.furnitureType === 'bistro' ? '#8b5cf6' : '#64748b';
+    ctx.fillStyle = isSelected ? '#3b82f6' : (config.tableColor || defaultColor);
     
     // Desenha mesa
     if (config.shape === 'round') {

@@ -150,8 +150,8 @@ export const FurnitureSelector: React.FC<FurnitureSelectorProps> = ({
 const TablePreview: React.FC<{ config: TableConfig; type: FurnitureType }> = ({ config, type }) => {
   const { shape, chairCount, tableWidth, tableHeight } = config;
   const scale = 0.8;
-  const chairSize = 10;
-  const chairOffset = 8;
+  const chairSize = (config.chairRadius || 6) * 1.6;
+  const chairOffset = chairSize * 0.8 + 2;
   
   const renderChairs = () => {
     const chairs: React.ReactNode[] = [];
