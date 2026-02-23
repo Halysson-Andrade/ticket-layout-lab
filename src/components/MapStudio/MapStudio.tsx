@@ -246,6 +246,14 @@ export const MapStudio: React.FC = () => {
     setSelectedSeatIds([]);
   }, []);
 
+  // Desseleciona tudo
+  const handleDeselectAll = useCallback(() => {
+    setSelectedSectorIds([]);
+    setSelectedSeatIds([]);
+    setSelectedElementIds([]);
+    setSelectedShapeIds([]);
+  }, []);
+
   // Seleciona assentos
   const handleSelectSeats = useCallback((ids: string[], additive: boolean) => {
     if (additive) {
@@ -1723,6 +1731,7 @@ export const MapStudio: React.FC = () => {
           onMoveShape={handleMoveShape}
           onDeleteShape={handleDeleteShape}
           onAddFurniture={handleAddFurnitureToSector}
+          onDeselectAll={handleDeselectAll}
         />
 
         {/* Toolbar */}

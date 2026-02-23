@@ -57,6 +57,7 @@ interface CanvasProps {
   onDeleteShape?: (id: string) => void; // Excluir forma não vinculada
   onGroupShapesToSector?: (shapeIds: string[]) => void;
   onAddFurniture?: (sectorId: string, position: { x: number; y: number }) => void;
+  onDeselectAll?: () => void;
 }
 
 const HANDLE_SIZE = 10;
@@ -106,6 +107,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   onDeleteShape,
   onGroupShapesToSector,
   onAddFurniture,
+  onDeselectAll,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -305,8 +307,9 @@ export const Canvas: React.FC<CanvasProps> = ({
     const centerY = tableY + tableH / 2;
     const radius = (Math.max(tableW, tableH) / 2) + chairRadius + 4;
     
+    const startAngle = ((config.chairStartAngle || 0) * Math.PI) / 180;
     for (let i = 0; i < config.chairCount; i++) {
-      const angle = (i / config.chairCount) * Math.PI * 2 - Math.PI / 2;
+      const angle = startAngle + (i / config.chairCount) * Math.PI * 2 - Math.PI / 2;
       const chairX = centerX + Math.cos(angle) * radius;
       const chairY = centerY + Math.sin(angle) * radius;
       
@@ -1465,9 +1468,9 @@ export const Canvas: React.FC<CanvasProps> = ({
           }
         }
       } else {
-        // Click simples no vazio - limpa seleção
+        // Click simples no vazio - limpa toda a seleção
         if (!e.shiftKey) {
-          onSelectSeats([], false);
+          onDeselectAll?.();
         }
       }
     }
