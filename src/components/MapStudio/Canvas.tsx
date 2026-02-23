@@ -1188,18 +1188,17 @@ export const Canvas: React.FC<CanvasProps> = ({
           }
           
           if (hitDetected) {
-            if (selectedSeatIds.includes(seat.id)) {
-              // Assento já selecionado - inicia arraste
-              setIsDraggingSeat(true);
-              setDraggingSeatInfo({ seatId: seat.id, sectorId: sector.id });
-              setDragStart(pos);
-              return;
+            if (!selectedSeatIds.includes(seat.id)) {
+              // Seleciona o assento primeiro
+              onSelectSeats([seat.id], e.ctrlKey || e.metaKey);
+              if (activeSeatType !== 'normal') {
+                onApplySeatType([seat.id], activeSeatType);
+              }
             }
-            // Seleciona o assento (Ctrl = adiciona à seleção)
-            onSelectSeats([seat.id], e.ctrlKey || e.metaKey);
-            if (activeSeatType !== 'normal') {
-              onApplySeatType([seat.id], activeSeatType);
-            }
+            // Inicia arraste imediatamente (selecionar + arrastar no mesmo clique)
+            setIsDraggingSeat(true);
+            setDraggingSeatInfo({ seatId: seat.id, sectorId: sector.id });
+            setDragStart(pos);
             return;
           }
         }
