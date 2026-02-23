@@ -314,8 +314,10 @@ export const MapStudio: React.FC = () => {
           y: s.bounds.y + dy,
         },
         vertices: s.vertices.map(v => ({
+          ...v,
           x: v.x + dx,
           y: v.y + dy,
+          controlPoint: v.controlPoint ? { x: v.controlPoint.x + dx, y: v.controlPoint.y + dy } : undefined,
         })),
         seats: s.seats.map(seat => ({
           ...seat,
@@ -1238,8 +1240,10 @@ export const MapStudio: React.FC = () => {
               y: sector.bounds.y + 50,
             },
             vertices: sector.vertices.map(v => ({
+              ...v,
               x: v.x + 50,
               y: v.y + 50,
+              controlPoint: v.controlPoint ? { x: v.controlPoint.x + 50, y: v.controlPoint.y + 50 } : undefined,
             })),
             seats: sector.seats.map(seat => ({
               ...seat,
@@ -1281,8 +1285,10 @@ export const MapStudio: React.FC = () => {
         y: sector.bounds.y + 50,
       },
       vertices: sector.vertices.map(v => ({
+        ...v,
         x: v.x + 50,
         y: v.y + 50,
+        controlPoint: v.controlPoint ? { x: v.controlPoint.x + 50, y: v.controlPoint.y + 50 } : undefined,
       })),
       seats: sector.seats.map(seat => ({
         ...seat,
@@ -1330,8 +1336,10 @@ export const MapStudio: React.FC = () => {
           y: sector.bounds.y + 50 + (index * 10),
         },
         vertices: sector.vertices.map(v => ({
+          ...v,
           x: v.x + 50 + (index * 10),
           y: v.y + 50 + (index * 10),
+          controlPoint: v.controlPoint ? { x: v.controlPoint.x + 50 + (index * 10), y: v.controlPoint.y + 50 + (index * 10) } : undefined,
         })),
         seats: sector.seats.map(seat => ({
           ...seat,
