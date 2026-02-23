@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { LayoutGrid, FileJson, Plus } from 'lucide-react';
+import { LayoutGrid, FileJson, Plus, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ChevronUp, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Toolbar } from './Toolbar';
 import { AlignmentBar, AlignType } from './AlignmentBar';
@@ -81,6 +81,11 @@ export const MapStudio: React.FC = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [editingRow, setEditingRow] = useState<{ sectorId: string; rowLabel: string } | null>(null);
+
+  // Panel visibility
+  const [showToolbar, setShowToolbar] = useState(true);
+  const [showLeftSidebar, setShowLeftSidebar] = useState(true);
+  const [showRightSidebar, setShowRightSidebar] = useState(true);
 
   // History for undo/redo
   const [history, setHistory] = useState<Sector[][]>([[]]);
@@ -1741,22 +1746,33 @@ export const MapStudio: React.FC = () => {
         />
 
         {/* Toolbar */}
-        <Toolbar
-          activeTool={activeTool}
-          onToolChange={setActiveTool}
-          onUndo={handleUndo}
-          onRedo={handleRedo}
-          onZoomIn={() => setZoom(z => Math.min(3, z * 1.2))}
-          onZoomOut={() => setZoom(z => Math.max(0.2, z * 0.8))}
-          onExport={() => setShowExport(true)}
-          onImportImage={handleImportImage}
-          onDelete={handleDelete}
-          onDuplicate={handleDuplicate}
-          canUndo={historyIndex > 0}
-          canRedo={historyIndex < history.length - 1}
-          hasSelection={selectedSectorIds.length > 0 || selectedSeatIds.length > 0}
-          zoom={zoom}
-        />
+        {showToolbar ? (
+          <Toolbar
+            activeTool={activeTool}
+            onToolChange={setActiveTool}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            onZoomIn={() => setZoom(z => Math.min(3, z * 1.2))}
+            onZoomOut={() => setZoom(z => Math.max(0.2, z * 0.8))}
+            onExport={() => setShowExport(true)}
+            onImportImage={handleImportImage}
+            onDelete={handleDelete}
+            onDuplicate={handleDuplicate}
+            canUndo={historyIndex > 0}
+            canRedo={historyIndex < history.length - 1}
+            hasSelection={selectedSectorIds.length > 0 || selectedSeatIds.length > 0}
+            zoom={zoom}
+          />
+        ) : null}
+
+        {/* Toolbar toggle */}
+        <button
+          onClick={() => setShowToolbar(v => !v)}
+          className="absolute top-2 left-1/2 -translate-x-1/2 z-30 bg-card/90 backdrop-blur-sm border border-border rounded-full p-1 shadow hover:bg-muted transition-colors"
+          title={showToolbar ? 'Minimizar barra de ferramentas' : 'Expandir barra de ferramentas'}
+        >
+          {showToolbar ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        </button>
 
         {/* Alignment Bar - aparece quando 2+ setores selecionados */}
         {selectedSectorIds.length >= 2 && (
@@ -1767,52 +1783,73 @@ export const MapStudio: React.FC = () => {
         )}
 
         {/* Left Sidebar */}
-        <LeftSidebar
-          sectors={sectors}
-          elements={elements}
-          selectedIds={selectedSectorIds}
-          onSelectSector={(id) => handleSelectSector(id, false)}
-          onToggleSectorVisibility={handleToggleSectorVisibility}
-          onToggleSectorLock={handleToggleSectorLock}
-          onDeleteSector={handleDeleteSector}
-          onDeleteElement={handleDeleteElement}
-          activeSeatType={activeSeatType}
-          onSeatTypeChange={setActiveSeatType}
-          activeFurnitureType={activeFurnitureType}
-          onFurnitureTypeChange={setActiveFurnitureType}
-          tableConfig={tableConfig}
-          onTableConfigChange={setTableConfig}
-          onAddElement={handleAddElement}
-        />
+        {showLeftSidebar ? (
+          <LeftSidebar
+            sectors={sectors}
+            elements={elements}
+            selectedIds={selectedSectorIds}
+            onSelectSector={(id) => handleSelectSector(id, false)}
+            onToggleSectorVisibility={handleToggleSectorVisibility}
+            onToggleSectorLock={handleToggleSectorLock}
+            onDeleteSector={handleDeleteSector}
+            onDeleteElement={handleDeleteElement}
+            activeSeatType={activeSeatType}
+            onSeatTypeChange={setActiveSeatType}
+            activeFurnitureType={activeFurnitureType}
+            onFurnitureTypeChange={setActiveFurnitureType}
+            tableConfig={tableConfig}
+            onTableConfigChange={setTableConfig}
+            onAddElement={handleAddElement}
+          />
+        ) : null}
+
+        {/* Left Sidebar toggle */}
+        <button
+          onClick={() => setShowLeftSidebar(v => !v)}
+          className={`absolute top-20 z-30 bg-card/90 backdrop-blur-sm border border-border rounded-r-lg p-1.5 shadow hover:bg-muted transition-all ${showLeftSidebar ? 'left-[19.5rem]' : 'left-0 rounded-l-lg'}`}
+          title={showLeftSidebar ? 'Minimizar painel esquerdo' : 'Expandir painel esquerdo'}
+        >
+          {showLeftSidebar ? <PanelLeftClose className="h-4 w-4 text-muted-foreground" /> : <PanelLeftOpen className="h-4 w-4 text-muted-foreground" />}
+        </button>
 
         {/* Right Sidebar */}
-        <RightSidebar
-          selectedSector={selectedSector}
-          selectedSeats={selectedSeats}
-          selectedShape={geometricShapes.find(s => selectedShapeIds.includes(s.id)) || null}
-          sectors={sectors}
-          selectedSectorIds={selectedSectorIds}
-          onUpdateSector={handleUpdateSector}
-          onUpdateSeats={handleUpdateSeats}
-          onRegenerateSeats={handleRegenerateSeats}
-          onResizeSector={handleResizeSector}
-          onLinkShapeToSector={handleLinkShapeToSector}
-          onUpdateSpacing={handleUpdateSpacing}
-          onCenterSeats={handleCenterSeats}
-          onFlipSector={handleFlipSector}
-          onGroupSectors={(sectorIds, categoryId) => {
-            // Agrupa setores na mesma categoria
-            const category = PREDEFINED_SECTORS.find(s => s.id === categoryId);
-            if (category) {
-              setSectors(prev => prev.map(s => 
-                sectorIds.includes(s.id) 
-                  ? { ...s, categoryId: categoryId, name: `${category.name} - ${s.name}`, color: category.color }
-                  : s
-              ));
-              toast.success(`${sectorIds.length} setores agrupados em "${category.name}"`);
-            }
-          }}
-        />
+        {showRightSidebar ? (
+          <RightSidebar
+            selectedSector={selectedSector}
+            selectedSeats={selectedSeats}
+            selectedShape={geometricShapes.find(s => selectedShapeIds.includes(s.id)) || null}
+            sectors={sectors}
+            selectedSectorIds={selectedSectorIds}
+            onUpdateSector={handleUpdateSector}
+            onUpdateSeats={handleUpdateSeats}
+            onRegenerateSeats={handleRegenerateSeats}
+            onResizeSector={handleResizeSector}
+            onLinkShapeToSector={handleLinkShapeToSector}
+            onUpdateSpacing={handleUpdateSpacing}
+            onCenterSeats={handleCenterSeats}
+            onFlipSector={handleFlipSector}
+            onGroupSectors={(sectorIds, categoryId) => {
+              const category = PREDEFINED_SECTORS.find(s => s.id === categoryId);
+              if (category) {
+                setSectors(prev => prev.map(s => 
+                  sectorIds.includes(s.id) 
+                    ? { ...s, categoryId: categoryId, name: `${category.name} - ${s.name}`, color: category.color }
+                    : s
+                ));
+                toast.success(`${sectorIds.length} setores agrupados em "${category.name}"`);
+              }
+            }}
+          />
+        ) : null}
+
+        {/* Right Sidebar toggle */}
+        <button
+          onClick={() => setShowRightSidebar(v => !v)}
+          className={`absolute top-20 z-30 bg-card/90 backdrop-blur-sm border border-border rounded-l-lg p-1.5 shadow hover:bg-muted transition-all ${showRightSidebar ? 'right-[19.5rem]' : 'right-0 rounded-r-lg'}`}
+          title={showRightSidebar ? 'Minimizar painel direito' : 'Expandir painel direito'}
+        >
+          {showRightSidebar ? <PanelRightClose className="h-4 w-4 text-muted-foreground" /> : <PanelRightOpen className="h-4 w-4 text-muted-foreground" />}
+        </button>
 
         {/* Background Image Panel */}
         <BackgroundImagePanel
