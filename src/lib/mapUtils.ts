@@ -405,6 +405,33 @@ export function isPointInPolygon(point: { x: number; y: number }, vertices: Vert
   return inside;
 }
 
+// Calcula a extensão horizontal do polígono em uma determinada altura Y
+// Retorna o minX e maxX onde a linha horizontal y intersecta o polígono
+export function getPolygonHorizontalExtent(vertices: Vertex[], y: number): { minX: number; maxX: number } | null {
+  // Tessela curvas se houver controlPoints
+  const hasCurves = vertices.some(v => v.controlPoint);
+  const pts = hasCurves ? tessellatePolygon(vertices, 16) : vertices;
+  
+  const intersections: number[] = [];
+  
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const yi = pts[i].y, yj = pts[j].y;
+    const xi = pts[i].x, xj = pts[j].x;
+    
+    if ((yi <= y && yj > y) || (yj <= y && yi > y)) {
+      const t = (y - yi) / (yj - yi);
+      intersections.push(xi + t * (xj - xi));
+    }
+  }
+  
+  if (intersections.length < 2) return null;
+  
+  return {
+    minX: Math.min(...intersections),
+    maxX: Math.max(...intersections),
+  };
+}
+
 // Verifica se ponto está dentro de um arco (forma especial)
 export function isPointInArc(point: { x: number; y: number }, bounds: Bounds): boolean {
   const cx = bounds.x + bounds.width / 2;
@@ -974,33 +1001,39 @@ export function generateSeatsInsidePolygon(
     // Para setores rotacionados ou com geometria não-retangular, usa padding maior
     const safetyPadding = itemSize / 2 + 10;
     
-    // Centraliza o grid dentro do polígono com margem de segurança
-    const offsetX = bounds.x + (bounds.width - gridWidth) / 2 + itemSize / 2;
+    // Centraliza o grid verticalmente dentro do polígono
     const offsetY = bounds.y + (bounds.height - gridHeight) / 2 + itemSize / 2;
     
     for (let r = 0; r < rows; r++) {
       const rowLabel = getRowLabel(r, rowLabelType, rowLabelStart);
+      const y = offsetY + r * rowStep;
       
       // Quantidade de assentos nesta fileira
       const colsInRow = seatsPerRow && seatsPerRow[r] !== undefined ? seatsPerRow[r] : cols;
       
-      // Calcula offset X baseado no alinhamento
+      // === SHAPE-ADAPTIVE: calcula extensão horizontal da forma nesta altura ===
+      const extent = getPolygonHorizontalExtent(vertices, y);
+      const extentMinX = extent ? extent.minX + itemSize / 2 : bounds.x + safetyPadding;
+      const extentMaxX = extent ? extent.maxX - itemSize / 2 : bounds.x + bounds.width - safetyPadding;
+      const availableWidth = extentMaxX - extentMinX;
+      
+      // Se não há espaço suficiente nesta fila, pula
+      if (availableWidth < itemSize) continue;
+      
+      // Calcula offset X baseado no alinhamento dentro da extensão da forma
       const rowGridWidth = colsInRow * colStep;
       let rowOffsetX: number;
       if (rowAlignment === 'left') {
-        // Para esquerda, começa do limite esquerdo com padding de segurança
-        rowOffsetX = bounds.x + safetyPadding;
+        rowOffsetX = extentMinX;
       } else if (rowAlignment === 'right') {
-        // Para direita, começa do limite direito
-        rowOffsetX = bounds.x + bounds.width - rowGridWidth - safetyPadding + itemSize;
+        rowOffsetX = extentMaxX - rowGridWidth + colStep;
       } else {
-        // Centralizado (padrão)
-        rowOffsetX = bounds.x + (bounds.width - rowGridWidth) / 2 + itemSize / 2;
+        // Centralizado dentro da extensão da forma
+        rowOffsetX = extentMinX + (availableWidth - rowGridWidth) / 2 + colStep / 2;
       }
       
       for (let c = 0; c < colsInRow; c++) {
         const x = rowOffsetX + c * colStep;
-        const y = offsetY + r * rowStep;
         
         // Verifica se está dentro do polígono (no ponto central)
         const seatCenter = { x, y };
@@ -1008,7 +1041,6 @@ export function generateSeatsInsidePolygon(
         
         if (isInside) {
           const isLeftSide = c < colsInRow / 2;
-          // Se for custom-per-row, usa a configuração da fileira específica
           const rowConfig = seatLabelType === 'custom-per-row' && customPerRowNumbers?.[rowLabel] 
             ? customPerRowNumbers[rowLabel] 
             : undefined;
