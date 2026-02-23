@@ -100,7 +100,7 @@ export const FurnitureSelector: React.FC<FurnitureSelectorProps> = ({
                 value={[tableConfig.tableWidth]}
                 onValueChange={([value]) => onTableConfigChange({ ...tableConfig, tableWidth: value })}
                 min={30}
-                max={120}
+                max={300}
                 step={5}
               />
             </div>
@@ -112,7 +112,7 @@ export const FurnitureSelector: React.FC<FurnitureSelectorProps> = ({
                 value={[tableConfig.tableHeight]}
                 onValueChange={([value]) => onTableConfigChange({ ...tableConfig, tableHeight: value })}
                 min={30}
-                max={120}
+                max={300}
                 step={5}
               />
             </div>
