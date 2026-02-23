@@ -44,6 +44,7 @@ export interface Bounds {
 export interface Vertex {
   x: number;
   y: number;
+  controlPoint?: { x: number; y: number }; // Ponto de controle para curvas bezier
 }
 
 // Formas expandidas para setores
