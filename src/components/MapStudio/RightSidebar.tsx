@@ -921,7 +921,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                                 tableConfig: { ...selectedSeats[0].tableConfig!, tableWidth: v } 
                               })}
                               min={20}
-                              max={120}
+                              max={300}
                               step={5}
                             />
                           </div>
@@ -935,7 +935,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                                 tableConfig: { ...selectedSeats[0].tableConfig!, tableHeight: v } 
                               })}
                               min={20}
-                              max={120}
+                              max={300}
                               step={5}
                             />
                           </div>
