@@ -344,12 +344,16 @@ function applyCurvatureToVertices(vertices: Vertex[], bounds: Bounds, curvature:
   return curvedVertices;
 }
 
-// Calcula bounds a partir de vértices
+// Calcula bounds a partir de vértices (considerando curvas Bezier via tessellation)
 export function getBoundsFromVertices(vertices: Vertex[]): Bounds {
   if (vertices.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
   
-  const xs = vertices.map(v => v.x);
-  const ys = vertices.map(v => v.y);
+  // Se há controlPoints, tessela para obter os bounds reais da curva
+  const hasCurves = vertices.some(v => v.controlPoint);
+  const pts = hasCurves ? tessellatePolygon(vertices, 16) : vertices;
+  
+  const xs = pts.map(v => v.x);
+  const ys = pts.map(v => v.y);
   const minX = Math.min(...xs);
   const minY = Math.min(...ys);
   const maxX = Math.max(...xs);
