@@ -521,7 +521,8 @@ export const Canvas: React.FC<CanvasProps> = ({
       ctx.save();
       
       const isSelected = selectedSectorIds.includes(sector.id);
-      const bounds = getBoundsFromVertices(sector.vertices);
+      // Usa sector.bounds (estável durante arraste de vértices) para centro de rotação
+      const bounds = sector.bounds;
       const centerX = bounds.x + bounds.width / 2;
       const centerY = bounds.y + bounds.height / 2;
       
