@@ -328,22 +328,11 @@ export const MapStudio: React.FC = () => {
     }));
   }, []);
 
-  // Atualiza vértices do setor e reposiciona assentos
+  // Atualiza vértices do setor SEM recalcular bounds (usado durante arraste para evitar drift)
   const handleUpdateSectorVertices = useCallback((id: string, vertices: Vertex[]) => {
     setSectors(prev => prev.map(s => {
       if (s.id !== id) return s;
-      const bounds = getBoundsFromVertices(vertices);
-      
-      // Reposiciona assentos para caber no novo polígono
-      const repositionedSeats = repositionSeatsInsidePolygon(
-        s.seats,
-        s.vertices,
-        vertices,
-        s.id,
-        12 // seatSize
-      );
-      
-      return { ...s, vertices, bounds, seats: repositionedSeats };
+      return { ...s, vertices };
     }));
   }, []);
 
@@ -932,10 +921,28 @@ export const MapStudio: React.FC = () => {
     pushHistory(sectors);
   }, [sectors, pushHistory]);
 
-  // Salva histórico após finalizar movimento de vértice
+  // Recalcula bounds/assentos e salva histórico após finalizar movimento de vértice
   const handleVertexMoveEnd = useCallback(() => {
-    pushHistory(sectors);
-  }, [sectors, pushHistory]);
+    setSectors(prev => {
+      const updated = prev.map(s => {
+        const bounds = getBoundsFromVertices(s.vertices);
+        // Só reposiciona se bounds mudou
+        if (bounds.x !== s.bounds.x || bounds.y !== s.bounds.y || bounds.width !== s.bounds.width || bounds.height !== s.bounds.height) {
+          const repositionedSeats = repositionSeatsInsidePolygon(
+            s.seats,
+            s.vertices,
+            s.vertices,
+            s.id,
+            12
+          );
+          return { ...s, bounds, seats: repositionedSeats };
+        }
+        return { ...s, bounds };
+      });
+      pushHistory(updated);
+      return updated;
+    });
+  }, [pushHistory]);
 
   // Salva histórico após finalizar movimento de setor (drag)
   const handleSectorMoveEnd = useCallback(() => {
