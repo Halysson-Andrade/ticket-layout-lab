@@ -946,9 +946,10 @@ export const Canvas: React.FC<CanvasProps> = ({
     ctx.restore();
   }, [sectors, elements, geometricShapes, selectedSectorIds, selectedSeatIds, selectedElementIds, selectedShapeIds, zoom, pan, width, height, isDrawing, drawStart, drawCurrent, activeTool, isBoxSelecting, boxSelectStart, boxSelectCurrent, renderTableWithChairs, bgConfig]);
 
-  // Atualiza canvas
+  // Atualiza canvas - render direto para feedback imediato durante arraste de vértices
   useEffect(() => {
-    requestAnimationFrame(render);
+    const id = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(id);
   }, [render, bgImageLoaded]);
 
   // Força render inicial após montagem
