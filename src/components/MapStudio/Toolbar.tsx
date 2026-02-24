@@ -35,11 +35,13 @@ interface ToolbarProps {
   onZoomOut: () => void;
   onExport: () => void;
   onImportImage: () => void;
+  onToggleBgPanel: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
   canUndo: boolean;
   canRedo: boolean;
   hasSelection: boolean;
+  hasBgImage: boolean;
   zoom: number;
 }
 
@@ -91,11 +93,13 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onZoomOut,
   onExport,
   onImportImage,
+  onToggleBgPanel,
   onDelete,
   onDuplicate,
   canUndo,
   canRedo,
   hasSelection,
+  hasBgImage,
   zoom,
 }) => {
   return (
@@ -215,8 +219,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       {/* Import/Export */}
       <ToolButton
         icon={<Image className="h-4 w-4" />}
-        label="Importar Imagem de Fundo"
-        onClick={onImportImage}
+        label={hasBgImage ? "Propriedades da Imagem de Fundo" : "Importar Imagem de Fundo"}
+        active={hasBgImage}
+        onClick={hasBgImage ? onToggleBgPanel : onImportImage}
       />
       <ToolButton
         icon={<Download className="h-4 w-4" />}

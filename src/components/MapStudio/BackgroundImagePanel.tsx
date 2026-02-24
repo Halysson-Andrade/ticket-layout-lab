@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, Trash2, ZoomIn, ZoomOut, Move } from 'lucide-react';
+import { Image, Trash2, ZoomIn, ZoomOut, Move, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
@@ -15,30 +15,21 @@ interface BackgroundImageConfig {
 
 interface BackgroundImagePanelProps {
   config: BackgroundImageConfig | null;
+  isOpen: boolean;
+  onClose: () => void;
   onConfigChange: (config: BackgroundImageConfig | null) => void;
   onImportImage: () => void;
 }
 
 export const BackgroundImagePanel: React.FC<BackgroundImagePanelProps> = ({
   config,
+  isOpen,
+  onClose,
   onConfigChange,
   onImportImage,
 }) => {
-  if (!config) {
-    return (
-      <div className="absolute top-20 right-80 z-20">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onImportImage}
-          className="bg-card/95 backdrop-blur-sm shadow-lg"
-        >
-          <Image className="h-4 w-4 mr-2" />
-          Importar Imagem de Fundo
-        </Button>
-      </div>
-    );
-  }
+  // Só mostra o painel se estiver aberto E tiver uma imagem configurada
+  if (!isOpen || !config) return null;
 
   return (
     <div className="absolute top-20 right-80 w-64 bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-lg z-20 p-4 space-y-4">
@@ -47,14 +38,26 @@ export const BackgroundImagePanel: React.FC<BackgroundImagePanelProps> = ({
           <Image className="h-4 w-4" />
           Imagem de Fundo
         </h3>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 text-destructive hover:text-destructive"
-          onClick={() => onConfigChange(null)}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-destructive hover:text-destructive"
+            onClick={() => onConfigChange(null)}
+            title="Remover imagem"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={onClose}
+            title="Fechar painel"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Preview da imagem */}
