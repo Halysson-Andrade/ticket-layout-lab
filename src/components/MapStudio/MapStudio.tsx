@@ -329,11 +329,12 @@ export const MapStudio: React.FC = () => {
     }));
   }, []);
 
-  // Atualiza vértices do setor SEM recalcular bounds (usado durante arraste para evitar drift)
+  // Atualiza vértices do setor E recalcula bounds em tempo real para manter o centro de rotação preciso
   const handleUpdateSectorVertices = useCallback((id: string, vertices: Vertex[]) => {
     setSectors(prev => prev.map(s => {
       if (s.id !== id) return s;
-      return { ...s, vertices };
+      const bounds = getBoundsFromVertices(vertices);
+      return { ...s, vertices, bounds };
     }));
   }, []);
 
