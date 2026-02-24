@@ -1101,7 +1101,9 @@ export const Canvas: React.FC<CanvasProps> = ({
         if (!sector.visible || sector.locked) continue;
         if (sector.vertices && sector.vertices.length > 2) {
           if (isPointInSector(pos, sector)) {
-            onAddFurniture?.(sector.id, { x: pos.x - 30, y: pos.y - 30 });
+            // Transforma para espaço local do setor (desfaz rotação)
+            const localPos = transformPointForSector(pos, sector);
+            onAddFurniture?.(sector.id, { x: localPos.x - 30, y: localPos.y - 30 });
             return;
           }
         }
