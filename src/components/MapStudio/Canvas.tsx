@@ -1103,7 +1103,7 @@ export const Canvas: React.FC<CanvasProps> = ({
           if (isPointInSector(pos, sector)) {
             // Transforma para espaço local do setor (desfaz rotação)
             const localPos = transformPointForSector(pos, sector);
-            onAddFurniture?.(sector.id, { x: localPos.x - 30, y: localPos.y - 30 });
+            onAddFurniture?.(sector.id, { x: localPos.x, y: localPos.y });
             return;
           }
         }
@@ -1271,37 +1271,36 @@ export const Canvas: React.FC<CanvasProps> = ({
       // Verifica click em assento (sem precisar de Ctrl)
       for (const sector of sectors) {
         if (!sector.visible) continue;
+        // Transforma o clique para o espaço local do setor (desfaz rotação)
+        const localPos = transformPointForSector(pos, sector);
         for (const seat of sector.seats) {
           let hitDetected = false;
           
           if (seat.furnitureType === 'table' || seat.furnitureType === 'bistro') {
-            // Para mesas/bistrôs, expande hitbox para incluir cadeiras ao redor
             const config = seat.tableConfig || { shape: 'round', chairCount: 4, tableWidth: 40, tableHeight: 40, chairStartAngle: 0 };
             const chairRadius = 6;
-            const extraRadius = chairRadius + 4; // mesmo offset usado na renderização
+            const extraRadius = chairRadius + 4;
             const expandedBounds = {
               x: seat.x - extraRadius,
               y: seat.y - extraRadius,
               width: config.tableWidth + extraRadius * 2,
               height: config.tableHeight + extraRadius * 2,
             };
-            hitDetected = isPointInBounds(pos, expandedBounds);
+            hitDetected = isPointInBounds(localPos, expandedBounds);
           } else {
             const seatW = 14;
             const seatH = 14;
             const seatBounds = { x: seat.x, y: seat.y, width: seatW, height: seatH };
-            hitDetected = isPointInBounds(pos, seatBounds);
+            hitDetected = isPointInBounds(localPos, seatBounds);
           }
           
           if (hitDetected) {
             if (!selectedSeatIds.includes(seat.id)) {
-              // Seleciona o assento primeiro
               onSelectSeats([seat.id], e.ctrlKey || e.metaKey);
               if (activeSeatType !== 'normal') {
                 onApplySeatType([seat.id], activeSeatType);
               }
             }
-            // Inicia arraste imediatamente (selecionar + arrastar no mesmo clique)
             setIsDraggingSeat(true);
             setDraggingSeatInfo({ seatId: seat.id, sectorId: sector.id });
             setDragStart(pos);
