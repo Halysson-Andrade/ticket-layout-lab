@@ -1495,17 +1495,21 @@ export const Canvas: React.FC<CanvasProps> = ({
 
     // Arrastar assentos selecionados
     if (isDraggingSeat && draggingSeatInfo) {
-      const dx = pos.x - dragStart.x;
-      const dy = pos.y - dragStart.y;
+      const sector = sectors.find(s => s.id === draggingSeatInfo.sectorId);
+      
+      // Transforma posições para espaço local do setor
+      const localPos = sector ? transformPointForSector(pos, sector) : pos;
+      const localDragStart = sector ? transformPointForSector(dragStart, sector) : dragStart;
+      const dx = localPos.x - localDragStart.x;
+      const dy = localPos.y - localDragStart.y;
       
       // Move todos os assentos selecionados
       if (selectedSeatIds.length > 1 && onMoveSelectedSeats) {
         onMoveSelectedSeats(dx, dy);
       } else {
         // Move apenas o assento arrastado
-        const sector = sectors.find(s => s.id === draggingSeatInfo.sectorId);
-        if (sector && isPointInSector(pos, sector)) {
-          onMoveSeat(draggingSeatInfo.seatId, draggingSeatInfo.sectorId, pos.x - 7, pos.y - 7);
+        if (sector) {
+          onMoveSeat(draggingSeatInfo.seatId, draggingSeatInfo.sectorId, localPos.x - 7, localPos.y - 7);
         }
       }
       setDragStart(pos);
