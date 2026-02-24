@@ -75,6 +75,7 @@ export const MapStudio: React.FC = () => {
   const [pan, setPan] = useState({ x: 100, y: 50 });
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [bgConfig, setBgConfig] = useState<BackgroundImageConfig | null>(null);
+  const [bgPanelOpen, setBgPanelOpen] = useState(false);
 
   // Modals
   const [showGridGenerator, setShowGridGenerator] = useState(false);
@@ -1112,6 +1113,7 @@ export const MapStudio: React.FC = () => {
             x: 0,
             y: 0,
           });
+          setBgPanelOpen(true);
           toast.success('Imagem de fundo importada!');
         };
         reader.readAsDataURL(file);
@@ -1125,6 +1127,7 @@ export const MapStudio: React.FC = () => {
     if (config === null) {
       setBackgroundImage(null);
       setBgConfig(null);
+      setBgPanelOpen(false);
       toast.success('Imagem de fundo removida');
     } else {
       setBgConfig(config);
@@ -1771,11 +1774,13 @@ export const MapStudio: React.FC = () => {
             onZoomOut={() => setZoom(z => Math.max(0.2, z * 0.8))}
             onExport={() => setShowExport(true)}
             onImportImage={handleImportImage}
+            onToggleBgPanel={() => setBgPanelOpen(prev => !prev)}
             onDelete={handleDelete}
             onDuplicate={handleDuplicate}
             canUndo={historyIndex > 0}
             canRedo={historyIndex < history.length - 1}
             hasSelection={selectedSectorIds.length > 0 || selectedSeatIds.length > 0}
+            hasBgImage={!!bgConfig}
             zoom={zoom}
           />
         ) : null}
@@ -1869,6 +1874,8 @@ export const MapStudio: React.FC = () => {
         {/* Background Image Panel */}
         <BackgroundImagePanel
           config={bgConfig}
+          isOpen={bgPanelOpen}
+          onClose={() => setBgPanelOpen(false)}
           onConfigChange={handleBgConfigChange}
           onImportImage={handleImportImage}
         />
