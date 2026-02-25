@@ -57,7 +57,7 @@ interface CanvasProps {
   onMoveShape?: (id: string, dx: number, dy: number) => void;
   onDeleteShape?: (id: string) => void; // Excluir forma não vinculada
   onGroupShapesToSector?: (shapeIds: string[]) => void;
-  onAddFurniture?: (sectorId: string, position: { x: number; y: number }) => void;
+  onAddFurniture?: (sectorId: string, position: { x: number; y: number }, screenPosition: { x: number; y: number }) => void;
   onDeselectAll?: () => void;
 }
 
@@ -1104,7 +1104,7 @@ export const Canvas: React.FC<CanvasProps> = ({
           if (isPointInSector(pos, sector)) {
             // Transforma para espaço local do setor (desfaz rotação)
             const localPos = transformPointForSector(pos, sector);
-            onAddFurniture?.(sector.id, { x: localPos.x, y: localPos.y });
+            onAddFurniture?.(sector.id, { x: localPos.x, y: localPos.y }, { x: e.clientX, y: e.clientY });
             return;
           }
         }

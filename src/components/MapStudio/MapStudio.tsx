@@ -13,6 +13,7 @@ import { OnboardingWizard } from './OnboardingWizard';
 import { ExportModal } from './ExportModal';
 import { RowEditorModal } from './RowEditorModal';
 import { BackgroundImagePanel, BackgroundImageConfig } from './BackgroundImagePanel';
+import { SeatPlacementPopup, SeatPlacementConfig } from './SeatPlacementPopup';
 import { 
   VenueMap, 
   Sector, 
@@ -76,6 +77,14 @@ export const MapStudio: React.FC = () => {
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [bgConfig, setBgConfig] = useState<BackgroundImageConfig | null>(null);
   const [bgPanelOpen, setBgPanelOpen] = useState(false);
+
+  // Seat placement popup
+  const [seatPlacementPopup, setSeatPlacementPopup] = useState<{
+    sectorId: string;
+    position: { x: number; y: number };
+    screenPosition: { x: number; y: number };
+    nextNumber: number;
+  } | null>(null);
 
   // Modals
   const [showGridGenerator, setShowGridGenerator] = useState(false);
@@ -814,7 +823,18 @@ export const MapStudio: React.FC = () => {
     });
   }, [pushHistory]);
 
-  const handleAddFurnitureToSector = useCallback((sectorId: string, position: { x: number; y: number }) => {
+  const handleRequestFurniture = useCallback((sectorId: string, position: { x: number; y: number }, screenPosition: { x: number; y: number }) => {
+    const sector = sectors.find(s => s.id === sectorId);
+    const nextNumber = sector ? sector.seats.length + 1 : 1;
+    setSeatPlacementPopup({ sectorId, position, screenPosition, nextNumber });
+  }, [sectors]);
+
+  const handleConfirmFurniturePlacement = useCallback((config: SeatPlacementConfig) => {
+    if (!seatPlacementPopup) return;
+    const { sectorId, position } = seatPlacementPopup;
+    const ft = config.furnitureType;
+    const tc = config.tableConfig || tableConfig;
+
     setSectors(prev => {
       const newSectors = prev.map(s => {
         if (s.id !== sectorId) return s;
@@ -822,15 +842,15 @@ export const MapStudio: React.FC = () => {
         const newSeat: Seat = {
           id: generateId(),
           sectorId,
-          row: '',
-          number: String(s.seats.length + 1),
-          type: activeSeatType,
+          row: config.row,
+          number: config.number,
+          type: config.seatType,
           status: 'available',
-          x: position.x - (activeFurnitureType !== 'chair' ? (tableConfig.tableWidth || 40) / 2 : 7),
-          y: position.y - (activeFurnitureType !== 'chair' ? (tableConfig.tableHeight || 40) / 2 : 7),
+          x: position.x - (ft !== 'chair' ? (tc.tableWidth || 40) / 2 : 7),
+          y: position.y - (ft !== 'chair' ? (tc.tableHeight || 40) / 2 : 7),
           rotation: 0,
-          furnitureType: activeFurnitureType,
-          tableConfig: activeFurnitureType !== 'chair' ? { ...tableConfig } : undefined,
+          furnitureType: ft,
+          tableConfig: ft !== 'chair' ? { ...tc } : undefined,
         };
         
         return { ...s, seats: [...s.seats, newSeat] };
@@ -838,8 +858,9 @@ export const MapStudio: React.FC = () => {
       pushHistory(newSectors);
       return newSectors;
     });
-    toast.success(`${activeFurnitureType === 'chair' ? 'Cadeira' : activeFurnitureType === 'table' ? 'Mesa' : 'Bistrô'} adicionado(a)!`);
-  }, [activeFurnitureType, activeSeatType, tableConfig, pushHistory]);
+    toast.success(`${ft === 'chair' ? 'Cadeira' : ft === 'table' ? 'Mesa' : 'Bistrô'} adicionado(a)!`);
+    setSeatPlacementPopup(null);
+  }, [seatPlacementPopup, tableConfig, pushHistory]);
 
   // Adiciona elemento de venue
   const handleAddElement = useCallback((type: ElementType) => {
@@ -1802,7 +1823,7 @@ export const MapStudio: React.FC = () => {
           onSelectShape={handleSelectShape}
           onMoveShape={handleMoveShape}
           onDeleteShape={handleDeleteShape}
-          onAddFurniture={handleAddFurnitureToSector}
+          onAddFurniture={handleRequestFurniture}
           onDeselectAll={handleDeselectAll}
         />
 
@@ -1923,7 +1944,19 @@ export const MapStudio: React.FC = () => {
           onImportImage={handleImportImage}
         />
 
-        {/* Minimap */}
+        {/* Seat Placement Popup */}
+        {seatPlacementPopup && (
+          <SeatPlacementPopup
+            position={seatPlacementPopup.screenPosition}
+            currentFurnitureType={activeFurnitureType}
+            currentSeatType={activeSeatType}
+            currentTableConfig={tableConfig}
+            nextNumber={seatPlacementPopup.nextNumber}
+            onConfirm={handleConfirmFurniturePlacement}
+            onCancel={() => setSeatPlacementPopup(null)}
+          />
+        )}
+
         <Minimap
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
