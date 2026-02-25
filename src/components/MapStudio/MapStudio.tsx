@@ -773,13 +773,20 @@ export const MapStudio: React.FC = () => {
         const centerX = bounds.x + bounds.width / 2;
         const centerY = bounds.y + bounds.height / 2;
         
-        // Inverte vértices
+        // Inverte vértices (incluindo controlPoints de curvas Bezier)
         const flippedVertices = s.vertices.map(v => {
-          if (direction === 'horizontal') {
-            return { x: centerX * 2 - v.x, y: v.y };
-          } else {
-            return { x: v.x, y: centerY * 2 - v.y };
+          const flippedVertex: Vertex = direction === 'horizontal'
+            ? { x: centerX * 2 - v.x, y: v.y }
+            : { x: v.x, y: centerY * 2 - v.y };
+          
+          // Flip controlPoint se existir
+          if (v.controlPoint) {
+            flippedVertex.controlPoint = direction === 'horizontal'
+              ? { x: centerX * 2 - v.controlPoint.x, y: v.controlPoint.y }
+              : { x: v.controlPoint.x, y: centerY * 2 - v.controlPoint.y };
           }
+          
+          return flippedVertex;
         });
         
         // Inverte posição dos assentos
@@ -794,7 +801,10 @@ export const MapStudio: React.FC = () => {
           }
         });
         
-        return { ...s, vertices: flippedVertices, seats: flippedSeats };
+        // Recalcula bounds após flip
+        const newBounds = getBoundsFromVertices(flippedVertices);
+        
+        return { ...s, vertices: flippedVertices, seats: flippedSeats, bounds: newBounds };
       });
       pushHistory(newSectors);
       return newSectors;
