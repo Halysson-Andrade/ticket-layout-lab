@@ -329,12 +329,13 @@ export const MapStudio: React.FC = () => {
     }));
   }, []);
 
-  // Atualiza vértices do setor E recalcula bounds em tempo real para manter o centro de rotação preciso
+  // Atualiza vértices do setor SEM recalcular bounds durante arraste
+  // Bounds fica estável durante o drag para manter o centro de rotação fixo e evitar drift
+  // Bounds é recalculado em handleVertexMoveEnd quando o arraste termina
   const handleUpdateSectorVertices = useCallback((id: string, vertices: Vertex[]) => {
     setSectors(prev => prev.map(s => {
       if (s.id !== id) return s;
-      const bounds = getBoundsFromVertices(vertices);
-      return { ...s, vertices, bounds };
+      return { ...s, vertices };
     }));
   }, []);
 
@@ -924,22 +925,63 @@ export const MapStudio: React.FC = () => {
   }, [sectors, pushHistory]);
 
   // Recalcula bounds/assentos e salva histórico após finalizar movimento de vértice
+  // Para setores rotacionados, compensa vértices para que a mudança de centro de rotação
+  // não cause "pulo" visual ao soltar o mouse
   const handleVertexMoveEnd = useCallback(() => {
     setSectors(prev => {
       const updated = prev.map(s => {
-        const bounds = getBoundsFromVertices(s.vertices);
-        // Só reposiciona se bounds mudou
-        if (bounds.x !== s.bounds.x || bounds.y !== s.bounds.y || bounds.width !== s.bounds.width || bounds.height !== s.bounds.height) {
-          const repositionedSeats = repositionSeatsInsidePolygon(
-            s.seats,
-            s.vertices,
-            s.vertices,
-            s.id,
-            12
-          );
-          return { ...s, bounds, seats: repositionedSeats };
+        const newBounds = getBoundsFromVertices(s.vertices);
+        const rotation = s.rotation || 0;
+        
+        let finalVertices = s.vertices;
+        
+        // Se o setor tem rotação e o centro mudou, compensa os vértices
+        // para que a aparência visual (rotacionada) permaneça idêntica
+        if (rotation !== 0) {
+          const oldCenterX = s.bounds.x + s.bounds.width / 2;
+          const oldCenterY = s.bounds.y + s.bounds.height / 2;
+          const newCenterX = newBounds.x + newBounds.width / 2;
+          const newCenterY = newBounds.y + newBounds.height / 2;
+          
+          const dcx = newCenterX - oldCenterX;
+          const dcy = newCenterY - oldCenterY;
+          
+          // Se o centro se moveu significativamente, compensa
+          if (Math.abs(dcx) > 0.01 || Math.abs(dcy) > 0.01) {
+            const rad = (-rotation * Math.PI) / 180;
+            const cos = Math.cos(rad);
+            const sin = Math.sin(rad);
+            // Compensação: V' = V + (I - Rot(-θ)) * (newCenter - oldCenter)
+            const compX = dcx - (dcx * cos - dcy * sin);
+            const compY = dcy - (dcx * sin + dcy * cos);
+            
+            finalVertices = s.vertices.map(v => ({
+              ...v,
+              x: v.x + compX,
+              y: v.y + compY,
+              controlPoint: v.controlPoint ? {
+                x: v.controlPoint.x + compX,
+                y: v.controlPoint.y + compY,
+              } : undefined,
+            }));
+            
+            // Recalcula bounds com vértices compensados
+            const compensatedBounds = getBoundsFromVertices(finalVertices);
+            const repositionedSeats = repositionSeatsInsidePolygon(
+              s.seats, finalVertices, finalVertices, s.id, 12
+            );
+            return { ...s, vertices: finalVertices, bounds: compensatedBounds, seats: repositionedSeats };
+          }
         }
-        return { ...s, bounds };
+        
+        // Sem rotação ou sem mudança de centro: atualiza normalmente
+        if (newBounds.x !== s.bounds.x || newBounds.y !== s.bounds.y || newBounds.width !== s.bounds.width || newBounds.height !== s.bounds.height) {
+          const repositionedSeats = repositionSeatsInsidePolygon(
+            s.seats, s.vertices, s.vertices, s.id, 12
+          );
+          return { ...s, bounds: newBounds, seats: repositionedSeats };
+        }
+        return { ...s, bounds: newBounds };
       });
       pushHistory(updated);
       return updated;
