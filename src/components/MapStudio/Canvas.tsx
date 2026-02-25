@@ -1416,7 +1416,23 @@ export const Canvas: React.FC<CanvasProps> = ({
       const sector = sectors.find(s => s.id === selectedSectorIds[0]);
       if (sector && sector.vertices) {
         const newVertices = [...sector.vertices];
-        const transformedPos = transformPointForSector(pos, sector);
+        
+        // Usa centro fixo (capturado no início do arraste) para a transformação inversa
+        // Isso evita drift causado por mudanças no bounds durante o arraste
+        let transformedPos: { x: number; y: number };
+        const rotation = sector.rotation || 0;
+        if (rotation !== 0 && dragCenterRef.current) {
+          const center = dragCenterRef.current;
+          const rad = (-rotation * Math.PI) / 180;
+          const dx = pos.x - center.x;
+          const dy = pos.y - center.y;
+          transformedPos = {
+            x: center.x + dx * Math.cos(rad) - dy * Math.sin(rad),
+            y: center.y + dx * Math.sin(rad) + dy * Math.cos(rad),
+          };
+        } else {
+          transformedPos = transformPointForSector(pos, sector);
+        }
         
         if (isCurvingVertex && curvingVertexInfo) {
           // Modo curvar: posiciona o controlPoint no meio da aresta para a curva pegar a linha inteira
