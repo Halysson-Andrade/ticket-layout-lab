@@ -129,7 +129,7 @@ export interface Sector {
   seatsPerRow?: number[];
   customNumbers?: number[]; // Numeração custom usada no gerador
   customPerRowNumbers?: Record<string, RowNumberingConfig>; // Configuração de numeração por fileira
-  rowLabelPosition?: 'left' | 'right' | 'both'; // Posição do nome da fileira
+  rowLabelPosition?: 'left' | 'right' | 'both' | 'none'; // Posição do nome da fileira
   seatNumberDirection?: SeatNumberDirection; // Direção da numeração dos assentos
   centerSeats?: boolean; // Centralizar assentos na forma
 }
@@ -204,7 +204,7 @@ export interface GridGeneratorParams {
   rowAlignment?: RowAlignment; // Alinhamento dos assentos na fileira
   resizeWidth?: number; // Nova largura do setor (opcional)
   resizeHeight?: number; // Nova altura do setor (opcional)
-  rowLabelPosition?: 'left' | 'right' | 'both'; // Posição do nome da fileira no mapa
+  rowLabelPosition?: 'left' | 'right' | 'both' | 'none'; // Posição do nome da fileira no mapa
   seatNumberDirection?: SeatNumberDirection; // Direção da numeração dos assentos
 }
 
