@@ -942,8 +942,8 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                       />
                     )}
                     
-                    {/* Row labels na lateral esquerda */}
-                    {(() => {
+                    {/* Row labels na lateral esquerda (oculto quando 'none') */}
+                    {config.rowLabelPosition !== 'none' && (() => {
                       const rowLabelsShown = new Set<string>();
                       return previewData.seats
                         .filter(seat => seat.isInside && seat.col === 0)
