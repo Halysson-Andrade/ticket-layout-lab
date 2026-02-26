@@ -559,6 +559,11 @@ export const MapStudio: React.FC = () => {
       params.seatNumberDirection
     );
 
+    // Se rowLabelPosition é 'none', remove fileiras dos assentos
+    if (params.rowLabelPosition === 'none') {
+      newSeats.forEach(seat => { seat.row = ''; });
+    }
+
     setSectors(prev => {
       const newSectors = prev.map(s => 
         s.id === params.sectorId 

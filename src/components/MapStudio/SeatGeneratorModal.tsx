@@ -68,7 +68,7 @@ interface GeneratorConfig {
   customPerRowEnabled: boolean;
   customPerRowConfig: Record<string, { type: RowNumberingType; startNumber: number; customNumbers: string; direction: SeatNumberDirection }>;
   // Posição do nome da fileira
-  rowLabelPosition: 'left' | 'right' | 'both';
+  rowLabelPosition: 'left' | 'right' | 'both' | 'none';
   // Direção da numeração dos assentos
   seatNumberDirection: SeatNumberDirection;
 }
@@ -592,15 +592,16 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
                       />
                       <Select
                         value={config.rowLabelPosition}
-                        onValueChange={(v: 'left' | 'right' | 'both') => setConfig(prev => ({ ...prev, rowLabelPosition: v }))}
+                        onValueChange={(v: 'left' | 'right' | 'both' | 'none') => setConfig(prev => ({ ...prev, rowLabelPosition: v }))}
                       >
-                        <SelectTrigger className="w-[90px]">
+                        <SelectTrigger className="w-[110px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="left">← Esq.</SelectItem>
                           <SelectItem value="right">Dir. →</SelectItem>
                           <SelectItem value="both">Ambos</SelectItem>
+                          <SelectItem value="none">Não informar</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
