@@ -735,18 +735,19 @@ export const Canvas: React.FC<CanvasProps> = ({
           seatCounts[seat.type] = (seatCounts[seat.type] || 0) + 1;
         });
         
+        // Calcula tamanho de fonte proporcional ao tamanho do setor
+        const minDim = Math.min(bounds.width, bounds.height);
+        const baseFontSize = Math.max(8, Math.min(minDim * 0.18, 40));
+        const smallFontSize = baseFontSize * 0.6;
+        const tinyFontSize = baseFontSize * 0.5;
+        const lineHeight = baseFontSize * 1.2;
+        
         ctx.fillStyle = '#fff';
-        ctx.font = `bold ${16 / zoom}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         
         const centerX = bounds.x + bounds.width / 2;
         const centerY = bounds.y + bounds.height / 2;
-        
-        // Total de assentos
-        ctx.fillText(`${sector.seats.length}`, centerX, centerY - 10 / zoom);
-        ctx.font = `${10 / zoom}px sans-serif`;
-        ctx.fillText('assentos', centerX, centerY + 6 / zoom);
         
         // Resumo por tipo (exceto normal)
         const typeLabels: Record<string, string> = { pcd: 'PCD', vip: 'VIP', obeso: 'Obeso', companion: 'Acomp.', blocked: 'Bloq.' };
@@ -755,10 +756,24 @@ export const Canvas: React.FC<CanvasProps> = ({
           .map(([type, count]) => `${count} ${typeLabels[type] || type}`)
           .join(' • ');
         
-        if (specialTypes) {
-          ctx.font = `${9 / zoom}px sans-serif`;
+        const hasSpecial = specialTypes.length > 0;
+        const totalLines = hasSpecial ? 3 : 2;
+        const blockHeight = lineHeight * totalLines;
+        const startY = centerY - blockHeight / 2 + lineHeight / 2;
+        
+        // Total de assentos (número grande)
+        ctx.font = `bold ${baseFontSize}px sans-serif`;
+        ctx.fillText(`${sector.seats.length}`, centerX, startY);
+        
+        // Label "assentos"
+        ctx.font = `${smallFontSize}px sans-serif`;
+        ctx.fillText('assentos', centerX, startY + lineHeight);
+        
+        // Tipos especiais
+        if (hasSpecial) {
+          ctx.font = `${tinyFontSize}px sans-serif`;
           ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-          ctx.fillText(specialTypes, centerX, centerY + 20 / zoom);
+          ctx.fillText(specialTypes, centerX, startY + lineHeight * 2, bounds.width * 0.9);
         }
       } else {
         // Zoom próximo: mostra assentos individuais
