@@ -979,12 +979,17 @@ export const MapStudio: React.FC = () => {
           
           // Se o centro se moveu significativamente, compensa
           if (Math.abs(dcx) > 0.01 || Math.abs(dcy) > 0.01) {
-            const rad = (-rotation * Math.PI) / 180;
+            // IMPORTANTE: como os vértices também são transladados,
+            // o novo centro de rotação também se desloca junto.
+            // Para manter a aparência visual idêntica após mouse up,
+            // usamos compensação auto-consistente: t = (R(θ) - I) * ΔC
+            const rad = (rotation * Math.PI) / 180;
             const cos = Math.cos(rad);
             const sin = Math.sin(rad);
-            // Compensação: V' = V + (I - Rot(-θ)) * (newCenter - oldCenter)
-            const compX = dcx - (dcx * cos - dcy * sin);
-            const compY = dcy - (dcx * sin + dcy * cos);
+            const rotatedDeltaX = dcx * cos - dcy * sin;
+            const rotatedDeltaY = dcx * sin + dcy * cos;
+            const compX = rotatedDeltaX - dcx;
+            const compY = rotatedDeltaY - dcy;
             
             finalVertices = s.vertices.map(v => ({
               ...v,
