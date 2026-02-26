@@ -856,6 +856,38 @@ export const Canvas: React.FC<CanvasProps> = ({
         });
       }
 
+      // Renderiza texto customizado do setor (sectorLabel)
+      if (sector.sectorLabel) {
+        const labelCenterX = bounds.x + bounds.width / 2;
+        const labelCenterY = bounds.y + bounds.height / 2;
+        const minDim = Math.min(bounds.width, bounds.height);
+        const autoSize = Math.max(10, Math.min(minDim * 0.2, 60));
+        const fontSize = sector.sectorLabelSize || autoSize;
+        const direction = sector.sectorLabelDirection || 'horizontal';
+        
+        ctx.save();
+        ctx.translate(labelCenterX, labelCenterY);
+        
+        // Aplica rotação do texto conforme direção
+        if (direction === 'vertical') {
+          ctx.rotate(-Math.PI / 2);
+        } else if (direction === 'diagonal-up') {
+          ctx.rotate(-Math.PI / 6);
+        } else if (direction === 'diagonal-down') {
+          ctx.rotate(Math.PI / 6);
+        }
+        
+        ctx.font = `bold ${fontSize}px sans-serif`;
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 4;
+        ctx.fillText(sector.sectorLabel, 0, 0, Math.max(bounds.width, bounds.height) * 0.9);
+        ctx.shadowBlur = 0;
+        ctx.restore();
+      }
+
       ctx.restore();
     });
 

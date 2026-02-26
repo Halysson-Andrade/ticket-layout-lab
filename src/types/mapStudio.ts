@@ -132,6 +132,9 @@ export interface Sector {
   rowLabelPosition?: 'left' | 'right' | 'both' | 'none'; // Posição do nome da fileira
   seatNumberDirection?: SeatNumberDirection; // Direção da numeração dos assentos
   centerSeats?: boolean; // Centralizar assentos na forma
+  sectorLabel?: string; // Texto customizado exibido no centro do setor (ex: "Camarote")
+  sectorLabelDirection?: 'horizontal' | 'vertical' | 'diagonal-up' | 'diagonal-down'; // Direção do texto
+  sectorLabelSize?: number; // Tamanho da fonte (padrão: auto)
 }
 
 export interface VenueElement {
