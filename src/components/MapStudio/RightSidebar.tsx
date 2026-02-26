@@ -463,6 +463,59 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                   </div>
                 </div>
 
+                {/* Texto do Setor (label customizado) */}
+                <div className="space-y-2">
+                  <Label className="text-xs flex items-center gap-2">
+                    <Type className="h-3 w-3" />
+                    Texto no Setor
+                  </Label>
+                  <Input
+                    placeholder="Ex: Camarote, Pista, VIP..."
+                    value={selectedSector.sectorLabel || ''}
+                    onChange={(e) => onUpdateSector(selectedSector.id, { sectorLabel: e.target.value })}
+                    className="h-8 text-xs"
+                  />
+                  {selectedSector.sectorLabel && (
+                    <div className="space-y-2">
+                      <Label className="text-[10px] text-muted-foreground">Direção do texto</Label>
+                      <div className="grid grid-cols-4 gap-1">
+                        {([
+                          { value: 'horizontal', label: 'Horiz.' },
+                          { value: 'vertical', label: 'Vert.' },
+                          { value: 'diagonal-up', label: 'Diag. ↗' },
+                          { value: 'diagonal-down', label: 'Diag. ↘' },
+                        ] as const).map(opt => (
+                          <button
+                            key={opt.value}
+                            className={`text-[10px] px-1.5 py-1 rounded border transition-all ${
+                              (selectedSector.sectorLabelDirection || 'horizontal') === opt.value
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'bg-muted/50 border-border hover:border-primary/50'
+                            }`}
+                            onClick={() => onUpdateSector(selectedSector.id, { sectorLabelDirection: opt.value })}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground">Tamanho da fonte</Label>
+                        <Slider
+                          value={[selectedSector.sectorLabelSize || 0]}
+                          min={0}
+                          max={80}
+                          step={1}
+                          onValueChange={([v]) => onUpdateSector(selectedSector.id, { sectorLabelSize: v })}
+                          className="mt-1"
+                        />
+                        <span className="text-[10px] text-muted-foreground">
+                          {selectedSector.sectorLabelSize ? `${selectedSector.sectorLabelSize}px` : 'Automático'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Posição */}
                 <div className="space-y-2">
                   <Label className="text-xs flex items-center gap-2">
