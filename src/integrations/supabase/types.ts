@@ -218,6 +218,53 @@ export type Database = {
           },
         ]
       }
+      simulated_events: {
+        Row: {
+          city: string
+          company_id: string
+          created_at: string
+          date: string
+          external_id: string
+          id: string
+          image_url: string | null
+          name: string
+          status: string
+          venue: string
+        }
+        Insert: {
+          city: string
+          company_id: string
+          created_at?: string
+          date: string
+          external_id: string
+          id?: string
+          image_url?: string | null
+          name: string
+          status?: string
+          venue: string
+        }
+        Update: {
+          city?: string
+          company_id?: string
+          created_at?: string
+          date?: string
+          external_id?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          status?: string
+          venue?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "simulated_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
