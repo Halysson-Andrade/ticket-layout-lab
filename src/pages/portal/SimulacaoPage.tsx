@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Search, Play, Calendar, MapPin, Loader2, ExternalLink } from 'lucide-react';
+import { Search, Play, Calendar, MapPin, Loader2, ExternalLink, FileText, Copy, Check } from 'lucide-react';
 
 const COMPANY_ID = '00000000-0000-0000-0000-000000000001';
 
@@ -28,6 +30,8 @@ const SimulacaoPage: React.FC = () => {
   const [events, setEvents] = useState<SimEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [docEvent, setDocEvent] = useState<SimEvent | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
@@ -61,6 +65,17 @@ const SimulacaoPage: React.FC = () => {
       id_evento: evt.external_id,
     });
     navigate(`/mapstudio?${params.toString()}`);
+  };
+
+  const handleCopy = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const buildRedirectUrl = (evt: SimEvent) => {
+    const base = window.location.origin;
+    return `${base}/mapstudio?empresa=${COMPANY_ID}&id_evento=${evt.external_id}`;
   };
 
   const filtered = events.filter(
@@ -122,10 +137,12 @@ const SimulacaoPage: React.FC = () => {
           {filtered.map((evt) => (
             <Card
               key={evt.id}
-              className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow group"
-              onClick={() => handleOpenEvent(evt)}
+              className="overflow-hidden hover:shadow-lg transition-shadow group"
             >
-              <div className="relative h-40 bg-muted overflow-hidden">
+              <div
+                className="relative h-40 bg-muted overflow-hidden cursor-pointer"
+                onClick={() => handleOpenEvent(evt)}
+              >
                 {evt.image_url ? (
                   <img
                     src={evt.image_url}
@@ -148,7 +165,7 @@ const SimulacaoPage: React.FC = () => {
                 </Badge>
               </div>
               <CardContent className="p-4 space-y-2">
-                <h3 className="font-semibold text-sm line-clamp-2">{evt.name}</h3>
+                <h3 className="font-semibold text-sm line-clamp-2 cursor-pointer" onClick={() => handleOpenEvent(evt)}>{evt.name}</h3>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <MapPin className="h-3 w-3" />
                   <span className="truncate">{evt.venue} — {evt.city}</span>
@@ -159,13 +176,173 @@ const SimulacaoPage: React.FC = () => {
                 </div>
                 <div className="flex items-center justify-between pt-1">
                   <span className="text-xs font-mono text-muted-foreground">{evt.external_id}</span>
-                  <ExternalLink className="h-3.5 w-3.5 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={(e) => { e.stopPropagation(); setDocEvent(evt); }}
+                      title="Documentação de redirecionamento"
+                    >
+                      <FileText className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                    </Button>
+                    <ExternalLink
+                      className="h-3.5 w-3.5 text-primary opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      onClick={() => handleOpenEvent(evt)}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      {/* Modal de Documentação de Redirecionamento */}
+      <Dialog open={!!docEvent} onOpenChange={(v) => !v && setDocEvent(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Documentação de Redirecionamento
+            </DialogTitle>
+          </DialogHeader>
+
+          {docEvent && (
+            <div className="space-y-5 text-sm">
+              {/* Evento Info */}
+              <div className="bg-muted rounded-lg p-4 space-y-1">
+                <p className="font-medium text-foreground">{docEvent.name}</p>
+                <p className="text-xs text-muted-foreground">{docEvent.venue} — {docEvent.city}</p>
+                <p className="text-xs font-mono text-muted-foreground">ID Externo: {docEvent.external_id}</p>
+              </div>
+
+              <Separator />
+
+              {/* Como funciona */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-foreground">Como funciona o redirecionamento</h3>
+                <p className="text-muted-foreground text-xs leading-relaxed">
+                  O sistema do cliente redireciona o usuário para o MapStudio passando os parâmetros de integração na URL.
+                  Ao abrir, o MapStudio detecta os parâmetros, verifica se já existe um mapa salvo para o evento e 
+                  carrega os setores disponíveis via API. Ao salvar, o mapa é persistido internamente e sincronizado
+                  com a API do cliente.
+                </p>
+              </div>
+
+              <Separator />
+
+              {/* URL de Redirecionamento */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-foreground">URL de Redirecionamento</h3>
+                <div className="bg-muted rounded-md p-3 flex items-start gap-2">
+                  <code className="flex-1 text-xs break-all font-mono text-foreground">
+                    {buildRedirectUrl(docEvent)}
+                  </code>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0"
+                    onClick={() => handleCopy(buildRedirectUrl(docEvent), 'url')}
+                  >
+                    {copiedField === 'url' ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                  </Button>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Parâmetros */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-foreground">Parâmetros da URL</h3>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-muted">
+                        <th className="text-left p-2 font-medium">Parâmetro</th>
+                        <th className="text-left p-2 font-medium">Tipo</th>
+                        <th className="text-left p-2 font-medium">Obrigatório</th>
+                        <th className="text-left p-2 font-medium">Descrição</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-t">
+                        <td className="p-2 font-mono text-primary">empresa</td>
+                        <td className="p-2">UUID</td>
+                        <td className="p-2"><Badge variant="destructive" className="text-[10px] px-1.5 py-0">Sim</Badge></td>
+                        <td className="p-2 text-muted-foreground">ID da empresa no sistema</td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="p-2 font-mono text-primary">id_evento</td>
+                        <td className="p-2">string</td>
+                        <td className="p-2"><Badge variant="destructive" className="text-[10px] px-1.5 py-0">Sim</Badge></td>
+                        <td className="p-2 text-muted-foreground">ID do evento no sistema do cliente</td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="p-2 font-mono text-primary">map_id</td>
+                        <td className="p-2">UUID</td>
+                        <td className="p-2"><Badge variant="outline" className="text-[10px] px-1.5 py-0">Não</Badge></td>
+                        <td className="p-2 text-muted-foreground">ID de um mapa existente (para edição direta)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Fluxo */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-foreground">Fluxo de Abertura</h3>
+                <ol className="space-y-2 text-xs text-muted-foreground list-decimal list-inside">
+                  <li>O usuário é redirecionado para a URL com os parâmetros <code className="bg-muted px-1 rounded text-foreground">empresa</code> e <code className="bg-muted px-1 rounded text-foreground">id_evento</code></li>
+                  <li>O MapStudio verifica se o usuário está autenticado (redireciona para login se necessário)</li>
+                  <li>Busca na base se já existe um mapa salvo para <code className="bg-muted px-1 rounded text-foreground">company_id + id_evento_externo</code></li>
+                  <li>Se existir → carrega o mapa salvo no canvas</li>
+                  <li>Se não existir → abre o canvas vazio e busca os setores via <code className="bg-muted px-1 rounded text-foreground">url_list_setores</code> da empresa</li>
+                  <li>Os setores ficam disponíveis no dropdown "Vincular a Setor" para associar formas criadas</li>
+                </ol>
+              </div>
+
+              <Separator />
+
+              {/* Fluxo de Save */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-foreground">Fluxo de Salvamento</h3>
+                <ol className="space-y-2 text-xs text-muted-foreground list-decimal list-inside">
+                  <li>O usuário clica em "Salvar" no MapStudio</li>
+                  <li>O mapa é salvo na base interna com status <code className="bg-muted px-1 rounded text-foreground">PENDENTE</code></li>
+                  <li>O sistema faz POST para <code className="bg-muted px-1 rounded text-foreground">url_create_mapa</code> (novo) ou <code className="bg-muted px-1 rounded text-foreground">url_update_mapa</code> (existente)</li>
+                  <li>Se a API responder com sucesso → status atualizado para <code className="bg-muted px-1 rounded text-foreground">OK</code></li>
+                  <li>Se houver erro → status marcado como <code className="bg-muted px-1 rounded text-foreground">ERRO</code></li>
+                  <li>Toast exibido ao usuário com o resultado da sincronização</li>
+                </ol>
+              </div>
+
+              <Separator />
+
+              {/* Exemplo de implementação */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-foreground">Exemplo de Implementação (Cliente)</h3>
+                <pre className="bg-muted rounded-md p-3 text-xs font-mono overflow-x-auto whitespace-pre">{`// Redirecionar o usuário para criar/editar o mapa de um evento
+function abrirMapStudio(empresaId, eventoId) {
+  const url = "${window.location.origin}/mapstudio"
+    + "?empresa=" + empresaId
+    + "&id_evento=" + eventoId;
+  
+  window.open(url, "_blank");
+}
+
+// Exemplo de uso:
+abrirMapStudio(
+  "${COMPANY_ID}",
+  "${docEvent.external_id}"
+);`}</pre>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
