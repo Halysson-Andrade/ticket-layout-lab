@@ -102,12 +102,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .maybeSingle();
 
     if (lookupError || !profileData) {
-      // Log failed attempt
-      await supabase.from('audit_logs').insert({
-        action: 'LOGIN_FAIL',
-        actor_user_id: null,
-        metadata: { username, reason: 'user_not_found' },
-      }).then(() => {});
       return { error: 'Usuário ou senha inválidos' };
     }
 

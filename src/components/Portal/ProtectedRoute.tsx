@@ -6,9 +6,10 @@ import { Loader2 } from 'lucide-react';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: 'admin';
+  skipPasswordCheck?: boolean;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole, skipPasswordCheck }) => {
   const { user, profile, role, loading } = useAuth();
 
   if (loading) {
@@ -23,7 +24,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
     return <Navigate to="/login" replace />;
   }
 
-  // Wait for profile to load
   if (!profile || !role) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -32,12 +32,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
     );
   }
 
-  // Force password change
-  if (profile.must_change_password) {
+  if (!skipPasswordCheck && profile.must_change_password) {
     return <Navigate to="/trocar-senha" replace />;
   }
 
-  // RBAC check
   if (requiredRole === 'admin' && role !== 'admin') {
     return <Navigate to="/portal/mapas" replace />;
   }

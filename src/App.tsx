@@ -27,7 +27,7 @@ const App = () => (
             {/* Auth */}
             <Route path="/login" element={<Login />} />
             <Route path="/trocar-senha" element={
-              <ProtectedRoute>
+              <ProtectedRoute skipPasswordCheck>
                 <ChangePassword />
               </ProtectedRoute>
             } />
