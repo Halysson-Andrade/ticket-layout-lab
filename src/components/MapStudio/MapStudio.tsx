@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { LayoutGrid, FileJson, Plus, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ChevronUp, ChevronDown } from 'lucide-react';
+import { LayoutGrid, FileJson, Plus, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ChevronUp, ChevronDown, Save, Loader2, Cloud, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useIntegrationMode } from '@/hooks/useIntegrationMode';
 import { Button } from '@/components/ui/button';
 import { Toolbar } from './Toolbar';
 import { AlignmentBar, AlignType } from './AlignmentBar';
@@ -107,7 +109,19 @@ export const MapStudio: React.FC = () => {
   const [historyIndex, setHistoryIndex] = useState(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   
+  // Integration mode
+  const { state: integrationState, loadIntegrationData, saveIntegration } = useIntegrationMode();
+  const integrationLoaded = useRef(false);
+
+  useEffect(() => {
+    if (integrationState.isIntegration && !integrationLoaded.current) {
+      integrationLoaded.current = true;
+      loadIntegrationData(setSectors, setElements, setMapData);
+    }
+  }, [integrationState.isIntegration, loadIntegrationData]);
+
   // Clipboard para copiar/colar setores
   const [clipboardSectors, setClipboardSectors] = useState<Sector[]>([]);
 
@@ -2091,9 +2105,36 @@ export const MapStudio: React.FC = () => {
 
   return (
     <div ref={containerRef} className="h-screen w-full flex flex-col overflow-hidden bg-background">
+      {/* Integration Banner */}
+      {integrationState.isIntegration && (
+        <div className="h-8 bg-primary/10 border-b border-primary/20 px-4 flex items-center gap-3 text-xs shrink-0">
+          <Cloud className="h-3.5 w-3.5 text-primary" />
+          <span className="text-primary font-medium">Modo Integração</span>
+          <span className="text-muted-foreground">
+            Evento: {integrationState.eventId}
+          </span>
+          {integrationState.syncStatus === 'ok' && (
+            <span className="text-green-600 font-medium ml-auto">✓ Sincronizado</span>
+          )}
+          {integrationState.syncStatus === 'error' && (
+            <span className="text-destructive font-medium ml-auto">✗ Erro na sincronização</span>
+          )}
+          {integrationState.loading && (
+            <span className="ml-auto flex items-center gap-1 text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" /> Carregando...
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <header className="h-14 border-b border-border px-4 flex items-center justify-between bg-card shrink-0">
         <div className="flex items-center gap-3">
+          {integrationState.isIntegration && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/portal/simulacao')}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
           <div className="flex items-center gap-2">
             <LayoutGrid className="h-6 w-6 text-primary" />
             <h1 className="font-semibold text-lg">Map Studio</h1>
@@ -2111,8 +2152,23 @@ export const MapStudio: React.FC = () => {
             <Plus className="h-4 w-4 mr-2" />
             Templates
           </Button>
+          {integrationState.isIntegration && (
+            <Button 
+              variant="default" 
+              size="sm"
+              onClick={() => saveIntegration(exportData)}
+              disabled={integrationState.saving}
+            >
+              {integrationState.saving ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Salvar
+            </Button>
+          )}
           <Button 
-            variant="default" 
+            variant={integrationState.isIntegration ? "outline" : "default"}
             size="sm"
             onClick={() => setShowExport(true)}
           >
