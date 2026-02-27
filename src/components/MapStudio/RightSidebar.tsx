@@ -556,37 +556,57 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                   </Select>
                 </div>
 
-                {/* Cor - paleta expandida */}
+                {/* Cor - paleta expandida dinâmica */}
                 <div className="space-y-2">
                   <Label className="text-xs flex items-center gap-2">
                     <Palette className="h-3 w-3" />
                     Cor do Setor
                   </Label>
-                  <div className="grid grid-cols-6 gap-1.5">
-                    {[...SECTOR_COLORS, 
-                      'hsl(0, 75%, 50%)', 'hsl(15, 80%, 50%)', 'hsl(30, 85%, 50%)', 
-                      'hsl(60, 70%, 45%)', 'hsl(90, 60%, 45%)', 'hsl(120, 55%, 45%)',
-                      'hsl(150, 60%, 45%)', 'hsl(180, 65%, 45%)', 'hsl(210, 70%, 50%)',
-                      'hsl(240, 65%, 55%)', 'hsl(270, 60%, 55%)', 'hsl(300, 55%, 50%)',
-                      'hsl(0, 0%, 30%)', 'hsl(0, 0%, 50%)', 'hsl(0, 0%, 70%)', 'hsl(0, 0%, 85%)'
-                    ].map((color, idx) => (
-                      <Tooltip key={`${color}-${idx}`}>
-                        <TooltipTrigger asChild>
-                          <button
-                            className={`w-full aspect-square rounded-md border-2 transition-all hover:scale-110 ${
-                              selectedSector.color === color 
-                                ? 'border-primary ring-2 ring-primary/30 scale-105' 
-                                : 'border-transparent hover:border-primary/50'
-                            }`}
-                            style={{ backgroundColor: color }}
-                            onClick={() => onUpdateSector(selectedSector.id, { color })}
-                          />
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="text-xs">
-                          Selecionar cor
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
+                  <div className="grid grid-cols-8 gap-1">
+                    {(() => {
+                      const hues = [0, 15, 30, 45, 60, 120, 150, 180, 210, 240, 270, 300, 330, 340];
+                      const variations = [
+                        { s: 80, l: 40 },
+                        { s: 75, l: 55 },
+                        { s: 65, l: 65 },
+                        { s: 50, l: 75 },
+                      ];
+                      const colors: string[] = [];
+                      hues.forEach(h => {
+                        variations.forEach(({ s, l }) => {
+                          colors.push(`hsl(${h}, ${s}%, ${l}%)`);
+                        });
+                      });
+                      [10, 20, 30, 40, 50, 60, 70, 80, 90].forEach(l => {
+                        colors.push(`hsl(0, 0%, ${l}%)`);
+                      });
+                      const unique = [...new Set(colors)];
+                      return unique.map((color) => (
+                        <button
+                          key={color}
+                          className={`w-full aspect-square rounded border-2 transition-all hover:scale-110 ${
+                            selectedSector.color === color
+                              ? 'border-primary ring-2 ring-primary/30 scale-105'
+                              : 'border-transparent hover:border-primary/50'
+                          }`}
+                          style={{ backgroundColor: color }}
+                          onClick={() => onUpdateSector(selectedSector.id, { color })}
+                        />
+                      ));
+                    })()}
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <input
+                      type="color"
+                      value={(() => {
+                        const c = selectedSector.color;
+                        if (c.startsWith('#')) return c;
+                        return '#6366f1';
+                      })()}
+                      onChange={(e) => onUpdateSector(selectedSector.id, { color: e.target.value })}
+                      className="w-8 h-8 rounded cursor-pointer border border-border"
+                    />
+                    <span className="text-[10px] text-muted-foreground">Cor personalizada</span>
                   </div>
                 </div>
 
