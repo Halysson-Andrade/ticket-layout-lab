@@ -82,7 +82,6 @@ const SimulacaoPage: React.FC = () => {
       return;
     }
     const params = new URLSearchParams({
-      empresa: COMPANY_ID,
       id_evento: evt.external_id,
       token: integrationToken,
     });
@@ -97,7 +96,7 @@ const SimulacaoPage: React.FC = () => {
 
   const buildRedirectUrl = (evt: SimEvent) => {
     const base = window.location.origin;
-    return `${base}/mapstudio?empresa=${COMPANY_ID}&id_evento=${evt.external_id}&token=SEU_TOKEN_AQUI`;
+    return `${base}/mapstudio?id_evento=${evt.external_id}&token=SEU_TOKEN_AQUI`;
   };
 
   const filtered = events.filter(
@@ -309,22 +308,16 @@ const SimulacaoPage: React.FC = () => {
                     </thead>
                     <tbody>
                       <tr className="border-t">
-                        <td className="p-2 font-mono text-primary">empresa</td>
-                        <td className="p-2">UUID</td>
+                        <td className="p-2 font-mono text-primary">token</td>
+                        <td className="p-2">string</td>
                         <td className="p-2"><Badge variant="destructive" className="text-[10px] px-1.5 py-0">Sim</Badge></td>
-                        <td className="p-2 text-muted-foreground">ID da empresa no sistema</td>
+                        <td className="p-2 text-muted-foreground">Token de integração da empresa (identifica a empresa automaticamente)</td>
                       </tr>
                       <tr className="border-t">
                         <td className="p-2 font-mono text-primary">id_evento</td>
                         <td className="p-2">string</td>
                         <td className="p-2"><Badge variant="destructive" className="text-[10px] px-1.5 py-0">Sim</Badge></td>
                         <td className="p-2 text-muted-foreground">ID do evento no sistema do cliente</td>
-                      </tr>
-                      <tr className="border-t">
-                        <td className="p-2 font-mono text-primary">token</td>
-                        <td className="p-2">string</td>
-                        <td className="p-2"><Badge variant="destructive" className="text-[10px] px-1.5 py-0">Sim</Badge></td>
-                        <td className="p-2 text-muted-foreground">Token de integração da empresa (gerado no painel de integração)</td>
                       </tr>
                       <tr className="border-t">
                         <td className="p-2 font-mono text-primary">map_id</td>
@@ -343,11 +336,11 @@ const SimulacaoPage: React.FC = () => {
               <div className="space-y-3">
                 <h3 className="font-semibold text-foreground">Fluxo de Abertura</h3>
                 <ol className="space-y-2 text-xs text-muted-foreground list-decimal list-inside">
-                  <li>O usuário é redirecionado para a URL com os parâmetros <code className="bg-muted px-1 rounded text-foreground">empresa</code>, <code className="bg-muted px-1 rounded text-foreground">id_evento</code> e <code className="bg-muted px-1 rounded text-foreground">token</code></li>
+                  <li>O usuário é redirecionado para a URL com os parâmetros <code className="bg-muted px-1 rounded text-foreground">id_evento</code> e <code className="bg-muted px-1 rounded text-foreground">token</code></li>
                   <li>O MapStudio verifica se o usuário está autenticado (redireciona para login se necessário)</li>
-                  <li><strong className="text-foreground">Valida o token de integração</strong> contra o hash armazenado na base (verifica expiração e autenticidade)</li>
+                  <li><strong className="text-foreground">Valida o token de integração</strong> — identifica automaticamente a empresa associada ao token</li>
                   <li>Se o token for inválido ou expirado → exibe tela de "Acesso Negado"</li>
-                  <li>Busca na base se já existe um mapa salvo para <code className="bg-muted px-1 rounded text-foreground">company_id + id_evento_externo</code></li>
+                  <li>Busca na base se já existe um mapa salvo para <code className="bg-muted px-1 rounded text-foreground">company_id (do token) + id_evento_externo</code></li>
                   <li>Se existir → carrega o mapa salvo no canvas</li>
                   <li>Se não existir → abre o canvas vazio e busca os setores via <code className="bg-muted px-1 rounded text-foreground">url_list_setores</code> da empresa</li>
                   <li>Os setores ficam disponíveis no dropdown "Vincular a Setor" para associar formas criadas</li>
@@ -375,10 +368,9 @@ const SimulacaoPage: React.FC = () => {
               <div className="space-y-2">
                 <h3 className="font-semibold text-foreground">Exemplo de Implementação (Cliente)</h3>
                 <pre className="bg-muted rounded-md p-3 text-xs font-mono overflow-x-auto whitespace-pre">{`// Redirecionar o usuário para criar/editar o mapa de um evento
-function abrirMapStudio(empresaId, eventoId, tokenIntegracao) {
+function abrirMapStudio(eventoId, tokenIntegracao) {
   const url = "${window.location.origin}/mapstudio"
-    + "?empresa=" + empresaId
-    + "&id_evento=" + eventoId
+    + "?id_evento=" + eventoId
     + "&token=" + tokenIntegracao;
   
   window.open(url, "_blank");
@@ -386,7 +378,6 @@ function abrirMapStudio(empresaId, eventoId, tokenIntegracao) {
 
 // Exemplo de uso:
 abrirMapStudio(
-  "${COMPANY_ID}",
   "${docEvent.external_id}",
   "SEU_TOKEN_DE_INTEGRACAO"
 );`}</pre>
