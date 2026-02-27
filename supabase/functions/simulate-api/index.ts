@@ -67,16 +67,25 @@ Deno.serve(async (req) => {
 
     if (action === 'get-mapa') {
       const mapId = url.searchParams.get('map_id')
-      if (!mapId) {
-        return new Response(JSON.stringify({ error: 'map_id required' }), {
+      const idEvento = url.searchParams.get('id_evento')
+      const companyId = url.searchParams.get('company_id')
+
+      let query = admin.from('maps').select('*')
+
+      if (mapId) {
+        query = query.eq('id', mapId)
+      } else if (idEvento) {
+        query = query.eq('id_evento_externo', idEvento)
+        if (companyId) {
+          query = query.eq('company_id', companyId)
+        }
+      } else {
+        return new Response(JSON.stringify({ error: 'map_id or id_evento required' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
-      const { data } = await admin
-        .from('maps')
-        .select('*')
-        .eq('id', mapId)
-        .maybeSingle()
+
+      const { data } = await query.maybeSingle()
       
       return new Response(JSON.stringify(data || { error: 'not found' }), {
         status: data ? 200 : 404,

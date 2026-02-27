@@ -102,7 +102,57 @@ export function useIntegrationMode(): IntegrationResult {
         idUsuarioExterno,
       }));
 
-      // 2. Check for existing map
+      // 2. Fetch company integration config
+      const { data: integration } = await supabase
+        .from('company_integrations')
+        .select('*')
+        .eq('company_id', resolvedCompanyId)
+        .maybeSingle();
+
+      // 3. Try to load existing map via url_get_mapa (client API is source of truth)
+      if (integration?.url_get_mapa) {
+        try {
+          const getMapUrl = integration.url_get_mapa.includes('?')
+            ? `${integration.url_get_mapa}&id_evento=${eventId}`
+            : `${integration.url_get_mapa}?id_evento=${eventId}`;
+
+          const mapRes = await fetch(getMapUrl, {
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          });
+
+          if (mapRes.ok) {
+            const mapData = await mapRes.json();
+            
+            if (mapData && mapData.map_json) {
+              const mapJson = mapData.map_json;
+              setState(prev => ({
+                ...prev,
+                mapId: mapData.id || mapData.map_id || null,
+                eventName: mapData.name || `Evento ${eventId}`,
+                loading: false,
+              }));
+
+              if (mapJson.sectors) setSectors(mapJson.sectors);
+              if (mapJson.elements) setElements(mapJson.elements);
+              setMapData(prev => ({
+                ...prev,
+                name: mapData.name || `Evento ${eventId}`,
+                id: mapData.id || mapData.map_id || prev.id,
+              }));
+              toast.success(`Mapa "${mapData.name || eventId}" carregado via API do cliente!`);
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn('Erro ao buscar mapa via url_get_mapa, tentando banco interno:', err);
+        }
+      }
+
+      // 4. Fallback: check internal DB
       const { data: existingMap } = await supabase
         .from('maps')
         .select('*')
@@ -126,24 +176,17 @@ export function useIntegrationMode(): IntegrationResult {
           name: existingMap.name,
           id: existingMap.id,
         }));
-        toast.success(`Mapa "${existingMap.name}" carregado com sucesso!`);
+        toast.success(`Mapa "${existingMap.name}" carregado do banco interno!`);
         return;
       }
 
-      // 3. Fetch company integration URLs
-      const { data: integration } = await supabase
-        .from('company_integrations')
-        .select('*')
-        .eq('company_id', resolvedCompanyId)
-        .maybeSingle();
-
+      // 5. No existing map — fetch sectors for new map
       if (!integration?.url_list_setores) {
         toast.warning('Empresa sem URL de setores configurada');
         setState(prev => ({ ...prev, loading: false }));
         return;
       }
 
-      // 4. Fetch sectors from external API
       const setoresRes = await fetch(integration.url_list_setores, {
         headers: {
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
