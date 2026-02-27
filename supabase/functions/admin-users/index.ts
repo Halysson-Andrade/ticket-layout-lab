@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const anonKey = Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_PUBLISHABLE_KEY')!
 
     // Verify caller is admin
     const authHeader = req.headers.get('Authorization')
@@ -59,11 +59,21 @@ Deno.serve(async (req) => {
     if (req.method === 'GET') {
       const { data: profiles, error } = await adminClient
         .from('profiles')
-        .select('*, user_roles(role)')
+        .select('*')
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      return new Response(JSON.stringify(profiles), {
+
+      // Fetch roles separately
+      const { data: roles } = await adminClient.from('user_roles').select('user_id, role')
+      const roleMap = new Map((roles || []).map((r: any) => [r.user_id, r.role]))
+
+      const result = (profiles || []).map((p: any) => ({
+        ...p,
+        user_roles: [{ role: roleMap.get(p.user_id) || 'basico' }],
+      }))
+
+      return new Response(JSON.stringify(result), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
