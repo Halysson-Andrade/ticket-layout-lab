@@ -8,6 +8,7 @@ import {
   AlignEndHorizontal,
   ArrowRightLeft,
   ArrowUpDown,
+  LayoutGrid,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -16,7 +17,8 @@ import { Separator } from '@/components/ui/separator';
 export type AlignType = 
   | 'left' | 'center-h' | 'right' 
   | 'top' | 'center-v' | 'bottom' 
-  | 'distribute-h' | 'distribute-v';
+  | 'distribute-h' | 'distribute-v'
+  | 'auto-grid';
 
 interface AlignmentBarProps {
   onAlign: (type: AlignType) => void;
@@ -105,6 +107,15 @@ export const AlignmentBar: React.FC<AlignmentBarProps> = ({ onAlign, itemCount, 
         icon={<ArrowUpDown className="h-4 w-4" />}
         label="Distribuir verticalmente"
         onClick={() => onAlign('distribute-v')}
+      />
+
+      <Separator orientation="vertical" className="h-5 mx-1" />
+
+      {/* Auto Grid */}
+      <AlignButton
+        icon={<LayoutGrid className="h-4 w-4" />}
+        label="Alinhar tudo e centralizar"
+        onClick={() => onAlign('auto-grid')}
       />
     </div>
   );
