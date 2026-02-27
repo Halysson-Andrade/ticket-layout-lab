@@ -102,8 +102,8 @@ export const MapStudio: React.FC = () => {
   const [showLeftSidebar, setShowLeftSidebar] = useState(true);
   const [showRightSidebar, setShowRightSidebar] = useState(true);
 
-  // History for undo/redo
-  const [history, setHistory] = useState<Sector[][]>([[]]);
+  // History for undo/redo (sectors + elements)
+  const [history, setHistory] = useState<{ sectors: Sector[]; elements: VenueElement[] }[]>([{ sectors: [], elements: [] }]);
   const [historyIndex, setHistoryIndex] = useState(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -111,27 +111,33 @@ export const MapStudio: React.FC = () => {
   // Clipboard para copiar/colar setores
   const [clipboardSectors, setClipboardSectors] = useState<Sector[]>([]);
 
-  // Adiciona ao histórico
-  const pushHistory = useCallback((newSectors: Sector[]) => {
+  // Adiciona ao histórico (sectors + elements)
+  const pushHistory = useCallback((newSectors?: Sector[], newElements?: VenueElement[]) => {
+    const sectorsSnap = JSON.parse(JSON.stringify(newSectors ?? sectors));
+    const elementsSnap = JSON.parse(JSON.stringify(newElements ?? elements));
     const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(JSON.parse(JSON.stringify(newSectors)));
+    newHistory.push({ sectors: sectorsSnap, elements: elementsSnap });
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
-  }, [history, historyIndex]);
+  }, [history, historyIndex, sectors, elements]);
 
   // Undo
   const handleUndo = useCallback(() => {
     if (historyIndex > 0) {
+      const prev = history[historyIndex - 1];
       setHistoryIndex(historyIndex - 1);
-      setSectors(JSON.parse(JSON.stringify(history[historyIndex - 1])));
+      setSectors(JSON.parse(JSON.stringify(prev.sectors)));
+      setElements(JSON.parse(JSON.stringify(prev.elements)));
     }
   }, [historyIndex, history]);
 
   // Redo
   const handleRedo = useCallback(() => {
     if (historyIndex < history.length - 1) {
+      const next = history[historyIndex + 1];
       setHistoryIndex(historyIndex + 1);
-      setSectors(JSON.parse(JSON.stringify(history[historyIndex + 1])));
+      setSectors(JSON.parse(JSON.stringify(next.sectors)));
+      setElements(JSON.parse(JSON.stringify(next.elements)));
     }
   }, [historyIndex, history]);
 
@@ -256,8 +262,10 @@ export const MapStudio: React.FC = () => {
 
   // Atualiza propriedades de um elemento
   const handleUpdateElement = useCallback((id: string, updates: Partial<VenueElement>) => {
-    setElements(prev => prev.map(el => el.id === id ? { ...el, ...updates } : el));
-  }, []);
+    const updated = elements.map(el => el.id === id ? { ...el, ...updates } : el);
+    setElements(updated);
+    pushHistory(undefined, updated);
+  }, [elements, pushHistory]);
 
   // Redimensiona forma geométrica
   const handleResizeShape = useCallback((id: string, width: number, height: number, x: number, y: number) => {
@@ -975,16 +983,20 @@ export const MapStudio: React.FC = () => {
       rotation: 0,
       color: type === 'stage' ? '#6366f1' : type === 'bar' ? '#f59e0b' : '#64748b',
     };
-    setElements(prev => [...prev, newElement]);
+    const updated = [...elements, newElement];
+    setElements(updated);
+    pushHistory(undefined, updated);
     toast.success(`Elemento "${type}" adicionado!`);
-  }, []);
+  }, [pushHistory]);
 
   // Deleta elemento
   const handleDeleteElement = useCallback((id: string) => {
-    setElements(prev => prev.filter(e => e.id !== id));
+    const updated = elements.filter(e => e.id !== id);
+    setElements(updated);
+    pushHistory(undefined, updated);
     setSelectedElementIds([]);
     toast.success('Elemento removido');
-  }, []);
+  }, [elements, pushHistory]);
 
   // Move elemento
   const handleMoveElement = useCallback((id: string, dx: number, dy: number) => {
@@ -1034,14 +1046,16 @@ export const MapStudio: React.FC = () => {
 
   // Adiciona vértice em aresta de elemento
   const handleAddElementVertex = useCallback((elementId: string, edgeIndex: number, position: { x: number; y: number }) => {
-    setElements(prev => prev.map(el => {
+    const updated = elements.map(el => {
       if (el.id !== elementId || !el.vertices) return el;
       const newVertices = [...el.vertices];
       newVertices.splice(edgeIndex + 1, 0, { x: position.x, y: position.y });
       return { ...el, vertices: newVertices };
-    }));
+    });
+    setElements(updated);
+    pushHistory(undefined, updated);
     toast.success('Ponto adicionado ao elemento');
-  }, []);
+  }, [elements, pushHistory]);
 
   // Remove vértice de elemento
   const handleRemoveElementVertex = useCallback((elementId: string, vertexIndex: number) => {
@@ -1050,13 +1064,15 @@ export const MapStudio: React.FC = () => {
       toast.error('Não é possível remover - mínimo de 3 pontos');
       return;
     }
-    setElements(prev => prev.map(e => {
+    const updated = elements.map(e => {
       if (e.id !== elementId || !e.vertices) return e;
       const newVertices = e.vertices.filter((_, i) => i !== vertexIndex);
       return { ...e, vertices: newVertices };
-    }));
+    });
+    setElements(updated);
+    pushHistory(undefined, updated);
     toast.success('Ponto removido do elemento');
-  }, [elements]);
+  }, [elements, pushHistory]);
 
   // Atualiza vértices de elemento
   const handleUpdateElementVertices = useCallback((elementId: string, vertices: Vertex[]) => {
@@ -1097,6 +1113,11 @@ export const MapStudio: React.FC = () => {
   const handleSeatMoveEnd = useCallback(() => {
     pushHistory(sectors);
   }, [sectors, pushHistory]);
+
+  // Salva histórico após finalizar movimento de elemento
+  const handleElementMoveEnd = useCallback(() => {
+    pushHistory(undefined, elements);
+  }, [elements, pushHistory]);
 
   // Recalcula bounds/assentos e salva histórico após finalizar movimento de vértice
   // Para setores rotacionados, compensa vértices para que a mudança de centro de rotação
@@ -1591,6 +1612,15 @@ export const MapStudio: React.FC = () => {
       toast.success('Formas excluídas');
       return;
     }
+    // Deleta elementos selecionados
+    if (selectedElementIds.length > 0) {
+      const updated = elements.filter(e => !selectedElementIds.includes(e.id));
+      setElements(updated);
+      pushHistory(undefined, updated);
+      setSelectedElementIds([]);
+      toast.success('Elementos excluídos');
+      return;
+    }
     
     if (selectedSectorIds.length > 0) {
       const newSectors = sectors.filter(s => !selectedSectorIds.includes(s.id));
@@ -1610,7 +1640,7 @@ export const MapStudio: React.FC = () => {
       setSelectedSeatIds([]);
       toast.success('Assentos excluídos');
     }
-  }, [selectedShapeIds, selectedSectorIds, selectedSeatIds, sectors, pushHistory]);
+  }, [selectedShapeIds, selectedSectorIds, selectedSeatIds, selectedElementIds, elements, sectors, pushHistory]);
 
   // Duplicar selecionados
   const handleDuplicate = useCallback(() => {
@@ -2124,8 +2154,9 @@ export const MapStudio: React.FC = () => {
           onMoveSeat={handleMoveSeat}
           onMoveSelectedSeats={handleMoveSelectedSeats}
           onSeatMoveEnd={handleSeatMoveEnd}
-          onSectorMoveEnd={handleSectorMoveEnd}
-          onVertexMoveEnd={handleVertexMoveEnd}
+           onSectorMoveEnd={handleSectorMoveEnd}
+           onElementMoveEnd={handleElementMoveEnd}
+           onVertexMoveEnd={handleVertexMoveEnd}
           onAddVertex={handleAddVertex}
           onRemoveVertex={handleRemoveVertex}
           onAddElementVertex={handleAddElementVertex}
