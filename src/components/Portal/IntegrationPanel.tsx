@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Loader2, Key, RefreshCw, Copy, Link2, Eye, EyeOff, AlertTriangle, FileText } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
@@ -104,8 +105,225 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
     toast.success('Copiado para a área de transferência');
   };
 
+  const apiBaseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+
   return (
     <div className="space-y-6">
+      {/* Fluxo de Integração - Documentação principal */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Fluxo de Integração (Exchange Token — 2 etapas)
+          </CardTitle>
+          <CardDescription>
+            Modelo de autenticação segura para acesso ao MapStudio. O token e o usuário nunca aparecem na URL do navegador.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Accordion type="single" collapsible className="w-full" defaultValue="flow">
+            <AccordionItem value="flow" className="border rounded-md px-3">
+              <AccordionTrigger className="py-2 text-xs hover:no-underline gap-1">
+                <span className="flex items-center gap-1 text-sm font-medium"><FileText className="h-4 w-4" /> Ver documentação completa</span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-5 text-xs">
+                  {/* Diagrama do fluxo */}
+                  <div className="space-y-2">
+                    <p className="font-medium text-foreground text-sm">🔒 Modelo de Segurança</p>
+                    <p className="text-muted-foreground leading-relaxed">
+                      O fluxo usa <strong>Exchange Token em 2 etapas</strong>. O token de integração e o ID do usuário
+                      <strong> nunca aparecem na URL do navegador</strong>. O sistema cliente faz uma chamada <strong>server-side</strong> para 
+                      obter um código temporário (30s, uso único), e só esse código é passado na URL de redirecionamento.
+                    </p>
+                  </div>
+
+                  <Separator />
+
+                  {/* Etapas do fluxo */}
+                  <div className="space-y-2">
+                    <p className="font-medium text-foreground text-sm">Fluxo Completo</p>
+                    <ol className="space-y-2 text-muted-foreground list-decimal list-inside">
+                      <li><strong className="text-foreground">Server-side:</strong> Sistema do cliente envia <code className="bg-muted px-1 rounded text-foreground">token</code> + <code className="bg-muted px-1 rounded text-foreground">id_evento</code> + <code className="bg-muted px-1 rounded text-foreground">id_usuario</code> via POST para <code className="bg-muted px-1 rounded text-foreground">/integration-auth</code></li>
+                      <li><strong className="text-foreground">Validação do token:</strong> Sistema identifica a empresa pelo hash SHA-256 do token</li>
+                      <li><strong className="text-foreground">Verificação de permissão:</strong> Se <code className="bg-muted px-1 rounded text-foreground">url_check_permissao</code> estiver configurada, chama a URL com payload assinado (HMAC-SHA256)</li>
+                      <li><strong className="text-foreground">Código temporário:</strong> Gera código de 30s, uso único, armazenado com hash</li>
+                      <li><strong className="text-foreground">Redirecionamento:</strong> Cliente abre <code className="bg-muted px-1 rounded text-foreground">/mapstudio?code=XXX</code> no browser do usuário</li>
+                      <li><strong className="text-foreground">Exchange:</strong> MapStudio troca o código por sessão (company_id, evento, usuário) via <code className="bg-muted px-1 rounded text-foreground">/exchange-code</code></li>
+                      <li><strong className="text-foreground">Carregamento:</strong> Mapa existente é carregado, ou canvas vazio com setores da API</li>
+                    </ol>
+                  </div>
+
+                  <Separator />
+
+                  {/* Etapa 1: API integration-auth */}
+                  <div className="space-y-2">
+                    <p className="font-medium text-foreground text-sm">Etapa 1 — POST /integration-auth (Server-side)</p>
+                    <p className="text-muted-foreground">Chamada feita pelo backend do cliente. <strong>Nunca</strong> expor esta chamada no frontend.</p>
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-muted">
+                            <th className="text-left p-2 font-medium">Campo</th>
+                            <th className="text-left p-2 font-medium">Tipo</th>
+                            <th className="text-left p-2 font-medium">Obrigatório</th>
+                            <th className="text-left p-2 font-medium">Descrição</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-t">
+                            <td className="p-2 font-mono text-primary">token</td>
+                            <td className="p-2">string</td>
+                            <td className="p-2"><Badge variant="destructive" className="text-[10px] px-1.5 py-0">Sim</Badge></td>
+                            <td className="p-2 text-muted-foreground">Token de integração da empresa</td>
+                          </tr>
+                          <tr className="border-t">
+                            <td className="p-2 font-mono text-primary">id_evento</td>
+                            <td className="p-2">string</td>
+                            <td className="p-2"><Badge variant="destructive" className="text-[10px] px-1.5 py-0">Sim</Badge></td>
+                            <td className="p-2 text-muted-foreground">ID do evento no sistema do cliente</td>
+                          </tr>
+                          <tr className="border-t">
+                            <td className="p-2 font-mono text-primary">id_usuario</td>
+                            <td className="p-2">string</td>
+                            <td className="p-2"><Badge variant="destructive" className="text-[10px] px-1.5 py-0">Sim</Badge></td>
+                            <td className="p-2 text-muted-foreground">Token ou ID opaco do usuário (não aparece na URL)</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <pre className="bg-muted rounded-md p-3 font-mono overflow-x-auto whitespace-pre">{`POST ${apiBaseUrl}/integration-auth
+Content-Type: application/json
+
+{
+  "token": "SEU_TOKEN_DE_INTEGRACAO",
+  "id_evento": "EVT-001",
+  "id_usuario": "user-token-abc123"
+}
+
+// Response 200:
+{
+  "exchange_code": "a1b2c3d4...",   // Código temporário (30s)
+  "expires_in": 30,                  // Segundos até expirar
+  "redirect_url": "/mapstudio?code=a1b2c3d4..."
+}
+
+// Response 403:
+{ "error": "Token de integração inválido" }
+{ "error": "Token de integração expirado" }
+{ "error": "Usuário não tem permissão para este evento" }`}</pre>
+                  </div>
+
+                  <Separator />
+
+                  {/* Etapa 2: Redirect */}
+                  <div className="space-y-2">
+                    <p className="font-medium text-foreground text-sm">Etapa 2 — Redirecionar o usuário</p>
+                    <p className="text-muted-foreground">Com o <code className="bg-muted px-1 rounded text-foreground">exchange_code</code> obtido, redirecione o browser. O código é descartável e expira em 30 segundos.</p>
+                    <pre className="bg-muted rounded-md p-3 font-mono overflow-x-auto whitespace-pre">{`// URL de redirecionamento (somente o código aparece):
+${window.location.origin}/mapstudio?code={exchange_code}
+
+// O MapStudio internamente chama POST /exchange-code
+// para trocar o código por: company_id, id_evento, id_usuario`}</pre>
+                  </div>
+
+                  <Separator />
+
+                  {/* Exemplo completo */}
+                  <div className="space-y-2">
+                    <p className="font-medium text-foreground text-sm">Exemplo Completo (Node.js / Express)</p>
+                    <pre className="bg-muted rounded-md p-3 font-mono overflow-x-auto whitespace-pre">{`const express = require('express');
+const app = express();
+
+app.get('/abrir-mapa/:eventoId', async (req, res) => {
+  const { eventoId } = req.params;
+  const usuarioToken = req.user.externalToken;
+
+  // Etapa 1: Obter código (server-side)
+  const authRes = await fetch(
+    "${apiBaseUrl}/integration-auth",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token: process.env.MAPSTUDIO_TOKEN,
+        id_evento: eventoId,
+        id_usuario: usuarioToken
+      })
+    }
+  );
+
+  const { exchange_code, error } = await authRes.json();
+  if (error) return res.status(403).json({ error });
+
+  // Etapa 2: Redirecionar o browser do usuário
+  res.redirect(
+    "${window.location.origin}/mapstudio?code=" + exchange_code
+  );
+});`}</pre>
+                  </div>
+
+                  <Separator />
+
+                  {/* Erros possíveis */}
+                  <div className="space-y-2">
+                    <p className="font-medium text-foreground text-sm">Erros Possíveis</p>
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-muted">
+                            <th className="text-left p-2 font-medium">HTTP</th>
+                            <th className="text-left p-2 font-medium">Erro</th>
+                            <th className="text-left p-2 font-medium">Causa</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-t">
+                            <td className="p-2 font-mono">400</td>
+                            <td className="p-2 text-muted-foreground">Campos obrigatórios</td>
+                            <td className="p-2 text-muted-foreground">Faltam token, id_evento ou id_usuario</td>
+                          </tr>
+                          <tr className="border-t">
+                            <td className="p-2 font-mono">403</td>
+                            <td className="p-2 text-muted-foreground">Token inválido</td>
+                            <td className="p-2 text-muted-foreground">Hash do token não encontrado no banco</td>
+                          </tr>
+                          <tr className="border-t">
+                            <td className="p-2 font-mono">403</td>
+                            <td className="p-2 text-muted-foreground">Token expirado</td>
+                            <td className="p-2 text-muted-foreground">Data de expiração ultrapassada</td>
+                          </tr>
+                          <tr className="border-t">
+                            <td className="p-2 font-mono">403</td>
+                            <td className="p-2 text-muted-foreground">Sem permissão</td>
+                            <td className="p-2 text-muted-foreground">url_check_permissao retornou allowed: false</td>
+                          </tr>
+                          <tr className="border-t">
+                            <td className="p-2 font-mono">403</td>
+                            <td className="p-2 text-muted-foreground">Código expirado</td>
+                            <td className="p-2 text-muted-foreground">Exchange code usado após 30s</td>
+                          </tr>
+                          <tr className="border-t">
+                            <td className="p-2 font-mono">403</td>
+                            <td className="p-2 text-muted-foreground">Código já utilizado</td>
+                            <td className="p-2 text-muted-foreground">Exchange code de uso único já consumido</td>
+                          </tr>
+                          <tr className="border-t">
+                            <td className="p-2 font-mono">502</td>
+                            <td className="p-2 text-muted-foreground">Erro permissão</td>
+                            <td className="p-2 text-muted-foreground">url_check_permissao inacessível ou com erro</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </CardContent>
+      </Card>
+
       {/* Token Section */}
       <Card>
         <CardHeader>
@@ -114,7 +332,7 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
             Token de Integração
           </CardTitle>
           <CardDescription>
-            Token usado para autenticar chamadas entre o MapStudio e a API do cliente
+            Token secreto da empresa. Usado <strong>server-side</strong> para autenticar na API de integração. Nunca expor no frontend ou na URL.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -122,7 +340,7 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm">
                 <span className="text-muted-foreground">Status:</span>
-                <span className="text-green-600 font-medium">Configurado</span>
+                <Badge variant="outline" className="border-green-500/50 text-green-600">Configurado</Badge>
               </div>
               {integration.token_expires_at && (
                 <div className="flex items-center gap-2 text-sm">
@@ -171,10 +389,10 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Link2 className="h-4 w-4" />
-            URLs de Integração
+            URLs da API do Cliente
           </CardTitle>
           <CardDescription>
-            Endpoints da API do cliente para comunicação com o MapStudio
+            Endpoints que o MapStudio chama no sistema do cliente para buscar setores, salvar mapas e verificar permissões.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -187,33 +405,29 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
               placeholder="https://api.cliente.com/setores"
             />
             <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="doc" className="border-none">
+              <AccordionItem value="doc-setores" className="border-none">
                 <AccordionTrigger className="py-1 text-xs text-muted-foreground hover:no-underline gap-1">
-                  <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Documentação do endpoint</span>
+                  <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Documentação</span>
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="bg-muted rounded-md p-3 text-xs font-mono space-y-2">
                     <p className="font-sans text-sm font-medium text-foreground">GET /setores</p>
-                    <p className="font-sans text-muted-foreground">Retorna a lista de setores disponíveis para o evento. O MapStudio usa esses setores para popular o dropdown "Vincular a Setor".</p>
+                    <p className="font-sans text-muted-foreground">Retorna a lista de setores disponíveis para o evento. Chamado após autenticação bem-sucedida.</p>
                     <Separator />
                     <p className="font-sans font-medium text-foreground">Query Parameters:</p>
-                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`id_evento: 456       // ID do evento (int) - obrigatório`}</pre>
-                    <Separator />
-                    <p className="font-sans font-medium text-foreground">Headers:</p>
-                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`Authorization: Bearer <token>
-Content-Type: application/json`}</pre>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre">{`id_evento: "EVT-001"  // ID do evento - obrigatório`}</pre>
                     <Separator />
                     <p className="font-sans font-medium text-foreground">Response 200:</p>
-                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre">{`{
   "setores": [
     {
-      "id": 1,              // ID único do setor (int)
-      "name": "string",     // Nome exibido (ex: "Pista", "VIP")
-      "color": "string"     // Cor HSL (ex: "hsl(142, 71%, 45%)")
+      "id": "setor-pista",   // ID único (string)
+      "name": "Pista",       // Nome exibido
+      "color": "hsl(142, 71%, 45%)"  // Cor HSL
     }
   ]
 }`}</pre>
-                    <p className="font-sans text-muted-foreground mt-1">Formato alternativo aceito: array direto de objetos (sem wrapper "setores").</p>
+                    <p className="font-sans text-muted-foreground mt-1">Formato alternativo aceito: array direto (sem wrapper "setores").</p>
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -229,23 +443,19 @@ Content-Type: application/json`}</pre>
               placeholder="https://api.cliente.com/mapas"
             />
             <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="doc" className="border-none">
+              <AccordionItem value="doc-create" className="border-none">
                 <AccordionTrigger className="py-1 text-xs text-muted-foreground hover:no-underline gap-1">
-                  <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Documentação do endpoint</span>
+                  <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Documentação</span>
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="bg-muted rounded-md p-3 text-xs font-mono space-y-2">
                     <p className="font-sans text-sm font-medium text-foreground">POST /mapas</p>
-                    <p className="font-sans text-muted-foreground">Chamado na primeira vez que o mapa é salvo para um evento. Envia o JSON completo do mapa.</p>
-                    <Separator />
-                    <p className="font-sans font-medium text-foreground">Headers:</p>
-                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`Authorization: Bearer <token>
-Content-Type: application/json`}</pre>
+                    <p className="font-sans text-muted-foreground">Chamado na primeira vez que o mapa é salvo para um evento.</p>
                     <Separator />
                     <p className="font-sans font-medium text-foreground">Request Body:</p>
-                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
-  "map_id": 123,               // ID interno do mapa (int)
-  "id_evento": 456,            // ID do evento externo (int)
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre">{`{
+  "map_id": "uuid",
+  "id_evento": "EVT-001",
   "map_json": {
     "name": "string",
     "version": 1,
@@ -253,7 +463,7 @@ Content-Type: application/json`}</pre>
     "height": 1500,
     "sectors": [
       {
-        "id": 1,
+        "id": "uuid",
         "name": "string",
         "color": "hsl(...)",
         "bounds": { "x": 0, "y": 0, "width": 200, "height": 150 },
@@ -262,54 +472,40 @@ Content-Type: application/json`}</pre>
         "rotation": 0,
         "seats": [
           {
-            "id": 1,
-            "sectorId": 1,
+            "id": "uuid",
+            "sectorId": "uuid",
             "row": "A",
             "number": "1",
-            "type": "normal | pcd | companion | obeso | vip | blocked",
-            "status": "available | reserved | sold | blocked",
-            "x": 100,
-            "y": 200,
+            "type": "normal|pcd|companion|obeso|vip|blocked",
+            "status": "available|reserved|sold|blocked",
+            "x": 100, "y": 200,
             "rotation": 0,
             "price": 150.00,
-            "description": "string | null"
+            "description": "string|null"
           }
         ],
-        "categoryId": 1,
-        "visible": true,
-        "locked": false
+        "categoryId": "setor-pista",
+        "visible": true, "locked": false
       }
     ],
     "elements": [
       {
-        "id": 1,
-        "type": "stage | bar | bathroom | entrance | exit | speaker | dj | screen | vip-area | food | custom",
+        "id": "uuid",
+        "type": "stage|bar|bathroom|entrance|exit|speaker|dj|screen|vip-area|food|custom",
         "label": "string",
         "bounds": { "x": 0, "y": 0, "width": 300, "height": 100 },
         "rotation": 0,
-        "color": "string | null"
-      }
-    ],
-    "geometricShapes": [
-      {
-        "id": 1,
-        "name": "string",
-        "color": "hsl(...)",
-        "opacity": 80,
-        "bounds": { "x": 0, "y": 0, "width": 200, "height": 150 },
-        "shape": "rectangle",
-        "rotation": 0,
-        "linkedSectorId": 1
+        "color": "string|null"
       }
     ]
   }
 }`}</pre>
                     <Separator />
                     <p className="font-sans font-medium text-foreground">Response 200:</p>
-                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre">{`{
   "success": true,
   "message": "string",
-  "external_map_id": 789  // ID do mapa no sistema externo (int)
+  "external_map_id": "xyz-789"
 }`}</pre>
                   </div>
                 </AccordionContent>
@@ -326,36 +522,32 @@ Content-Type: application/json`}</pre>
               placeholder="https://api.cliente.com/mapas/:id"
             />
             <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="doc" className="border-none">
+              <AccordionItem value="doc-get" className="border-none">
                 <AccordionTrigger className="py-1 text-xs text-muted-foreground hover:no-underline gap-1">
-                  <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Documentação do endpoint</span>
+                  <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Documentação</span>
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="bg-muted rounded-md p-3 text-xs font-mono space-y-2">
                     <p className="font-sans text-sm font-medium text-foreground">GET /mapas/:id</p>
-                    <p className="font-sans text-muted-foreground">Retorna o JSON do mapa salvo. Usado para carregar um mapa existente no MapStudio.</p>
-                    <Separator />
-                    <p className="font-sans font-medium text-foreground">Headers:</p>
-                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`Authorization: Bearer <token>
-Content-Type: application/json`}</pre>
+                    <p className="font-sans text-muted-foreground">Retorna o JSON do mapa salvo.</p>
                     <Separator />
                     <p className="font-sans font-medium text-foreground">Query Parameters:</p>
-                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`map_id: 123  // ID do mapa a ser consultado (int)`}</pre>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre">{`map_id: "uuid"  // ID do mapa`}</pre>
                     <Separator />
                     <p className="font-sans font-medium text-foreground">Response 200:</p>
-                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
-  "id": 123,
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre">{`{
+  "id": "uuid",
   "name": "string",
-  "company_id": 1,
-  "id_evento_externo": 456,
-  "map_json": { ... },          // Mesmo formato do POST /mapas
-  "sync_status": "OK | PENDENTE | ERRO",
+  "company_id": "uuid",
+  "id_evento_externo": "EVT-001",
+  "map_json": { ... },
+  "sync_status": "OK|PENDENTE|ERRO",
   "created_at": "ISO 8601",
   "updated_at": "ISO 8601"
 }`}</pre>
                     <Separator />
                     <p className="font-sans font-medium text-foreground">Response 404:</p>
-                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{ "error": "not found" }`}</pre>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre">{`{ "error": "not found" }`}</pre>
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -371,31 +563,24 @@ Content-Type: application/json`}</pre>
               placeholder="https://api.cliente.com/mapas/:id"
             />
             <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="doc" className="border-none">
+              <AccordionItem value="doc-update" className="border-none">
                 <AccordionTrigger className="py-1 text-xs text-muted-foreground hover:no-underline gap-1">
-                  <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Documentação do endpoint</span>
+                  <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Documentação</span>
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="bg-muted rounded-md p-3 text-xs font-mono space-y-2">
                     <p className="font-sans text-sm font-medium text-foreground">POST /mapas/:id (atualização)</p>
-                    <p className="font-sans text-muted-foreground">Chamado quando o mapa já existe e é atualizado. O body é idêntico ao endpoint de criação.</p>
-                    <Separator />
-                    <p className="font-sans font-medium text-foreground">Headers:</p>
-                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`Authorization: Bearer <token>
-Content-Type: application/json`}</pre>
+                    <p className="font-sans text-muted-foreground">Chamado quando o mapa já existe e é atualizado. Body idêntico ao de criação.</p>
                     <Separator />
                     <p className="font-sans font-medium text-foreground">Request Body:</p>
-                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
-  "map_id": 123,
-  "id_evento": 456,
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre">{`{
+  "map_id": "uuid",
+  "id_evento": "EVT-001",
   "map_json": { ... }   // Mesmo formato do POST /mapas
 }`}</pre>
                     <Separator />
                     <p className="font-sans font-medium text-foreground">Response 200:</p>
-                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
-  "success": true,
-  "message": "string"
-}`}</pre>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre">{`{ "success": true, "message": "string" }`}</pre>
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -413,15 +598,15 @@ Content-Type: application/json`}</pre>
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="doc-perm" className="border-none">
                 <AccordionTrigger className="py-1 text-xs text-muted-foreground hover:no-underline gap-1">
-                  <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Documentação do endpoint</span>
+                  <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Documentação</span>
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="bg-muted rounded-md p-3 text-xs font-mono space-y-2">
                     <p className="font-sans text-sm font-medium text-foreground">POST /permissao</p>
-                    <p className="font-sans text-muted-foreground">Chamado antes de gerar o código de acesso. Verifica se o usuário tem permissão para acessar o evento. O payload é assinado com HMAC-SHA256.</p>
+                    <p className="font-sans text-muted-foreground">Chamado antes de gerar o código de acesso. Verifica se o usuário tem permissão para o evento. O payload é assinado com HMAC-SHA256 usando o hash do token como chave.</p>
                     <Separator />
                     <p className="font-sans font-medium text-foreground">Request Body (assinado):</p>
-                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre">{`{
   "id_evento": "EVT-001",
   "id_usuario": "user-token-123",
   "timestamp": "2025-01-01T00:00:00.000Z",
@@ -429,17 +614,17 @@ Content-Type: application/json`}</pre>
 }`}</pre>
                     <Separator />
                     <p className="font-sans font-medium text-foreground">Response 200 (permitido):</p>
-                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{ "allowed": true }`}</pre>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre">{`{ "allowed": true }`}</pre>
                     <Separator />
                     <p className="font-sans font-medium text-foreground">Response 403 (negado):</p>
-                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{ "allowed": false, "message": "Motivo da recusa" }`}</pre>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre">{`{ "allowed": false, "message": "Motivo da recusa" }`}</pre>
                   </div>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
           </div>
 
-          {/* Tipos de Assento */}
+          {/* Referência de Tipos */}
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="seat-types" className="border rounded-md px-3">
               <AccordionTrigger className="py-2 text-xs hover:no-underline gap-1">
@@ -449,7 +634,7 @@ Content-Type: application/json`}</pre>
                 <div className="bg-muted rounded-md p-3 text-xs font-mono space-y-3">
                   <div>
                     <p className="font-sans font-medium text-foreground mb-1">SeatType (tipo do assento):</p>
-                    <pre className="bg-background p-2 rounded border text-xs">{`"normal"     — Assento padrão
+                    <pre className="bg-background p-2 rounded border">{`"normal"     — Assento padrão
 "pcd"        — Pessoa com deficiência
 "companion"  — Acompanhante PCD
 "obeso"      — Assento especial (obeso)
@@ -458,29 +643,22 @@ Content-Type: application/json`}</pre>
                   </div>
                   <div>
                     <p className="font-sans font-medium text-foreground mb-1">SeatStatus (status do assento):</p>
-                    <pre className="bg-background p-2 rounded border text-xs">{`"available"  — Disponível para venda
+                    <pre className="bg-background p-2 rounded border">{`"available"  — Disponível para venda
 "reserved"   — Reservado
 "sold"       — Vendido
 "blocked"    — Bloqueado`}</pre>
                   </div>
                   <div>
                     <p className="font-sans font-medium text-foreground mb-1">ElementType (elementos do venue):</p>
-                    <pre className="bg-background p-2 rounded border text-xs">{`"stage" | "bar" | "bathroom" | "entrance" | "exit"
+                    <pre className="bg-background p-2 rounded border">{`"stage" | "bar" | "bathroom" | "entrance" | "exit"
 "speaker" | "dj" | "screen" | "vip-area" | "food" | "custom"`}</pre>
                   </div>
                   <div>
                     <p className="font-sans font-medium text-foreground mb-1">SectorShape (formas dos setores):</p>
-                    <pre className="bg-background p-2 rounded border text-xs">{`"rectangle" | "circle" | "triangle" | "hexagon" | "pentagon"
+                    <pre className="bg-background p-2 rounded border">{`"rectangle" | "circle" | "triangle" | "hexagon" | "pentagon"
 "trapezoid" | "parallelogram" | "arc" | "diamond" | "octagon"
 "l-shape" | "u-shape" | "t-shape" | "z-shape" | "cross"
 "arrow" | "star" | "wave"`}</pre>
-                  </div>
-                  <div>
-                    <p className="font-sans font-medium text-foreground mb-1">Autenticação:</p>
-                    <p className="font-sans text-muted-foreground">Todas as requisições incluem os headers:</p>
-                    <pre className="bg-background p-2 rounded border text-xs">{`Authorization: Bearer <access_token>
-apikey: <supabase_anon_key>
-Content-Type: application/json`}</pre>
                   </div>
                 </div>
               </AccordionContent>
