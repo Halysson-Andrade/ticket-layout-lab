@@ -14,7 +14,7 @@ interface IntegrationState {
   syncStatus: 'idle' | 'syncing' | 'ok' | 'error';
   eventName: string | null;
   externalSetores: { id: string; name: string; color: string }[];
-  tokenValid: boolean | null; // null = not checked yet, true/false = result
+  tokenValid: boolean | null;
   tokenError: string | null;
 }
 
@@ -30,14 +30,13 @@ interface IntegrationResult {
 
 export function useIntegrationMode(): IntegrationResult {
   const [searchParams] = useSearchParams();
-  const companyId = searchParams.get('empresa');
   const eventId = searchParams.get('id_evento');
   const existingMapId = searchParams.get('map_id');
   const integrationToken = searchParams.get('token');
 
   const [state, setState] = useState<IntegrationState>({
-    isIntegration: !!(companyId && eventId),
-    companyId,
+    isIntegration: !!(eventId && integrationToken),
+    companyId: null, // resolved from token
     eventId,
     mapId: existingMapId,
     loading: false,
@@ -54,7 +53,7 @@ export function useIntegrationMode(): IntegrationResult {
     setElements: (e: VenueElement[]) => void,
     setMapData: (fn: (prev: VenueMap) => VenueMap) => void,
   ) => {
-    if (!companyId || !eventId) return;
+    if (!eventId || !integrationToken) return;
 
     setState(prev => ({ ...prev, loading: true }));
 
@@ -80,7 +79,7 @@ export function useIntegrationMode(): IntegrationResult {
           'Content-Type': 'application/json',
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ company_id: companyId, token: integrationToken }),
+        body: JSON.stringify({ token: integrationToken }),
       });
       const tokenResult = await tokenRes.json();
 
@@ -90,18 +89,19 @@ export function useIntegrationMode(): IntegrationResult {
         return;
       }
 
-      setState(prev => ({ ...prev, tokenValid: true, tokenError: null }));
+      // Company resolved from token
+      const resolvedCompanyId = tokenResult.company_id;
+      setState(prev => ({ ...prev, tokenValid: true, tokenError: null, companyId: resolvedCompanyId }));
 
       // 1. Check for existing map
       const { data: existingMap } = await supabase
         .from('maps')
         .select('*')
-        .eq('company_id', companyId)
+        .eq('company_id', resolvedCompanyId)
         .eq('id_evento_externo', eventId)
         .maybeSingle();
 
       if (existingMap) {
-        // Load existing map
         const mapJson = existingMap.map_json as any;
         setState(prev => ({
           ...prev,
@@ -129,7 +129,7 @@ export function useIntegrationMode(): IntegrationResult {
       const { data: integration } = await supabase
         .from('company_integrations')
         .select('*')
-        .eq('company_id', companyId)
+        .eq('company_id', resolvedCompanyId)
         .maybeSingle();
 
       if (!integration?.url_list_setores) {
@@ -167,10 +167,10 @@ export function useIntegrationMode(): IntegrationResult {
       toast.error('Erro ao carregar dados da integração');
       setState(prev => ({ ...prev, loading: false }));
     }
-  }, [companyId, eventId]);
+  }, [eventId, integrationToken]);
 
   const saveIntegration = useCallback(async (exportData: any) => {
-    if (!companyId || !eventId) return;
+    if (!state.companyId || !eventId) return;
 
     setState(prev => ({ ...prev, saving: true, syncStatus: 'syncing' }));
 
@@ -185,7 +185,7 @@ export function useIntegrationMode(): IntegrationResult {
       // 1. Save/update in maps table
       const mapRecord = {
         name: exportData.name || `Evento ${eventId}`,
-        company_id: companyId,
+        company_id: state.companyId,
         id_evento_externo: eventId,
         map_json: exportData,
         created_by_user_id: session.user.id,
@@ -195,7 +195,6 @@ export function useIntegrationMode(): IntegrationResult {
       let savedMapId = state.mapId;
 
       if (savedMapId) {
-        // Update existing
         const { error } = await supabase
           .from('maps')
           .update({
@@ -206,7 +205,6 @@ export function useIntegrationMode(): IntegrationResult {
           .eq('id', savedMapId);
         if (error) throw error;
       } else {
-        // Insert new
         const { data, error } = await supabase
           .from('maps')
           .insert(mapRecord as any)
@@ -221,7 +219,7 @@ export function useIntegrationMode(): IntegrationResult {
       const { data: integration } = await supabase
         .from('company_integrations')
         .select('url_create_mapa, url_update_mapa')
-        .eq('company_id', companyId)
+        .eq('company_id', state.companyId)
         .maybeSingle();
 
       const apiUrl = state.mapId
@@ -245,7 +243,6 @@ export function useIntegrationMode(): IntegrationResult {
         const result = await res.json();
 
         if (res.ok) {
-          // Update sync status to OK
           await supabase
             .from('maps')
             .update({ sync_status: 'OK', last_sync_at: new Date().toISOString() } as any)
@@ -271,7 +268,7 @@ export function useIntegrationMode(): IntegrationResult {
       setState(prev => ({ ...prev, saving: false, syncStatus: 'error' }));
       toast.error(`Erro ao salvar: ${err.message}`);
     }
-  }, [companyId, eventId, state.mapId]);
+  }, [eventId, state.companyId, state.mapId]);
 
   return { state, loadIntegrationData, saveIntegration };
 }

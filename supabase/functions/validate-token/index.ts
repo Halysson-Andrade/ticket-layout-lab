@@ -19,10 +19,10 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { company_id, token } = await req.json()
+    const { token } = await req.json()
 
-    if (!company_id || !token) {
-      return new Response(JSON.stringify({ valid: false, error: 'company_id e token são obrigatórios' }), {
+    if (!token) {
+      return new Response(JSON.stringify({ valid: false, error: 'Token é obrigatório' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
@@ -33,17 +33,20 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    // Fetch integration record for this company
+    // Hash the provided token
+    const providedHash = await hashToken(token)
+
+    // Find integration by token hash (identifies the company automatically)
     const { data: integration, error } = await admin
       .from('company_integrations')
-      .select('token_secret_hash, token_expires_at')
-      .eq('company_id', company_id)
+      .select('company_id, token_expires_at')
+      .eq('token_secret_hash', providedHash)
       .maybeSingle()
 
     if (error) throw error
 
-    if (!integration || !integration.token_secret_hash) {
-      return new Response(JSON.stringify({ valid: false, error: 'Empresa sem token de integração configurado' }), {
+    if (!integration) {
+      return new Response(JSON.stringify({ valid: false, error: 'Token inválido' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
@@ -58,15 +61,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Hash the provided token and compare
-    const providedHash = await hashToken(token)
-    if (providedHash !== integration.token_secret_hash) {
-      return new Response(JSON.stringify({ valid: false, error: 'Token inválido' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    return new Response(JSON.stringify({ valid: true }), {
+    // Return company_id resolved from token
+    return new Response(JSON.stringify({ valid: true, company_id: integration.company_id }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
