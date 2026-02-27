@@ -8,12 +8,14 @@ interface IntegrationState {
   isIntegration: boolean;
   companyId: string | null;
   eventId: string | null;
-  mapId: string | null; // existing map UUID
+  mapId: string | null;
   loading: boolean;
   saving: boolean;
   syncStatus: 'idle' | 'syncing' | 'ok' | 'error';
   eventName: string | null;
   externalSetores: { id: string; name: string; color: string }[];
+  tokenValid: boolean | null; // null = not checked yet, true/false = result
+  tokenError: string | null;
 }
 
 interface IntegrationResult {
@@ -31,6 +33,7 @@ export function useIntegrationMode(): IntegrationResult {
   const companyId = searchParams.get('empresa');
   const eventId = searchParams.get('id_evento');
   const existingMapId = searchParams.get('map_id');
+  const integrationToken = searchParams.get('token');
 
   const [state, setState] = useState<IntegrationState>({
     isIntegration: !!(companyId && eventId),
@@ -42,6 +45,8 @@ export function useIntegrationMode(): IntegrationResult {
     syncStatus: 'idle',
     eventName: null,
     externalSetores: [],
+    tokenValid: null,
+    tokenError: null,
   });
 
   const loadIntegrationData = useCallback(async (
@@ -60,6 +65,32 @@ export function useIntegrationMode(): IntegrationResult {
         setState(prev => ({ ...prev, loading: false }));
         return;
       }
+
+      // 0. Validate integration token
+      if (!integrationToken) {
+        toast.error('Token de integração não fornecido na URL.');
+        setState(prev => ({ ...prev, loading: false, tokenValid: false, tokenError: 'Token não fornecido' }));
+        return;
+      }
+
+      const validateUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-token`;
+      const tokenRes = await fetch(validateUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ company_id: companyId, token: integrationToken }),
+      });
+      const tokenResult = await tokenRes.json();
+
+      if (!tokenResult.valid) {
+        toast.error(`Acesso negado: ${tokenResult.error || 'Token inválido'}`);
+        setState(prev => ({ ...prev, loading: false, tokenValid: false, tokenError: tokenResult.error }));
+        return;
+      }
+
+      setState(prev => ({ ...prev, tokenValid: true, tokenError: null }));
 
       // 1. Check for existing map
       const { data: existingMap } = await supabase
