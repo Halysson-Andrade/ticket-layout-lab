@@ -21,8 +21,9 @@ export const TextToolbar: React.FC<TextToolbarProps> = ({ textElement, position,
   return (
     <div
       className="fixed z-50 flex items-center gap-0.5 bg-card border border-border rounded-lg shadow-xl px-2 py-1.5"
-      style={{ left: position.x, top: position.y, transform: 'translate(-50%, -100%) translateY(-8px)' }}
+      style={{ left: position.x, top: position.y, transform: 'translate(-50%, -100%) translateY(-12px)' }}
       onMouseDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
     >
       {/* Font family */}
       <Select value={textElement.fontFamily} onValueChange={(v) => onUpdate(id, { fontFamily: v })}>
@@ -43,9 +44,9 @@ export const TextToolbar: React.FC<TextToolbarProps> = ({ textElement, position,
         type="number"
         value={textElement.fontSize}
         onChange={(e) => onUpdate(id, { fontSize: Math.max(8, parseInt(e.target.value) || 14) })}
-        className="h-7 w-12 text-[10px] text-center border-none shadow-none"
+        className="h-7 w-16 text-xs text-center border-none shadow-none"
         min={8}
-        max={200}
+        max={500}
       />
 
       <div className="w-px h-5 bg-border mx-0.5" />
