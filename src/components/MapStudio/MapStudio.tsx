@@ -65,6 +65,7 @@ export const MapStudio: React.FC = () => {
   const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
   const [textElements, setTextElements] = useState<TextElement[]>([]);
   const [selectedTextIds, setSelectedTextIds] = useState<string[]>([]);
+  const [autoEditTextId, setAutoEditTextId] = useState<string | null>(null);
   
   // UI state
   const [activeTool, setActiveTool] = useState<ToolType>('select');
@@ -285,9 +286,10 @@ export const MapStudio: React.FC = () => {
 
   // Cria elemento de texto no canvas
   const handleCreateText = useCallback((position: { x: number; y: number }) => {
+    const id = generateId();
     const newText: TextElement = {
-      id: generateId(),
-      text: 'Texto',
+      id,
+      text: '',
       x: position.x,
       y: position.y,
       fontFamily: 'sans-serif',
@@ -300,12 +302,12 @@ export const MapStudio: React.FC = () => {
       rotation: 0,
     };
     setTextElements(prev => [...prev, newText]);
-    setSelectedTextIds([newText.id]);
+    setSelectedTextIds([id]);
     setSelectedSectorIds([]);
     setSelectedShapeIds([]);
     setSelectedSeatIds([]);
     setActiveTool('select');
-    toast.success('Texto criado! Edite nas propriedades.');
+    setAutoEditTextId(id);
   }, []);
 
   const handleSelectText = useCallback((id: string, additive: boolean) => {
@@ -2088,6 +2090,9 @@ export const MapStudio: React.FC = () => {
           onSelectText={handleSelectText}
           onMoveText={handleMoveText}
           onDeleteText={handleDeleteText}
+          onUpdateText={handleUpdateText}
+          autoEditTextId={autoEditTextId}
+          onAutoEditTextDone={() => setAutoEditTextId(null)}
         />
 
         {/* Floating Text Toolbar */}
