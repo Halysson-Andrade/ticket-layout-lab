@@ -55,7 +55,8 @@ interface CanvasProps {
   selectedShapeIds?: string[];
   onSelectShape?: (id: string, additive: boolean) => void;
   onMoveShape?: (id: string, dx: number, dy: number) => void;
-  onDeleteShape?: (id: string) => void; // Excluir forma não vinculada
+  onDeleteShape?: (id: string) => void;
+  onResizeShape?: (id: string, width: number, height: number, x: number, y: number) => void;
   onGroupShapesToSector?: (shapeIds: string[]) => void;
   onAddFurniture?: (sectorId: string, position: { x: number; y: number }, screenPosition: { x: number; y: number }) => void;
   onDeselectAll?: () => void;
@@ -107,6 +108,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   onSelectShape,
   onMoveShape,
   onDeleteShape,
+  onResizeShape,
   onGroupShapesToSector,
   onAddFurniture,
   onDeselectAll,
@@ -124,6 +126,8 @@ export const Canvas: React.FC<CanvasProps> = ({
   const [isDraggingVertex, setIsDraggingVertex] = useState(false);
   const [activeVertexIndex, setActiveVertexIndex] = useState<number | null>(null);
   const [isResizingElement, setIsResizingElement] = useState(false);
+  const [isResizingShape, setIsResizingShape] = useState(false);
+  const [resizingShapeId, setResizingShapeId] = useState<string | null>(null);
   const [resizeCorner, setResizeCorner] = useState<'se' | 'sw' | 'ne' | 'nw' | null>(null);
   const [isRotating, setIsRotating] = useState(false);
   const [rotatingStartAngle, setRotatingStartAngle] = useState(0);
@@ -444,6 +448,40 @@ export const Canvas: React.FC<CanvasProps> = ({
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(shape.name, centerX, centerY);
+      }
+      
+      // Desenha handles de resize quando selecionado
+      if (isSelected) {
+        const handleSize = 8 / zoom;
+        const corners = [
+          { x: bounds.x, y: bounds.y, corner: 'nw' },
+          { x: bounds.x + bounds.width, y: bounds.y, corner: 'ne' },
+          { x: bounds.x + bounds.width, y: bounds.y + bounds.height, corner: 'se' },
+          { x: bounds.x, y: bounds.y + bounds.height, corner: 'sw' },
+        ];
+        corners.forEach(c => {
+          ctx.fillStyle = '#fff';
+          ctx.strokeStyle = '#3b82f6';
+          ctx.lineWidth = 2 / zoom;
+          ctx.fillRect(c.x - handleSize / 2, c.y - handleSize / 2, handleSize, handleSize);
+          ctx.strokeRect(c.x - handleSize / 2, c.y - handleSize / 2, handleSize, handleSize);
+        });
+        // Midpoint handles
+        const midpoints = [
+          { x: bounds.x + bounds.width / 2, y: bounds.y },
+          { x: bounds.x + bounds.width, y: bounds.y + bounds.height / 2 },
+          { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height },
+          { x: bounds.x, y: bounds.y + bounds.height / 2 },
+        ];
+        midpoints.forEach(m => {
+          ctx.fillStyle = '#fff';
+          ctx.strokeStyle = '#3b82f6';
+          ctx.lineWidth = 1.5 / zoom;
+          ctx.beginPath();
+          ctx.arc(m.x, m.y, handleSize / 2.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        });
       }
       
       ctx.restore();
@@ -1412,6 +1450,28 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
       }
 
+      // Verifica click em handles de resize de forma geométrica
+      for (const shape of geometricShapes) {
+        if (!selectedShapeIds.includes(shape.id)) continue;
+        const sBounds = getBoundsFromVertices(shape.vertices);
+        const handleSize = 12 / zoom;
+        const corners: Array<{ x: number; y: number; corner: 'nw' | 'ne' | 'se' | 'sw' }> = [
+          { x: sBounds.x, y: sBounds.y, corner: 'nw' },
+          { x: sBounds.x + sBounds.width, y: sBounds.y, corner: 'ne' },
+          { x: sBounds.x + sBounds.width, y: sBounds.y + sBounds.height, corner: 'se' },
+          { x: sBounds.x, y: sBounds.y + sBounds.height, corner: 'sw' },
+        ];
+        for (const c of corners) {
+          if (Math.abs(pos.x - c.x) < handleSize && Math.abs(pos.y - c.y) < handleSize) {
+            setIsResizingShape(true);
+            setResizingShapeId(shape.id);
+            setResizeCorner(c.corner);
+            setDragStart(pos);
+            return;
+          }
+        }
+      }
+
       // Verifica click em forma geométrica (não vinculada)
       for (const shape of geometricShapes) {
         if (shape.vertices && shape.vertices.length > 2) {
@@ -1644,6 +1704,43 @@ export const Canvas: React.FC<CanvasProps> = ({
       return;
     }
 
+    // Resize de formas geométricas
+    if (isResizingShape && resizingShapeId && resizeCorner && onResizeShape) {
+      const shape = geometricShapes.find(s => s.id === resizingShapeId);
+      if (shape) {
+        const sBounds = getBoundsFromVertices(shape.vertices);
+        let newX = sBounds.x;
+        let newY = sBounds.y;
+        let newW = sBounds.width;
+        let newH = sBounds.height;
+
+        if (resizeCorner === 'se') {
+          newW = Math.max(30, pos.x - sBounds.x);
+          newH = Math.max(30, pos.y - sBounds.y);
+        } else if (resizeCorner === 'ne') {
+          newW = Math.max(30, pos.x - sBounds.x);
+          const pH = Math.max(30, sBounds.y + sBounds.height - pos.y);
+          newY = sBounds.y + sBounds.height - pH;
+          newH = pH;
+        } else if (resizeCorner === 'sw') {
+          const pW = Math.max(30, sBounds.x + sBounds.width - pos.x);
+          newX = sBounds.x + sBounds.width - pW;
+          newW = pW;
+          newH = Math.max(30, pos.y - sBounds.y);
+        } else if (resizeCorner === 'nw') {
+          const pW = Math.max(30, sBounds.x + sBounds.width - pos.x);
+          const pH = Math.max(30, sBounds.y + sBounds.height - pos.y);
+          newX = sBounds.x + sBounds.width - pW;
+          newY = sBounds.y + sBounds.height - pH;
+          newW = pW;
+          newH = pH;
+        }
+
+        onResizeShape(resizingShapeId, newW, newH, newX, newY);
+      }
+      return;
+    }
+
     // Arrastar formas geométricas (não vinculadas)
     if (isDraggingShape && selectedShapeIds.length > 0 && onMoveShape) {
       const dx = pos.x - dragStart.x;
@@ -1807,6 +1904,8 @@ export const Canvas: React.FC<CanvasProps> = ({
     dragCenterRef.current = null;
     setActiveVertexIndex(null);
     setIsResizingElement(false);
+    setIsResizingShape(false);
+    setResizingShapeId(null);
     setResizeCorner(null);
     setIsRotating(false);
     setIsRotatingElement(false);
@@ -1816,7 +1915,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     <div 
       ref={containerRef}
       className="absolute inset-0 overflow-hidden bg-canvas-bg cursor-crosshair"
-      style={{ cursor: isCurvingVertex ? 'crosshair' : activeTool === 'pan' ? 'grab' : isPanning ? 'grabbing' : isRotating || isRotatingElement ? 'grabbing' : isDraggingVertex ? 'move' : isDraggingElement ? 'move' : isDraggingSeat ? 'grabbing' : isResizingElement ? 'nwse-resize' : isBoxSelecting ? 'crosshair' : 'default' }}
+      style={{ cursor: isCurvingVertex ? 'crosshair' : activeTool === 'pan' ? 'grab' : isPanning ? 'grabbing' : isRotating || isRotatingElement ? 'grabbing' : isDraggingVertex ? 'move' : isDraggingElement ? 'move' : isDraggingSeat ? 'grabbing' : isResizingElement || isResizingShape ? 'nwse-resize' : isBoxSelecting ? 'crosshair' : 'default' }}
     >
       <canvas
         ref={canvasRef}

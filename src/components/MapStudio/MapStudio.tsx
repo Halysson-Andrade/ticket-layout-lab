@@ -254,6 +254,31 @@ export const MapStudio: React.FC = () => {
     setElements(prev => prev.map(el => el.id === id ? { ...el, ...updates } : el));
   }, []);
 
+  // Redimensiona forma geométrica
+  const handleResizeShape = useCallback((id: string, width: number, height: number, x: number, y: number) => {
+    setGeometricShapes(prev => prev.map(s => {
+      if (s.id !== id) return s;
+      const newBounds = { x, y, width, height };
+      return {
+        ...s,
+        bounds: newBounds,
+        vertices: generateVerticesForShape(s.shape, newBounds),
+      };
+    }));
+  }, []);
+
+  // Altera tipo de forma geométrica
+  const handleUpdateShapeType = useCallback((id: string, shapeType: SectorShape) => {
+    setGeometricShapes(prev => prev.map(s => {
+      if (s.id !== id) return s;
+      return {
+        ...s,
+        shape: shapeType,
+        vertices: generateVerticesForShape(shapeType, s.bounds),
+      };
+    }));
+  }, []);
+
 
   const handleSelectSector = useCallback((id: string, additive: boolean) => {
     if (additive) {
@@ -1993,6 +2018,7 @@ export const MapStudio: React.FC = () => {
           onSelectShape={handleSelectShape}
           onMoveShape={handleMoveShape}
           onDeleteShape={handleDeleteShape}
+          onResizeShape={handleResizeShape}
           onAddFurniture={handleRequestFurniture}
           onDeselectAll={handleDeselectAll}
         />
@@ -2093,6 +2119,8 @@ export const MapStudio: React.FC = () => {
             onUpdateShapeName={(id, name) => setGeometricShapes(prev => prev.map(s => s.id === id ? { ...s, name } : s))}
             onUpdateShapeColor={(id, color) => setGeometricShapes(prev => prev.map(s => s.id === id ? { ...s, color } : s))}
             onUpdateShapeOpacity={(id, opacity) => setGeometricShapes(prev => prev.map(s => s.id === id ? { ...s, opacity } : s))}
+            onUpdateShapeType={handleUpdateShapeType}
+            onResizeShape={handleResizeShape}
             onGroupSectors={(sectorIds, categoryId) => {
               const category = PREDEFINED_SECTORS.find(s => s.id === categoryId);
               if (category) {
