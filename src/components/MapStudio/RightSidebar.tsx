@@ -233,26 +233,56 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                   <Palette className="h-3 w-3" />
                   Cor de Fundo
                 </Label>
-                <div className="grid grid-cols-6 gap-1.5">
-                  {[
-                    ...SECTOR_COLORS,
-                    'hsl(0, 72%, 51%)', 'hsl(15, 80%, 50%)', 'hsl(30, 85%, 50%)',
-                    'hsl(60, 70%, 50%)', 'hsl(120, 60%, 40%)', 'hsl(180, 60%, 45%)',
-                    'hsl(210, 70%, 50%)', 'hsl(240, 60%, 55%)', 'hsl(270, 60%, 55%)',
-                    'hsl(300, 60%, 50%)', 'hsl(330, 70%, 50%)', 'hsl(0, 0%, 35%)',
-                    'hsl(0, 0%, 50%)', 'hsl(0, 0%, 65%)', 'hsl(0, 0%, 80%)', 'hsl(0, 0%, 20%)',
-                  ].map((color) => (
-                    <button
-                      key={color}
-                      className={`w-full aspect-square rounded-md border-2 transition-all hover:scale-110 ${
-                        selectedShape.color === color 
-                          ? 'border-primary ring-2 ring-primary/30 scale-105' 
-                          : 'border-transparent hover:border-primary/50'
-                      }`}
-                      style={{ backgroundColor: color }}
-                      onClick={() => onUpdateShapeColor?.(selectedShape.id, color)}
-                    />
-                  ))}
+                <div className="grid grid-cols-8 gap-1">
+                  {(() => {
+                    // Gera paleta dinâmica: 10 matizes × 4 luminosidades + 8 neutros = 48 cores
+                    const hues = [0, 15, 30, 45, 60, 120, 150, 180, 210, 240, 270, 300, 330, 340];
+                    const variations = [
+                      { s: 80, l: 40 },
+                      { s: 75, l: 55 },
+                      { s: 65, l: 65 },
+                      { s: 50, l: 75 },
+                    ];
+                    const colors: string[] = [];
+                    hues.forEach(h => {
+                      variations.forEach(({ s, l }) => {
+                        colors.push(`hsl(${h}, ${s}%, ${l}%)`);
+                      });
+                    });
+                    // Neutros
+                    [10, 20, 30, 40, 50, 60, 70, 80, 90].forEach(l => {
+                      colors.push(`hsl(0, 0%, ${l}%)`);
+                    });
+                    // Remove duplicatas
+                    const unique = [...new Set(colors)];
+                    return unique.map((color) => (
+                      <button
+                        key={color}
+                        className={`w-full aspect-square rounded border-2 transition-all hover:scale-110 ${
+                          selectedShape.color === color
+                            ? 'border-primary ring-2 ring-primary/30 scale-105'
+                            : 'border-transparent hover:border-primary/50'
+                        }`}
+                        style={{ backgroundColor: color }}
+                        onClick={() => onUpdateShapeColor?.(selectedShape.id, color)}
+                      />
+                    ));
+                  })()}
+                </div>
+                {/* Color picker customizado */}
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="color"
+                    value={(() => {
+                      // Converte HSL para hex para o input
+                      const c = selectedShape.color;
+                      if (c.startsWith('#')) return c;
+                      return '#6366f1';
+                    })()}
+                    onChange={(e) => onUpdateShapeColor?.(selectedShape.id, e.target.value)}
+                    className="w-8 h-8 rounded cursor-pointer border border-border"
+                  />
+                  <span className="text-[10px] text-muted-foreground">Cor personalizada</span>
                 </div>
               </div>
 
