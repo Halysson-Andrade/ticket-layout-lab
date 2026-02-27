@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { 
-  Users, Building2, Map, LogOut, MapPin, ChevronLeft 
+  Users, Building2, Map, LogOut, MapPin, ChevronLeft, Play 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +22,9 @@ const PortalLayout: React.FC = () => {
       { to: '/portal/empresas', icon: Building2, label: 'Empresas' },
     ] : []),
     { to: '/portal/mapas', icon: Map, label: 'Mapas' },
+    ...(isAdmin ? [
+      { to: '/portal/simulacao', icon: Play, label: 'Simulação' },
+    ] : []),
   ];
 
   return (

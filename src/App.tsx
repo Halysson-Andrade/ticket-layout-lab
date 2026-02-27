@@ -12,6 +12,7 @@ import ChangePassword from "./pages/ChangePassword";
 import UsuariosPage from "./pages/portal/UsuariosPage";
 import EmpresasPage from "./pages/portal/EmpresasPage";
 import MapasPage from "./pages/portal/MapasPage";
+import SimulacaoPage from "./pages/portal/SimulacaoPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,11 @@ const App = () => (
                 </ProtectedRoute>
               } />
               <Route path="mapas" element={<MapasPage />} />
+              <Route path="simulacao" element={
+                <ProtectedRoute requiredRole="admin">
+                  <SimulacaoPage />
+                </ProtectedRoute>
+              } />
             </Route>
 
             {/* MapStudio - funciona independente como antes */}
