@@ -5,7 +5,23 @@
 export type SeatType = 'normal' | 'pcd' | 'companion' | 'obeso' | 'vip' | 'blocked';
 export type SeatStatus = 'available' | 'reserved' | 'sold' | 'blocked';
 export type ElementType = 'stage' | 'bar' | 'bathroom' | 'entrance' | 'exit' | 'speaker' | 'dj' | 'screen' | 'vip-area' | 'food' | 'custom';
-export type ToolType = 'select' | 'pan' | 'sector' | 'seat-grid' | 'seat-single' | 'element' | 'lasso' | 'table';
+export type ToolType = 'select' | 'pan' | 'sector' | 'seat-grid' | 'seat-single' | 'element' | 'lasso' | 'table' | 'text';
+
+// Elemento de texto independente no canvas
+export interface TextElement {
+  id: string;
+  text: string;
+  x: number;
+  y: number;
+  fontFamily: string;
+  fontSize: number;
+  fontWeight: 'normal' | 'bold';
+  fontStyle: 'normal' | 'italic';
+  textAlign: 'left' | 'center' | 'right';
+  color: string;
+  textDecoration: 'none' | 'underline';
+  rotation: number;
+}
 
 // Tipos de mobília
 export type FurnitureType = 'chair' | 'table' | 'bistro';

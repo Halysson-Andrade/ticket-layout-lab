@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
-import { Sector, Seat, VenueElement, ToolType, SeatType, SEAT_COLORS, ELEMENT_ICONS, Vertex, TableConfig, GeometricShape } from '@/types/mapStudio';
+import { Sector, Seat, VenueElement, ToolType, SeatType, SEAT_COLORS, ELEMENT_ICONS, Vertex, TableConfig, GeometricShape, TextElement } from '@/types/mapStudio';
 import { isPointInBounds, isPointInPolygon, getBoundsFromVertices } from '@/lib/mapUtils';
 import { CanvasContextMenu } from './CanvasContextMenu';
 import { toast } from 'sonner';
@@ -60,6 +60,14 @@ interface CanvasProps {
   onGroupShapesToSector?: (shapeIds: string[]) => void;
   onAddFurniture?: (sectorId: string, position: { x: number; y: number }, screenPosition: { x: number; y: number }) => void;
   onDeselectAll?: () => void;
+  // Text elements
+  textElements?: TextElement[];
+  selectedTextIds?: string[];
+  onCreateText?: (position: { x: number; y: number }) => void;
+  onSelectText?: (id: string, additive: boolean) => void;
+  onMoveText?: (id: string, dx: number, dy: number) => void;
+  onDeleteText?: (id: string) => void;
+  onGetTextScreenPos?: (id: string) => { x: number; y: number } | null;
 }
 
 const HANDLE_SIZE = 10;
@@ -112,6 +120,12 @@ export const Canvas: React.FC<CanvasProps> = ({
   onGroupShapesToSector,
   onAddFurniture,
   onDeselectAll,
+  textElements = [],
+  selectedTextIds = [],
+  onCreateText,
+  onSelectText,
+  onMoveText,
+  onDeleteText,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -121,6 +135,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   const [isDraggingShape, setIsDraggingShape] = useState(false);
   const [isDraggingElement, setIsDraggingElement] = useState(false);
   const [isDraggingSeat, setIsDraggingSeat] = useState(false);
+  const [isDraggingText, setIsDraggingText] = useState(false);
   const [draggingSeatInfo, setDraggingSeatInfo] = useState<{ seatId: string; sectorId: string } | null>(null);
   const [isBoxSelecting, setIsBoxSelecting] = useState(false);
   const [isDraggingVertex, setIsDraggingVertex] = useState(false);
@@ -945,6 +960,66 @@ export const Canvas: React.FC<CanvasProps> = ({
 
 
 
+    // Desenha elementos de texto independentes
+    textElements.forEach(te => {
+      const isSelected = selectedTextIds.includes(te.id);
+      ctx.save();
+      
+      if (te.rotation && te.rotation !== 0) {
+        ctx.translate(te.x, te.y);
+        ctx.rotate((te.rotation * Math.PI) / 180);
+        ctx.translate(-te.x, -te.y);
+      }
+      
+      ctx.fillStyle = te.color || '#ffffff';
+      ctx.font = `${te.fontStyle || 'normal'} ${te.fontWeight || 'normal'} ${te.fontSize || 14}px ${te.fontFamily || 'sans-serif'}`;
+      ctx.textAlign = (te.textAlign || 'left') as CanvasTextAlign;
+      ctx.textBaseline = 'top';
+      
+      const lines = (te.text || 'Texto').split('\n');
+      const lineHeight = (te.fontSize || 14) * 1.3;
+      
+      lines.forEach((line, i) => {
+        ctx.fillText(line, te.x, te.y + i * lineHeight);
+        
+        if (te.textDecoration === 'underline') {
+          const metrics = ctx.measureText(line);
+          let lx = te.x;
+          if (te.textAlign === 'center') lx -= metrics.width / 2;
+          else if (te.textAlign === 'right') lx -= metrics.width;
+          ctx.beginPath();
+          ctx.strokeStyle = te.color || '#ffffff';
+          ctx.lineWidth = 1;
+          ctx.moveTo(lx, te.y + i * lineHeight + (te.fontSize || 14));
+          ctx.lineTo(lx + metrics.width, te.y + i * lineHeight + (te.fontSize || 14));
+          ctx.stroke();
+        }
+      });
+      
+      // Selection box
+      if (isSelected) {
+        // Measure total width
+        let maxWidth = 0;
+        lines.forEach(line => {
+          const m = ctx.measureText(line);
+          if (m.width > maxWidth) maxWidth = m.width;
+        });
+        const totalHeight = lines.length * lineHeight;
+        
+        let boxX = te.x - 4;
+        if (te.textAlign === 'center') boxX = te.x - maxWidth / 2 - 4;
+        else if (te.textAlign === 'right') boxX = te.x - maxWidth - 4;
+        
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 2 / zoom;
+        ctx.setLineDash([4 / zoom, 3 / zoom]);
+        ctx.strokeRect(boxX, te.y - 4, maxWidth + 8, totalHeight + 8);
+        ctx.setLineDash([]);
+      }
+      
+      ctx.restore();
+    });
+
     // Desenha labels e handles das formas geométricas (ACIMA de tudo)
     geometricShapes.forEach(shape => {
       const isSelected = selectedShapeIds.includes(shape.id);
@@ -1243,6 +1318,12 @@ export const Canvas: React.FC<CanvasProps> = ({
       return;
     }
 
+    // Ferramenta de texto: clique no canvas cria texto
+    if (activeTool === 'text') {
+      onCreateText?.(pos);
+      return;
+    }
+
     if (activeTool === 'select' || activeTool === 'lasso') {
       // Verifica click no handle de rotação de setor selecionado
       for (const sectorId of selectedSectorIds) {
@@ -1458,6 +1539,32 @@ export const Canvas: React.FC<CanvasProps> = ({
             setResizeCorner(c.corner);
             setDragStart(pos);
             return;
+          }
+        }
+      }
+
+      // Verifica click em texto
+      for (const te of textElements) {
+        // Measure text bounds
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const tCtx = canvas.getContext('2d');
+          if (tCtx) {
+            tCtx.font = `${te.fontStyle || 'normal'} ${te.fontWeight || 'normal'} ${te.fontSize || 14}px ${te.fontFamily || 'sans-serif'}`;
+            const lines = (te.text || 'Texto').split('\n');
+            let maxW = 0;
+            lines.forEach(l => { const m = tCtx.measureText(l); if (m.width > maxW) maxW = m.width; });
+            const totalH = lines.length * (te.fontSize || 14) * 1.3;
+            let bx = te.x;
+            if (te.textAlign === 'center') bx -= maxW / 2;
+            else if (te.textAlign === 'right') bx -= maxW;
+            
+            if (pos.x >= bx - 4 && pos.x <= bx + maxW + 4 && pos.y >= te.y - 4 && pos.y <= te.y + totalH + 4) {
+              onSelectText?.(te.id, e.shiftKey);
+              setIsDraggingText(true);
+              setDragStart(pos);
+              return;
+            }
           }
         }
       }
@@ -1740,6 +1847,15 @@ export const Canvas: React.FC<CanvasProps> = ({
       return;
     }
 
+    // Arrastar textos
+    if (isDraggingText && selectedTextIds.length > 0 && onMoveText) {
+      const dx = pos.x - dragStart.x;
+      const dy = pos.y - dragStart.y;
+      selectedTextIds.forEach(id => onMoveText(id, dx, dy));
+      setDragStart(pos);
+      return;
+    }
+
     if (isDragging && selectedSectorIds.length > 0) {
       const dx = pos.x - dragStart.x;
       const dy = pos.y - dragStart.y;
@@ -1888,6 +2004,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     setIsDraggingShape(false);
     setIsDraggingElement(false);
     setIsDraggingSeat(false);
+    setIsDraggingText(false);
     setDraggingSeatInfo(null);
     setIsBoxSelecting(false);
     setIsDraggingVertex(false);
