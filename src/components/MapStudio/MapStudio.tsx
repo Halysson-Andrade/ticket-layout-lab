@@ -1143,6 +1143,71 @@ export const MapStudio: React.FC = () => {
     });
   }, [selectedSectorIds, sectors, pushHistory]);
 
+  // Alinhamento de múltiplos assentos selecionados
+  const handleAlignSeats = useCallback((type: AlignType) => {
+    if (selectedSeatIds.length < 2) return;
+
+    const allSeats = sectors.flatMap(s => s.seats);
+    const selected = allSeats.filter(s => selectedSeatIds.includes(s.id));
+    const seatSize = 12;
+
+    const minX = Math.min(...selected.map(s => s.x));
+    const maxX = Math.max(...selected.map(s => s.x + seatSize));
+    const minY = Math.min(...selected.map(s => s.y));
+    const maxY = Math.max(...selected.map(s => s.y + seatSize));
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+
+    const moves: Record<string, { dx: number; dy: number }> = {};
+
+    if (type === 'distribute-h' || type === 'distribute-v') {
+      const isH = type === 'distribute-h';
+      const sorted = [...selected].sort((a, b) => isH ? a.x - b.x : a.y - b.y);
+      if (sorted.length >= 3) {
+        const first = isH ? sorted[0].x : sorted[0].y;
+        const last = isH ? sorted[sorted.length - 1].x : sorted[sorted.length - 1].y;
+        const gap = (last - first) / (sorted.length - 1);
+        sorted.forEach((seat, idx) => {
+          if (idx === 0 || idx === sorted.length - 1) return;
+          const target = first + gap * idx;
+          const current = isH ? seat.x : seat.y;
+          const delta = target - current;
+          if (delta !== 0) {
+            moves[seat.id] = isH ? { dx: delta, dy: 0 } : { dx: 0, dy: delta };
+          }
+        });
+      }
+    } else {
+      selected.forEach(seat => {
+        let dx = 0, dy = 0;
+        switch (type) {
+          case 'left': dx = minX - seat.x; break;
+          case 'right': dx = maxX - (seat.x + seatSize); break;
+          case 'center-h': dx = centerX - (seat.x + seatSize / 2); break;
+          case 'top': dy = minY - seat.y; break;
+          case 'bottom': dy = maxY - (seat.y + seatSize); break;
+          case 'center-v': dy = centerY - (seat.y + seatSize / 2); break;
+        }
+        if (dx !== 0 || dy !== 0) moves[seat.id] = { dx, dy };
+      });
+    }
+
+    if (Object.keys(moves).length === 0) return;
+
+    setSectors(prev => {
+      const newSectors = prev.map(s => ({
+        ...s,
+        seats: s.seats.map(seat => {
+          const m = moves[seat.id];
+          if (!m) return seat;
+          return { ...seat, x: seat.x + m.dx, y: seat.y + m.dy };
+        }),
+      }));
+      pushHistory(newSectors);
+      return newSectors;
+    });
+  }, [selectedSeatIds, sectors, pushHistory]);
+
   // Adiciona vértice em uma aresta do polígono
   const handleAddVertex = useCallback((sectorId: string, edgeIndex: number, position: { x: number; y: number }) => {
     pushHistory(sectors);
@@ -1878,11 +1943,19 @@ export const MapStudio: React.FC = () => {
           {showToolbar ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
         </button>
 
-        {/* Alignment Bar - aparece quando 2+ setores selecionados */}
+        {/* Alignment Bar - aparece quando 2+ setores ou 2+ assentos selecionados */}
         {selectedSectorIds.length >= 2 && (
           <AlignmentBar
             onAlign={handleAlignSectors}
-            sectorCount={selectedSectorIds.length}
+            itemCount={selectedSectorIds.length}
+            itemLabel="setores"
+          />
+        )}
+        {selectedSeatIds.length >= 2 && selectedSectorIds.length < 2 && (
+          <AlignmentBar
+            onAlign={handleAlignSeats}
+            itemCount={selectedSeatIds.length}
+            itemLabel="assentos"
           />
         )}
 
