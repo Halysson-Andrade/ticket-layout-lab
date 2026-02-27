@@ -198,7 +198,7 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
                     <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
   "setores": [
     {
-      "id": "string",       // ID único do setor
+      "id": 1,              // ID único do setor (int)
       "name": "string",     // Nome exibido (ex: "Pista", "VIP")
       "color": "string"     // Cor HSL (ex: "hsl(142, 71%, 45%)")
     }
@@ -231,8 +231,8 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
                     <Separator />
                     <p className="font-sans font-medium text-foreground">Request Body:</p>
                     <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
-  "map_id": "uuid",           // ID interno do mapa
-  "id_evento": "string",      // ID do evento externo
+  "map_id": 123,               // ID interno do mapa (int)
+  "id_evento": 456,            // ID do evento externo (int)
   "map_json": {
     "name": "string",
     "version": 1,
@@ -240,7 +240,7 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
     "height": 1500,
     "sectors": [
       {
-        "id": "string",
+        "id": 1,
         "name": "string",
         "color": "hsl(...)",
         "bounds": { "x": 0, "y": 0, "width": 200, "height": 150 },
@@ -249,8 +249,8 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
         "rotation": 0,
         "seats": [
           {
-            "id": "string",
-            "sectorId": "string",
+            "id": 1,
+            "sectorId": 1,
             "row": "A",
             "number": "1",
             "type": "normal | pcd | companion | obeso | vip | blocked",
@@ -262,14 +262,14 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
             "description": "string | null"
           }
         ],
-        "categoryId": "string | null",
+        "categoryId": 1,
         "visible": true,
         "locked": false
       }
     ],
     "elements": [
       {
-        "id": "string",
+        "id": 1,
         "type": "stage | bar | bathroom | entrance | exit | speaker | dj | screen | vip-area | food | custom",
         "label": "string",
         "bounds": { "x": 0, "y": 0, "width": 300, "height": 100 },
@@ -279,14 +279,14 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
     ],
     "geometricShapes": [
       {
-        "id": "string",
+        "id": 1,
         "name": "string",
         "color": "hsl(...)",
         "opacity": 80,
         "bounds": { "x": 0, "y": 0, "width": 200, "height": 150 },
         "shape": "rectangle",
         "rotation": 0,
-        "linkedSectorId": "string | null"
+        "linkedSectorId": 1
       }
     ]
   }
@@ -296,7 +296,7 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
                     <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
   "success": true,
   "message": "string",
-  "external_map_id": "string"  // ID do mapa no sistema externo
+  "external_map_id": 789  // ID do mapa no sistema externo (int)
 }`}</pre>
                   </div>
                 </AccordionContent>
@@ -323,14 +323,14 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
                     <p className="font-sans text-muted-foreground">Retorna o JSON do mapa salvo. Usado para carregar um mapa existente no MapStudio.</p>
                     <Separator />
                     <p className="font-sans font-medium text-foreground">Query Parameters:</p>
-                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`map_id: "uuid"  // ID do mapa a ser consultado`}</pre>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`map_id: 123  // ID do mapa a ser consultado (int)`}</pre>
                     <Separator />
                     <p className="font-sans font-medium text-foreground">Response 200:</p>
                     <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
-  "id": "uuid",
+  "id": 123,
   "name": "string",
-  "company_id": "uuid",
-  "id_evento_externo": "string",
+  "company_id": 1,
+  "id_evento_externo": 456,
   "map_json": { ... },          // Mesmo formato do POST /mapas
   "sync_status": "OK | PENDENTE | ERRO",
   "created_at": "ISO 8601",
@@ -365,8 +365,8 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
                     <Separator />
                     <p className="font-sans font-medium text-foreground">Request Body:</p>
                     <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
-  "map_id": "uuid",
-  "id_evento": "string",
+  "map_id": 123,
+  "id_evento": 456,
   "map_json": { ... }   // Mesmo formato do POST /mapas
 }`}</pre>
                     <Separator />
