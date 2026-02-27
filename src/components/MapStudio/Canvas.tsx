@@ -45,6 +45,9 @@ interface CanvasProps {
   onAddVertex?: (sectorId: string, edgeIndex: number, position: { x: number; y: number }) => void;
   onRemoveVertex?: (sectorId: string, vertexIndex: number) => void;
   onVertexMoveEnd?: () => void;
+  onAddElementVertex?: (elementId: string, edgeIndex: number, position: { x: number; y: number }) => void;
+  onRemoveElementVertex?: (elementId: string, vertexIndex: number) => void;
+  onUpdateElementVertices?: (elementId: string, vertices: Vertex[]) => void;
   onDuplicateSector?: () => void;
   onDuplicateSectorById?: (sectorId: string) => void;
   onDeleteSector?: () => void;
@@ -108,6 +111,9 @@ export const Canvas: React.FC<CanvasProps> = ({
   onAddVertex,
   onRemoveVertex,
   onVertexMoveEnd,
+  onAddElementVertex,
+  onRemoveElementVertex,
+  onUpdateElementVertices,
   onDuplicateSector,
   onDuplicateSectorById,
   onDeleteSector,
@@ -191,7 +197,11 @@ export const Canvas: React.FC<CanvasProps> = ({
     edgeIndex: number | null;
     vertexIndex: number | null;
     sectorId: string | null;
+    elementId: string | null;
   } | null>(null);
+
+  // Track whether vertex drag is on a sector or element
+  const [vertexDragTarget, setVertexDragTarget] = useState<{ type: 'sector' | 'element'; id: string } | null>(null);
 
   // Tooltip state para assentos bloqueados
   const [hoveredBlockedSeat, setHoveredBlockedSeat] = useState<{
@@ -521,24 +531,81 @@ export const Canvas: React.FC<CanvasProps> = ({
         ctx.translate(-elCenterX, -elCenterY);
       }
       
+      // Renderiza como polígono se tiver vértices, senão retângulo
       ctx.fillStyle = el.color || '#4a5568';
-      ctx.fillRect(el.bounds.x, el.bounds.y, el.bounds.width, el.bounds.height);
-      
-      // Borda de seleção com handles de redimensionamento
-      if (isElSelected) {
-        ctx.strokeStyle = '#3b82f6';
-        ctx.lineWidth = 3 / zoom;
-        ctx.setLineDash([6, 3]);
-        ctx.strokeRect(el.bounds.x - 2, el.bounds.y - 2, el.bounds.width + 4, el.bounds.height + 4);
-        ctx.setLineDash([]);
+      if (el.vertices && el.vertices.length >= 3) {
+        ctx.beginPath();
+        ctx.moveTo(el.vertices[0].x, el.vertices[0].y);
+        for (let i = 0; i < el.vertices.length; i++) {
+          const next = el.vertices[(i + 1) % el.vertices.length];
+          const current = el.vertices[i];
+          if (next.controlPoint) {
+            ctx.quadraticCurveTo(next.controlPoint.x, next.controlPoint.y, next.x, next.y);
+          } else {
+            ctx.lineTo(next.x, next.y);
+          }
+        }
+        ctx.closePath();
+        ctx.fill();
         
-        // Desenha handles de redimensionamento nos cantos
-        const handleSize = 8 / zoom;
-        ctx.fillStyle = '#3b82f6';
-        ctx.fillRect(el.bounds.x + el.bounds.width - handleSize/2, el.bounds.y - handleSize/2, handleSize, handleSize);
-        ctx.fillRect(el.bounds.x - handleSize/2, el.bounds.y - handleSize/2, handleSize, handleSize);
-        ctx.fillRect(el.bounds.x + el.bounds.width - handleSize/2, el.bounds.y + el.bounds.height - handleSize/2, handleSize, handleSize);
-        ctx.fillRect(el.bounds.x - handleSize/2, el.bounds.y + el.bounds.height - handleSize/2, handleSize, handleSize);
+        // Borda
+        ctx.strokeStyle = isElSelected ? '#3b82f6' : 'rgba(0,0,0,0.3)';
+        ctx.lineWidth = isElSelected ? 3 / zoom : 1 / zoom;
+        if (isElSelected) ctx.setLineDash([6, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      } else {
+        ctx.fillRect(el.bounds.x, el.bounds.y, el.bounds.width, el.bounds.height);
+        if (isElSelected) {
+          ctx.strokeStyle = '#3b82f6';
+          ctx.lineWidth = 3 / zoom;
+          ctx.setLineDash([6, 3]);
+          ctx.strokeRect(el.bounds.x - 2, el.bounds.y - 2, el.bounds.width + 4, el.bounds.height + 4);
+          ctx.setLineDash([]);
+        }
+      }
+      
+      // Seleção: handles de vértice OU handles de canto
+      if (isElSelected) {
+        if (el.vertices && el.vertices.length >= 3) {
+          // Desenha handles nos vértices (como setores)
+          const handleSize = 8 / zoom;
+          el.vertices.forEach((v, i) => {
+            ctx.fillStyle = '#3b82f6';
+            ctx.fillRect(v.x - handleSize/2, v.y - handleSize/2, handleSize, handleSize);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1 / zoom;
+            ctx.strokeRect(v.x - handleSize/2, v.y - handleSize/2, handleSize, handleSize);
+            
+            // Desenha control point se existir
+            if (v.controlPoint) {
+              ctx.beginPath();
+              ctx.setLineDash([3, 3]);
+              ctx.moveTo(v.x, v.y);
+              ctx.lineTo(v.controlPoint.x, v.controlPoint.y);
+              ctx.strokeStyle = '#3b82f6';
+              ctx.lineWidth = 1 / zoom;
+              ctx.stroke();
+              ctx.setLineDash([]);
+              
+              ctx.beginPath();
+              ctx.arc(v.controlPoint.x, v.controlPoint.y, 4 / zoom, 0, Math.PI * 2);
+              ctx.fillStyle = '#f59e0b';
+              ctx.fill();
+              ctx.strokeStyle = '#fff';
+              ctx.lineWidth = 1 / zoom;
+              ctx.stroke();
+            }
+          });
+        } else {
+          // Fallback: handles de canto
+          const handleSize = 8 / zoom;
+          ctx.fillStyle = '#3b82f6';
+          ctx.fillRect(el.bounds.x + el.bounds.width - handleSize/2, el.bounds.y - handleSize/2, handleSize, handleSize);
+          ctx.fillRect(el.bounds.x - handleSize/2, el.bounds.y - handleSize/2, handleSize, handleSize);
+          ctx.fillRect(el.bounds.x + el.bounds.width - handleSize/2, el.bounds.y + el.bounds.height - handleSize/2, handleSize, handleSize);
+          ctx.fillRect(el.bounds.x - handleSize/2, el.bounds.y + el.bounds.height - handleSize/2, handleSize, handleSize);
+        }
         
         // Handle de rotação
         const rotHandleDistance = 30 / zoom;
@@ -546,7 +613,6 @@ export const Canvas: React.FC<CanvasProps> = ({
         const rotHandleX = el.bounds.x + el.bounds.width + rotHandleDistance;
         const rotHandleY = el.bounds.y - rotHandleDistance;
         
-        // Linha conectora
         ctx.strokeStyle = '#3b82f6';
         ctx.lineWidth = 1.5 / zoom;
         ctx.setLineDash([]);
@@ -555,7 +621,6 @@ export const Canvas: React.FC<CanvasProps> = ({
         ctx.lineTo(rotHandleX, rotHandleY);
         ctx.stroke();
         
-        // Círculo do handle
         ctx.beginPath();
         ctx.arc(rotHandleX, rotHandleY, rotHandleRadius, 0, Math.PI * 2);
         ctx.fillStyle = '#3b82f6';
@@ -564,14 +629,12 @@ export const Canvas: React.FC<CanvasProps> = ({
         ctx.lineWidth = 1.5 / zoom;
         ctx.stroke();
         
-        // Ícone de rotação
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 1.5 / zoom;
         const arrowR = rotHandleRadius * 0.5;
         ctx.beginPath();
         ctx.arc(rotHandleX, rotHandleY, arrowR, -Math.PI * 0.8, Math.PI * 0.3);
         ctx.stroke();
-        // Seta
         const tipAngle = Math.PI * 0.3;
         const tipX = rotHandleX + arrowR * Math.cos(tipAngle);
         const tipY = rotHandleY + arrowR * Math.sin(tipAngle);
@@ -595,7 +658,6 @@ export const Canvas: React.FC<CanvasProps> = ({
           elCenterY - (el.label ? 8 : 0)
         );
         
-        // Label dentro do elemento
         if (el.label) {
           ctx.font = `bold ${Math.min(12, el.bounds.width * 0.12)}px sans-serif`;
           ctx.fillText(el.label, elCenterX, elCenterY + iconSize * 0.6);
@@ -1237,8 +1299,6 @@ export const Canvas: React.FC<CanvasProps> = ({
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     
-    // Só mostra context menu se Ctrl estiver pressionado
-    // Caso contrário, permite pan normal via right-click
     if (!e.ctrlKey && !e.metaKey) {
       return;
     }
@@ -1252,26 +1312,16 @@ export const Canvas: React.FC<CanvasProps> = ({
         const vertexIndex = getVertexAtPoint(pos, sector);
         if (vertexIndex !== null) {
           setContextMenu({
-            x: e.clientX,
-            y: e.clientY,
-            canvasPos: pos,
-            edgeIndex: null,
-            vertexIndex: vertexIndex,
-            sectorId: sectorId,
+            x: e.clientX, y: e.clientY, canvasPos: pos,
+            edgeIndex: null, vertexIndex, sectorId, elementId: null,
           });
           return;
         }
-        
-        // Verifica se clicou em uma aresta
         const edge = getEdgeAtPoint(pos, sector);
         if (edge) {
           setContextMenu({
-            x: e.clientX,
-            y: e.clientY,
-            canvasPos: edge.point,
-            edgeIndex: edge.edgeIndex,
-            vertexIndex: null,
-            sectorId: sectorId,
+            x: e.clientX, y: e.clientY, canvasPos: edge.point,
+            edgeIndex: edge.edgeIndex, vertexIndex: null, sectorId, elementId: null,
           });
           return;
         }
@@ -1283,20 +1333,64 @@ export const Canvas: React.FC<CanvasProps> = ({
       const sector = sectors.find(s => s.id === sectorId);
       if (sector && isPointInSector(pos, sector)) {
         setContextMenu({
-          x: e.clientX,
-          y: e.clientY,
-          canvasPos: pos,
-          edgeIndex: null,
-          vertexIndex: null,
-          sectorId: sectorId,
+          x: e.clientX, y: e.clientY, canvasPos: pos,
+          edgeIndex: null, vertexIndex: null, sectorId, elementId: null,
         });
         return;
       }
     }
+
+    // Verifica se clicou em vértice/aresta de elemento selecionado
+    for (const elId of selectedElementIds) {
+      const el = elements.find(e => e.id === elId);
+      if (el && el.vertices && el.vertices.length >= 3) {
+        // Check vertex
+        const handleRadius = HANDLE_SIZE / zoom;
+        for (let i = 0; i < el.vertices.length; i++) {
+          const v = el.vertices[i];
+          const dist = Math.sqrt(Math.pow(pos.x - v.x, 2) + Math.pow(pos.y - v.y, 2));
+          if (dist <= handleRadius) {
+            setContextMenu({
+              x: e.clientX, y: e.clientY, canvasPos: pos,
+              edgeIndex: null, vertexIndex: i, sectorId: null, elementId: elId,
+            });
+            return;
+          }
+        }
+        // Check edge
+        const threshold = 12 / zoom;
+        for (let i = 0; i < el.vertices.length; i++) {
+          const v1 = el.vertices[i];
+          const v2 = el.vertices[(i + 1) % el.vertices.length];
+          const dx = v2.x - v1.x;
+          const dy = v2.y - v1.y;
+          const lengthSquared = dx * dx + dy * dy;
+          if (lengthSquared === 0) continue;
+          const t = Math.max(0, Math.min(1, ((pos.x - v1.x) * dx + (pos.y - v1.y) * dy) / lengthSquared));
+          const projX = v1.x + t * dx;
+          const projY = v1.y + t * dy;
+          const distSq = Math.pow(pos.x - projX, 2) + Math.pow(pos.y - projY, 2);
+          if (distSq <= threshold * threshold) {
+            setContextMenu({
+              x: e.clientX, y: e.clientY, canvasPos: { x: projX, y: projY },
+              edgeIndex: i, vertexIndex: null, sectorId: null, elementId: elId,
+            });
+            return;
+          }
+        }
+        // Check inside element
+        if (isPointInPolygon(pos, el.vertices)) {
+          setContextMenu({
+            x: e.clientX, y: e.clientY, canvasPos: pos,
+            edgeIndex: null, vertexIndex: null, sectorId: null, elementId: elId,
+          });
+          return;
+        }
+      }
+    }
     
-    // Fecha menu se clicar no vazio
     setContextMenu(null);
-  }, [screenToCanvas, selectedSectorIds, sectors, getVertexAtPoint, getEdgeAtPoint, isPointInSector]);
+  }, [screenToCanvas, selectedSectorIds, selectedElementIds, sectors, elements, getVertexAtPoint, getEdgeAtPoint, isPointInSector, zoom]);
 
   // Mouse down
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -1393,7 +1487,6 @@ export const Canvas: React.FC<CanvasProps> = ({
         if (sector && sector.vertices) {
           const vertexIndex = getVertexAtPoint(pos, sector);
           if (vertexIndex !== null) {
-            // Store stable center for rotation calculations during drag
             const bounds = getBoundsFromVertices(sector.vertices);
             dragCenterRef.current = {
               x: bounds.x + bounds.width / 2,
@@ -1401,6 +1494,7 @@ export const Canvas: React.FC<CanvasProps> = ({
             };
             setIsDraggingVertex(true);
             setActiveVertexIndex(vertexIndex);
+            setVertexDragTarget({ type: 'sector', id: sectorId });
             setDragStart(pos);
             return;
           }
@@ -1439,7 +1533,25 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
       }
 
-      // Verifica click em handle de redimensionamento de elemento selecionado
+      // Verifica click em vértice de elemento selecionado
+      for (const elId of selectedElementIds) {
+        const el = elements.find(e => e.id === elId);
+        if (el && el.vertices && el.vertices.length >= 3) {
+          const handleRadius = HANDLE_SIZE / zoom;
+          for (let i = 0; i < el.vertices.length; i++) {
+            const v = el.vertices[i];
+            const dist = Math.sqrt(Math.pow(pos.x - v.x, 2) + Math.pow(pos.y - v.y, 2));
+            if (dist <= handleRadius) {
+              setIsDraggingVertex(true);
+              setActiveVertexIndex(i);
+              setVertexDragTarget({ type: 'element', id: elId });
+              setDragStart(pos);
+              return;
+            }
+          }
+        }
+      }
+
       for (const elId of selectedElementIds) {
         const el = elements.find(e => e.id === elId);
         if (el) {
@@ -1461,9 +1573,12 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
       }
 
-      // Verifica click em elemento (palco, bar, etc)
+      // Verifica click em elemento (palco, bar, etc) - usa polígono se disponível
       for (const el of elements) {
-        if (isPointInBounds(pos, el.bounds)) {
+        const hit = (el.vertices && el.vertices.length >= 3)
+          ? isPointInPolygon(pos, el.vertices)
+          : isPointInBounds(pos, el.bounds);
+        if (hit) {
           onSelectElements([el.id], e.shiftKey);
           setIsDraggingElement(true);
           setDragStart(pos);
@@ -1473,21 +1588,35 @@ export const Canvas: React.FC<CanvasProps> = ({
 
       // Modo de curvar vértice ativo: clique no vértice inicia arraste do control point
       if (isCurvingVertex && curvingVertexInfo) {
+        // Check if it's a sector
         const sector = sectors.find(s => s.id === curvingVertexInfo.sectorId);
-          if (sector) {
-            const vertexIndex = getVertexAtPoint(pos, sector);
-            if (vertexIndex === curvingVertexInfo.vertexIndex) {
-              // Store stable center
-              const bounds = getBoundsFromVertices(sector.vertices);
-              dragCenterRef.current = {
-                x: bounds.x + bounds.width / 2,
-                y: bounds.y + bounds.height / 2,
-              };
+        if (sector) {
+          const vertexIndex = getVertexAtPoint(pos, sector);
+          if (vertexIndex === curvingVertexInfo.vertexIndex) {
+            const bounds = getBoundsFromVertices(sector.vertices);
+            dragCenterRef.current = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+            setIsDraggingVertex(true);
+            setActiveVertexIndex(vertexIndex);
+            setVertexDragTarget({ type: 'sector', id: sector.id });
+            setDragStart(pos);
+            return;
+          }
+        }
+        // Check if it's an element
+        const el = elements.find(e => e.id === curvingVertexInfo.sectorId);
+        if (el && el.vertices) {
+          const handleRadius = HANDLE_SIZE / zoom;
+          for (let i = 0; i < el.vertices.length; i++) {
+            const v = el.vertices[i];
+            const dist = Math.sqrt(Math.pow(pos.x - v.x, 2) + Math.pow(pos.y - v.y, 2));
+            if (dist <= handleRadius && i === curvingVertexInfo.vertexIndex) {
               setIsDraggingVertex(true);
-              setActiveVertexIndex(vertexIndex);
+              setActiveVertexIndex(i);
+              setVertexDragTarget({ type: 'element', id: el.id });
               setDragStart(pos);
               return;
             }
+          }
         }
         // Clicou fora do vértice - cancela modo curvar
         setIsCurvingVertex(false);
@@ -1698,62 +1827,79 @@ export const Canvas: React.FC<CanvasProps> = ({
       return;
     }
 
-    if (isDraggingVertex && activeVertexIndex !== null && selectedSectorIds.length === 1) {
-      const sector = sectors.find(s => s.id === selectedSectorIds[0]);
-      if (sector && sector.vertices) {
-        const newVertices = [...sector.vertices];
-        
-        // Usa centro fixo (capturado no início do arraste) para a transformação inversa
-        // Isso evita drift causado por mudanças no bounds durante o arraste
-        let transformedPos: { x: number; y: number };
-        const rotation = sector.rotation || 0;
-        if (rotation !== 0 && dragCenterRef.current) {
-          const center = dragCenterRef.current;
-          const rad = (-rotation * Math.PI) / 180;
-          const dx = pos.x - center.x;
-          const dy = pos.y - center.y;
-          transformedPos = {
-            x: center.x + dx * Math.cos(rad) - dy * Math.sin(rad),
-            y: center.y + dx * Math.sin(rad) + dy * Math.cos(rad),
-          };
-        } else {
-          transformedPos = transformPointForSector(pos, sector);
+    if (isDraggingVertex && activeVertexIndex !== null) {
+      // Element vertex drag
+      if (vertexDragTarget?.type === 'element' && onUpdateElementVertices) {
+        const el = elements.find(e => e.id === vertexDragTarget.id);
+        if (el && el.vertices) {
+          const newVertices = [...el.vertices];
+          if (isCurvingVertex && curvingVertexInfo) {
+            const vi = activeVertexIndex;
+            const prevIndex = (vi - 1 + newVertices.length) % newVertices.length;
+            const prevVertex = newVertices[prevIndex];
+            const currentVertex = newVertices[vi];
+            const midX = (prevVertex.x + currentVertex.x) / 2;
+            const midY = (prevVertex.y + currentVertex.y) / 2;
+            const offsetX = pos.x - currentVertex.x;
+            const offsetY = pos.y - currentVertex.y;
+            newVertices[vi] = { ...newVertices[vi], controlPoint: { x: midX + offsetX, y: midY + offsetY } };
+          } else {
+            newVertices[activeVertexIndex] = { x: pos.x, y: pos.y, controlPoint: el.vertices[activeVertexIndex].controlPoint };
+          }
+          onUpdateElementVertices(el.id, newVertices);
         }
-        
-        if (isCurvingVertex && curvingVertexInfo) {
-          // Modo curvar: posiciona o controlPoint no meio da aresta para a curva pegar a linha inteira
-          const vertexIndex = activeVertexIndex;
-          const prevIndex = (vertexIndex - 1 + newVertices.length) % newVertices.length;
-          const prevVertex = newVertices[prevIndex];
-          const currentVertex = newVertices[vertexIndex];
-          
-          // Ponto médio da aresta (de prev para current)
-          const midX = (prevVertex.x + currentVertex.x) / 2;
-          const midY = (prevVertex.y + currentVertex.y) / 2;
-          
-          // O offset do mouse em relação ao vértice é aplicado ao ponto médio
-          const offsetX = transformedPos.x - currentVertex.x;
-          const offsetY = transformedPos.y - currentVertex.y;
-          
-          newVertices[activeVertexIndex] = {
-            ...newVertices[activeVertexIndex],
-            controlPoint: { x: midX + offsetX, y: midY + offsetY },
-          };
-        } else {
-          // Modo normal: move o vértice
-          const oldVertex = sector.vertices[activeVertexIndex];
-          const dx = transformedPos.x - oldVertex.x;
-          const dy = transformedPos.y - oldVertex.y;
-          newVertices[activeVertexIndex] = { 
-            x: oldVertex.x + dx, 
-            y: oldVertex.y + dy,
-            controlPoint: oldVertex.controlPoint, // preserva control point
-          };
-        }
-        
-        onUpdateSectorVertices(sector.id, newVertices);
+        return;
       }
-      return;
+
+      // Sector vertex drag
+      if (vertexDragTarget?.type === 'sector' || selectedSectorIds.length === 1) {
+        const sectorId = vertexDragTarget?.id || selectedSectorIds[0];
+        const sector = sectors.find(s => s.id === sectorId);
+        if (sector && sector.vertices) {
+          const newVertices = [...sector.vertices];
+          let transformedPos: { x: number; y: number };
+          const rotation = sector.rotation || 0;
+          if (rotation !== 0 && dragCenterRef.current) {
+            const center = dragCenterRef.current;
+            const rad = (-rotation * Math.PI) / 180;
+            const dx = pos.x - center.x;
+            const dy = pos.y - center.y;
+            transformedPos = {
+              x: center.x + dx * Math.cos(rad) - dy * Math.sin(rad),
+              y: center.y + dx * Math.sin(rad) + dy * Math.cos(rad),
+            };
+          } else {
+            transformedPos = transformPointForSector(pos, sector);
+          }
+          
+          if (isCurvingVertex && curvingVertexInfo) {
+            const vertexIndex = activeVertexIndex;
+            const prevIndex = (vertexIndex - 1 + newVertices.length) % newVertices.length;
+            const prevVertex = newVertices[prevIndex];
+            const currentVertex = newVertices[vertexIndex];
+            const midX = (prevVertex.x + currentVertex.x) / 2;
+            const midY = (prevVertex.y + currentVertex.y) / 2;
+            const offsetX = transformedPos.x - currentVertex.x;
+            const offsetY = transformedPos.y - currentVertex.y;
+            newVertices[activeVertexIndex] = {
+              ...newVertices[activeVertexIndex],
+              controlPoint: { x: midX + offsetX, y: midY + offsetY },
+            };
+          } else {
+            const oldVertex = sector.vertices[activeVertexIndex];
+            const dx = transformedPos.x - oldVertex.x;
+            const dy = transformedPos.y - oldVertex.y;
+            newVertices[activeVertexIndex] = { 
+              x: oldVertex.x + dx, 
+              y: oldVertex.y + dy,
+              controlPoint: oldVertex.controlPoint,
+            };
+          }
+          
+          onUpdateSectorVertices(sector.id, newVertices);
+        }
+        return;
+      }
     }
 
     // Redimensionar elemento
@@ -2035,6 +2181,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     setDraggingSeatInfo(null);
     setIsBoxSelecting(false);
     setIsDraggingVertex(false);
+    setVertexDragTarget(null);
     dragCenterRef.current = null;
     setActiveVertexIndex(null);
     setIsResizingElement(false);
@@ -2190,7 +2337,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       )}
       
       {/* Vertex editing hint */}
-      {selectedSectorIds.length === 1 && activeTool === 'select' && !contextMenu && !isCurvingVertex && (
+      {(selectedSectorIds.length === 1 || selectedElementIds.length === 1) && activeTool === 'select' && !contextMenu && !isCurvingVertex && (
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-primary/90 backdrop-blur-sm px-4 py-2 rounded-lg text-sm text-primary-foreground pointer-events-none">
           Arraste os vértices para ajustar • Ctrl+botão direito para adicionar/remover/curvar pontos
         </div>
@@ -2321,26 +2468,47 @@ export const Canvas: React.FC<CanvasProps> = ({
           y={contextMenu.y}
           onClose={() => setContextMenu(null)}
           showVertexOptions={contextMenu.edgeIndex !== null || contextMenu.vertexIndex !== null}
-          showElementOptions={contextMenu.sectorId !== null && contextMenu.edgeIndex === null && contextMenu.vertexIndex === null}
+          showElementOptions={
+            (contextMenu.sectorId !== null || contextMenu.elementId !== null) && 
+            contextMenu.edgeIndex === null && contextMenu.vertexIndex === null
+          }
           isVertexContext={contextMenu.vertexIndex !== null}
           canRemoveVertex={contextMenu.vertexIndex !== null && (() => {
-            const sector = sectors.find(s => s.id === contextMenu.sectorId);
-            return sector ? sector.vertices.length > 3 : false;
+            if (contextMenu.sectorId) {
+              const sector = sectors.find(s => s.id === contextMenu.sectorId);
+              return sector ? sector.vertices.length > 3 : false;
+            }
+            if (contextMenu.elementId) {
+              const el = elements.find(e => e.id === contextMenu.elementId);
+              return el?.vertices ? el.vertices.length > 3 : false;
+            }
+            return false;
           })()}
           onAddVertex={() => {
             if (contextMenu.sectorId && contextMenu.edgeIndex !== null) {
               onAddVertex?.(contextMenu.sectorId, contextMenu.edgeIndex, contextMenu.canvasPos);
+            }
+            if (contextMenu.elementId && contextMenu.edgeIndex !== null) {
+              onAddElementVertex?.(contextMenu.elementId, contextMenu.edgeIndex, contextMenu.canvasPos);
             }
           }}
           onRemoveVertex={() => {
             if (contextMenu.sectorId && contextMenu.vertexIndex !== null) {
               onRemoveVertex?.(contextMenu.sectorId, contextMenu.vertexIndex);
             }
+            if (contextMenu.elementId && contextMenu.vertexIndex !== null) {
+              onRemoveElementVertex?.(contextMenu.elementId, contextMenu.vertexIndex);
+            }
           }}
           onCurveVertex={() => {
             if (contextMenu.sectorId && contextMenu.vertexIndex !== null) {
               setIsCurvingVertex(true);
               setCurvingVertexInfo({ sectorId: contextMenu.sectorId, vertexIndex: contextMenu.vertexIndex });
+              toast.info('Clique e arraste o ponto para curvar as arestas');
+            }
+            if (contextMenu.elementId && contextMenu.vertexIndex !== null) {
+              setIsCurvingVertex(true);
+              setCurvingVertexInfo({ sectorId: contextMenu.elementId, vertexIndex: contextMenu.vertexIndex });
               toast.info('Clique e arraste o ponto para curvar as arestas');
             }
           }}

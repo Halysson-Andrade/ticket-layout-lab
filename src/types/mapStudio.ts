@@ -158,6 +158,7 @@ export interface VenueElement {
   type: ElementType;
   label: string;
   bounds: Bounds;
+  vertices?: Vertex[];
   rotation: number;
   color?: string;
 }
