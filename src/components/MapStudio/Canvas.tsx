@@ -934,26 +934,25 @@ export const Canvas: React.FC<CanvasProps> = ({
         ctx.fill();
         ctx.globalAlpha = 1;
         
-        // Stroke - borda tracejada para indicar que não está vinculada
+        // Stroke - borda sólida
         ctx.strokeStyle = isSelected ? '#3b82f6' : shape.color;
-        ctx.lineWidth = isSelected ? 3 / zoom : 2 / zoom;
-        ctx.setLineDash([8 / zoom, 4 / zoom]);
-        ctx.stroke();
-        ctx.setLineDash([]);
+        ctx.lineWidth = isSelected ? 3 / zoom : 1.5 / zoom;
+        if (!shape.linkedSectorId) {
+          // Sem vínculo: borda sólida (é um background colorido)
+          ctx.stroke();
+        } else {
+          ctx.stroke();
+        }
       }
       
-      // Nome da forma
-      ctx.fillStyle = '#fff';
-      ctx.font = `${12}px sans-serif`;
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillText(shape.name, bounds.x + 4, bounds.y + 4);
-      
-      // Indicador de "não vinculada"
-      ctx.fillStyle = 'rgba(255, 200, 0, 0.9)';
-      ctx.font = `${10}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.fillText('⚠ Não vinculada', centerX, centerY);
+      // Nome da forma (se tiver)
+      if (shape.name) {
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${13}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(shape.name, centerX, centerY);
+      }
       
       ctx.restore();
     });

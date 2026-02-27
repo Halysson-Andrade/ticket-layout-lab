@@ -147,7 +147,7 @@ export const MapStudio: React.FC = () => {
     setGeometricShapes(prev => [...prev, newShape]);
     setSelectedShapeIds([newShape.id]);
     setSelectedSectorIds([]);
-    toast.success(`Forma "${newShape.name}" criada! Vincule a um setor nas propriedades.`);
+    toast.success(`Forma "${newShape.name}" criada!`);
   }, [geometricShapes.length]);
 
   // Vincula forma geométrica a um setor da lista predefinida
@@ -2090,6 +2090,9 @@ export const MapStudio: React.FC = () => {
             onUpdateSpacing={handleUpdateSpacing}
             onCenterSeats={handleCenterSeats}
             onFlipSector={handleFlipSector}
+            onUpdateShapeName={(id, name) => setGeometricShapes(prev => prev.map(s => s.id === id ? { ...s, name } : s))}
+            onUpdateShapeColor={(id, color) => setGeometricShapes(prev => prev.map(s => s.id === id ? { ...s, color } : s))}
+            onUpdateShapeOpacity={(id, opacity) => setGeometricShapes(prev => prev.map(s => s.id === id ? { ...s, opacity } : s))}
             onGroupSectors={(sectorIds, categoryId) => {
               const category = PREDEFINED_SECTORS.find(s => s.id === categoryId);
               if (category) {

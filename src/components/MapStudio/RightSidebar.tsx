@@ -25,6 +25,9 @@ interface RightSidebarProps {
   onUpdateSpacing?: (sectorId: string, rowSpacing: number, colSpacing: number, seatSize: number) => void;
   onCenterSeats?: (sectorId: string) => void;
   onFlipSector?: (sectorId: string, direction: 'horizontal' | 'vertical') => void;
+  onUpdateShapeName?: (shapeId: string, name: string) => void;
+  onUpdateShapeColor?: (shapeId: string, color: string) => void;
+  onUpdateShapeOpacity?: (shapeId: string, opacity: number) => void;
 }
 
 const SEAT_TYPE_LABELS: Record<SeatType, string> = {
@@ -51,6 +54,9 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   onUpdateSpacing,
   onCenterSeats,
   onFlipSector,
+  onUpdateShapeName,
+  onUpdateShapeColor,
+  onUpdateShapeOpacity,
 }) => {
   // Local state para edição em tempo real com debounce
   const [localRotation, setLocalRotation] = useState(0);
@@ -183,7 +189,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
     );
   }
 
-  // Propriedades de forma geométrica (não vinculada a setor)
+  // Propriedades de forma geométrica (background colorido)
   if (selectedShape) {
     return (
       <TooltipProvider delayDuration={300}>
@@ -197,48 +203,72 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
               {selectedShape.name}
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {SHAPE_NAMES[selectedShape.shape]} • Forma geométrica
+              {SHAPE_NAMES[selectedShape.shape]} • Background colorido
             </p>
           </div>
           
           <ScrollArea className="flex-1">
             <div className="p-4 space-y-5">
-              {/* Info */}
-              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                <p className="text-xs text-amber-600 dark:text-amber-400">
-                  Esta forma não está vinculada a um setor. Vincule para adicionar assentos.
-                </p>
-              </div>
-
-              {/* Vincular a setor */}
+              {/* Nome */}
               <div className="space-y-2">
                 <Label className="text-xs flex items-center gap-2">
-                  <Link className="h-3 w-3" />
-                  Vincular a Setor
+                  <Type className="h-3 w-3" />
+                  Nome
                 </Label>
-                <Select
-                  onValueChange={(categoryId) => onLinkShapeToSector?.(selectedShape.id, categoryId)}
-                >
-                  <SelectTrigger className="w-full h-8 text-xs">
-                    <SelectValue placeholder="Selecione um setor..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PREDEFINED_SECTORS.map((sector) => (
-                      <SelectItem key={sector.id} value={sector.id}>
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-3 h-3 rounded-full border border-border" 
-                            style={{ backgroundColor: sector.color }}
-                          />
-                          {sector.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-[10px] text-muted-foreground">
-                  Selecione o setor para vincular esta forma. Após vincular, você poderá adicionar assentos.
-                </p>
+                <Input
+                  value={selectedShape.name}
+                  onChange={(e) => {
+                    const newName = e.target.value;
+                    // Update shape name directly via parent
+                    onUpdateShapeName?.(selectedShape.id, newName);
+                  }}
+                  className="h-8 text-xs"
+                  placeholder="Ex: Camarote, Área VIP..."
+                />
+              </div>
+
+              {/* Cor */}
+              <div className="space-y-2">
+                <Label className="text-xs flex items-center gap-2">
+                  <Palette className="h-3 w-3" />
+                  Cor de Fundo
+                </Label>
+                <div className="grid grid-cols-6 gap-1.5">
+                  {[
+                    ...SECTOR_COLORS,
+                    'hsl(0, 72%, 51%)', 'hsl(15, 80%, 50%)', 'hsl(30, 85%, 50%)',
+                    'hsl(60, 70%, 50%)', 'hsl(120, 60%, 40%)', 'hsl(180, 60%, 45%)',
+                    'hsl(210, 70%, 50%)', 'hsl(240, 60%, 55%)', 'hsl(270, 60%, 55%)',
+                    'hsl(300, 60%, 50%)', 'hsl(330, 70%, 50%)', 'hsl(0, 0%, 35%)',
+                    'hsl(0, 0%, 50%)', 'hsl(0, 0%, 65%)', 'hsl(0, 0%, 80%)', 'hsl(0, 0%, 20%)',
+                  ].map((color) => (
+                    <button
+                      key={color}
+                      className={`w-full aspect-square rounded-md border-2 transition-all hover:scale-110 ${
+                        selectedShape.color === color 
+                          ? 'border-primary ring-2 ring-primary/30 scale-105' 
+                          : 'border-transparent hover:border-primary/50'
+                      }`}
+                      style={{ backgroundColor: color }}
+                      onClick={() => onUpdateShapeColor?.(selectedShape.id, color)}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Opacidade */}
+              <div className="space-y-2">
+                <Label className="text-xs flex items-center gap-2">
+                  Opacidade: {selectedShape.opacity}%
+                </Label>
+                <Slider
+                  value={[selectedShape.opacity]}
+                  onValueChange={([v]) => onUpdateShapeOpacity?.(selectedShape.id, v)}
+                  min={10}
+                  max={100}
+                  step={5}
+                  className="w-full"
+                />
               </div>
 
               {/* Dimensões */}
@@ -259,25 +289,35 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                 </div>
               </div>
 
-              {/* Cor */}
-              <div className="space-y-2">
+              {/* Vincular a setor (opcional) */}
+              <div className="space-y-2 pt-2 border-t border-border">
                 <Label className="text-xs flex items-center gap-2">
-                  <Palette className="h-3 w-3" />
-                  Cor
+                  <Link className="h-3 w-3" />
+                  Vincular a Setor (opcional)
                 </Label>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {SECTOR_COLORS.map((color) => (
-                    <button
-                      key={color}
-                      className={`w-full aspect-square rounded-md border-2 transition-all hover:scale-110 ${
-                        selectedShape.color === color 
-                          ? 'border-primary ring-2 ring-primary/30 scale-105' 
-                          : 'border-transparent hover:border-primary/50'
-                      }`}
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
-                </div>
+                <Select
+                  onValueChange={(categoryId) => onLinkShapeToSector?.(selectedShape.id, categoryId)}
+                >
+                  <SelectTrigger className="w-full h-8 text-xs">
+                    <SelectValue placeholder="Manter como background..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PREDEFINED_SECTORS.map((sector) => (
+                      <SelectItem key={sector.id} value={sector.id}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-full border border-border" 
+                            style={{ backgroundColor: sector.color }}
+                          />
+                          {sector.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">
+                  Vincular converte em setor com assentos. Deixe vazio para usar como background.
+                </p>
               </div>
             </div>
           </ScrollArea>
