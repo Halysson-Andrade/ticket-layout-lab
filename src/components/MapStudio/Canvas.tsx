@@ -1597,17 +1597,7 @@ export const Canvas: React.FC<CanvasProps> = ({
         }
       }
 
-      // Verifica click em forma geométrica (não vinculada)
-      for (const shape of geometricShapes) {
-        if (shape.vertices && shape.vertices.length > 2) {
-          if (isPointInPolygon(pos, shape.vertices)) {
-            onSelectShape?.(shape.id, e.shiftKey);
-            setIsDraggingShape(true);
-            setDragStart(pos);
-            return;
-          }
-        }
-      }
+      // Formas geométricas (backgrounds) só selecionam com duplo clique - ignoradas no click simples
 
       // Verifica click em setor (usando polígono) - comportamento padrão
       for (const sector of sectors) {
@@ -2119,6 +2109,18 @@ export const Canvas: React.FC<CanvasProps> = ({
               setEditingElementLabel(el.label);
               setTimeout(() => editInputRef.current?.focus(), 50);
               return;
+            }
+          }
+          
+          // Duplo clique em forma geométrica (background) - seleciona e permite arrastar
+          for (const shape of geometricShapes) {
+            if (shape.vertices && shape.vertices.length > 2) {
+              if (isPointInPolygon(pos, shape.vertices)) {
+                onSelectShape?.(shape.id, e.shiftKey);
+                setIsDraggingShape(true);
+                setDragStart(pos);
+                return;
+              }
             }
           }
           
