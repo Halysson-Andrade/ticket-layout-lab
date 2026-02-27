@@ -397,12 +397,12 @@ export const Canvas: React.FC<CanvasProps> = ({
       ctx.stroke();
     }
 
-    // Desenha formas geométricas (backgrounds) - ANTES de tudo
+    // Desenha formas geométricas (backgrounds) - CAMADA MAIS BAIXA (só fill+stroke)
     geometricShapes.forEach(shape => {
-      const isSelected = selectedShapeIds.includes(shape.id);
       const bounds = getBoundsFromVertices(shape.vertices);
       const centerX = bounds.x + bounds.width / 2;
       const centerY = bounds.y + bounds.height / 2;
+      const isSelected = selectedShapeIds.includes(shape.id);
       
       ctx.save();
       
@@ -440,48 +440,6 @@ export const Canvas: React.FC<CanvasProps> = ({
         ctx.strokeStyle = isSelected ? '#3b82f6' : shape.color;
         ctx.lineWidth = isSelected ? 3 / zoom : 1.5 / zoom;
         ctx.stroke();
-      }
-      
-      if (shape.name) {
-        ctx.fillStyle = '#fff';
-        ctx.font = `bold ${13}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(shape.name, centerX, centerY);
-      }
-      
-      // Desenha handles de resize quando selecionado
-      if (isSelected) {
-        const handleSize = 8 / zoom;
-        const corners = [
-          { x: bounds.x, y: bounds.y, corner: 'nw' },
-          { x: bounds.x + bounds.width, y: bounds.y, corner: 'ne' },
-          { x: bounds.x + bounds.width, y: bounds.y + bounds.height, corner: 'se' },
-          { x: bounds.x, y: bounds.y + bounds.height, corner: 'sw' },
-        ];
-        corners.forEach(c => {
-          ctx.fillStyle = '#fff';
-          ctx.strokeStyle = '#3b82f6';
-          ctx.lineWidth = 2 / zoom;
-          ctx.fillRect(c.x - handleSize / 2, c.y - handleSize / 2, handleSize, handleSize);
-          ctx.strokeRect(c.x - handleSize / 2, c.y - handleSize / 2, handleSize, handleSize);
-        });
-        // Midpoint handles
-        const midpoints = [
-          { x: bounds.x + bounds.width / 2, y: bounds.y },
-          { x: bounds.x + bounds.width, y: bounds.y + bounds.height / 2 },
-          { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height },
-          { x: bounds.x, y: bounds.y + bounds.height / 2 },
-        ];
-        midpoints.forEach(m => {
-          ctx.fillStyle = '#fff';
-          ctx.strokeStyle = '#3b82f6';
-          ctx.lineWidth = 1.5 / zoom;
-          ctx.beginPath();
-          ctx.arc(m.x, m.y, handleSize / 2.5, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
-        });
       }
       
       ctx.restore();
@@ -1046,6 +1004,63 @@ export const Canvas: React.FC<CanvasProps> = ({
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(shape.name, centerX, centerY);
+      }
+      
+      ctx.restore();
+    });
+
+    // Desenha labels e handles das formas geométricas (ACIMA de tudo)
+    geometricShapes.forEach(shape => {
+      const isSelected = selectedShapeIds.includes(shape.id);
+      const bounds = getBoundsFromVertices(shape.vertices);
+      const centerX = bounds.x + bounds.width / 2;
+      const centerY = bounds.y + bounds.height / 2;
+      
+      ctx.save();
+      if (shape.rotation && shape.rotation !== 0) {
+        ctx.translate(centerX, centerY);
+        ctx.rotate((shape.rotation * Math.PI) / 180);
+        ctx.translate(-centerX, -centerY);
+      }
+      
+      if (shape.name) {
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${13}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(shape.name, centerX, centerY);
+      }
+      
+      if (isSelected) {
+        const handleSize = 8 / zoom;
+        const corners = [
+          { x: bounds.x, y: bounds.y },
+          { x: bounds.x + bounds.width, y: bounds.y },
+          { x: bounds.x + bounds.width, y: bounds.y + bounds.height },
+          { x: bounds.x, y: bounds.y + bounds.height },
+        ];
+        corners.forEach(c => {
+          ctx.fillStyle = '#fff';
+          ctx.strokeStyle = '#3b82f6';
+          ctx.lineWidth = 2 / zoom;
+          ctx.fillRect(c.x - handleSize / 2, c.y - handleSize / 2, handleSize, handleSize);
+          ctx.strokeRect(c.x - handleSize / 2, c.y - handleSize / 2, handleSize, handleSize);
+        });
+        const midpoints = [
+          { x: bounds.x + bounds.width / 2, y: bounds.y },
+          { x: bounds.x + bounds.width, y: bounds.y + bounds.height / 2 },
+          { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height },
+          { x: bounds.x, y: bounds.y + bounds.height / 2 },
+        ];
+        midpoints.forEach(m => {
+          ctx.fillStyle = '#fff';
+          ctx.strokeStyle = '#3b82f6';
+          ctx.lineWidth = 1.5 / zoom;
+          ctx.beginPath();
+          ctx.arc(m.x, m.y, handleSize / 2.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        });
       }
       
       ctx.restore();
