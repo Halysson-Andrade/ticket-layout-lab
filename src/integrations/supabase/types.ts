@@ -14,16 +14,243 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      audit_logs: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
+      companies: {
+        Row: {
+          cnpj: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          status: string
+          trade_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          status?: string
+          trade_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          status?: string
+          trade_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      company_integrations: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          token_expires_at: string | null
+          token_secret_hash: string | null
+          updated_at: string
+          url_create_mapa: string | null
+          url_get_mapa: string | null
+          url_list_setores: string | null
+          url_update_mapa: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          token_expires_at?: string | null
+          token_secret_hash?: string | null
+          updated_at?: string
+          url_create_mapa?: string | null
+          url_get_mapa?: string | null
+          url_list_setores?: string | null
+          url_update_mapa?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          token_expires_at?: string | null
+          token_secret_hash?: string | null
+          updated_at?: string
+          url_create_mapa?: string | null
+          url_get_mapa?: string | null
+          url_list_setores?: string | null
+          url_update_mapa?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_integrations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maps: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          created_by_user_id: string
+          id: string
+          id_evento_externo: string | null
+          last_sync_at: string | null
+          map_json: Json
+          name: string
+          sync_status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          created_by_user_id: string
+          id?: string
+          id_evento_externo?: string | null
+          last_sync_at?: string | null
+          map_json?: Json
+          name: string
+          sync_status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          created_by_user_id?: string
+          id?: string
+          id_evento_externo?: string | null
+          last_sync_at?: string | null
+          map_json?: Json
+          name?: string
+          sync_status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maps_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          email: string
+          id: string
+          must_change_password: boolean
+          name: string
+          status: string
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          must_change_password?: boolean
+          name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          must_change_password?: boolean
+          name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "basico"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +377,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "basico"],
+    },
   },
 } as const
