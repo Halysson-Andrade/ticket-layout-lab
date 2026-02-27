@@ -2,8 +2,16 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/Portal/ProtectedRoute";
+import PortalLayout from "@/components/Portal/PortalLayout";
 import Index from "./pages/Index";
+import Login from "./pages/Login";
+import ChangePassword from "./pages/ChangePassword";
+import UsuariosPage from "./pages/portal/UsuariosPage";
+import EmpresasPage from "./pages/portal/EmpresasPage";
+import MapasPage from "./pages/portal/MapasPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -14,11 +22,43 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            {/* Auth */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/trocar-senha" element={
+              <ProtectedRoute>
+                <ChangePassword />
+              </ProtectedRoute>
+            } />
+
+            {/* Portal */}
+            <Route path="/portal" element={
+              <ProtectedRoute>
+                <PortalLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<Navigate to="/portal/mapas" replace />} />
+              <Route path="usuarios" element={
+                <ProtectedRoute requiredRole="admin">
+                  <UsuariosPage />
+                </ProtectedRoute>
+              } />
+              <Route path="empresas" element={
+                <ProtectedRoute requiredRole="admin">
+                  <EmpresasPage />
+                </ProtectedRoute>
+              } />
+              <Route path="mapas" element={<MapasPage />} />
+            </Route>
+
+            {/* MapStudio - funciona independente como antes */}
+            <Route path="/" element={<Index />} />
+            <Route path="/mapstudio" element={<Index />} />
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
