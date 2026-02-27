@@ -1161,87 +1161,90 @@ export const MapStudio: React.FC = () => {
     const moves: Record<string, { dx: number; dy: number }> = {};
 
     if (type === 'auto-grid') {
-      // Detectar grid: agrupar por fileiras (Y similar) e colunas (X similar)
-      const tolerance = 30;
-      
-      // === PASSO 1: Agrupar por fileiras (Y) ===
-      const rows: typeof selected[] = [];
-      const sortedByY = [...selected].sort((a, b) => a.y - b.y);
-      sortedByY.forEach(seat => {
-        const existingRow = rows.find(r => Math.abs(r[0].y - seat.y) < tolerance);
-        if (existingRow) {
-          existingRow.push(seat);
-        } else {
-          rows.push([seat]);
-        }
-      });
-      rows.forEach(r => r.sort((a, b) => a.x - b.x));
-
-      // === PASSO 2: Alinhar fileiras (Y uniforme) ===
-      const rowYPositions = rows.map(r => r.reduce((sum, s) => sum + s.y, 0) / r.length);
-      const totalMinY = Math.min(...rowYPositions);
-      const totalMaxY = Math.max(...rowYPositions);
-      const rowGap = rows.length > 1 ? (totalMaxY - totalMinY) / (rows.length - 1) : 0;
-
-      rows.forEach((row, rowIdx) => {
-        const targetY = rows.length > 1 ? totalMinY + rowGap * rowIdx : rowYPositions[0];
-        row.forEach(seat => {
-          const dy = targetY - seat.y;
-          if (dy !== 0) moves[seat.id] = { dx: 0, dy };
-        });
-      });
-
-      // === PASSO 3: Agrupar por colunas (X similar) e alinhar verticalmente ===
-      const cols: typeof selected[] = [];
-      const sortedByX = [...selected].sort((a, b) => a.x - b.x);
-      sortedByX.forEach(seat => {
-        const existingCol = cols.find(c => Math.abs(c[0].x - seat.x) < tolerance);
-        if (existingCol) {
-          existingCol.push(seat);
-        } else {
-          cols.push([seat]);
-        }
-      });
-
-      // Para cada coluna, alinhar todos ao X médio da coluna
-      const colXPositions = cols.map(c => c.reduce((sum, s) => sum + s.x, 0) / c.length);
-      const totalMinX = Math.min(...colXPositions);
-      const totalMaxX = Math.max(...colXPositions);
-      const colGap = cols.length > 1 ? (totalMaxX - totalMinX) / (cols.length - 1) : 0;
-
-      cols.forEach((col, colIdx) => {
-        const targetX = cols.length > 1 ? totalMinX + colGap * colIdx : colXPositions[0];
-        col.forEach(seat => {
-          const existing = moves[seat.id] || { dx: 0, dy: 0 };
-          const dx = targetX - seat.x;
-          moves[seat.id] = { dx: existing.dx + dx, dy: existing.dy };
-        });
-      });
-
-      // === PASSO 4: Centralizar no setor pai ===
-      const newPositions = selected.map(s => {
-        const m = moves[s.id] || { dx: 0, dy: 0 };
-        return { x: s.x + m.dx, y: s.y + m.dy };
-      });
-      const newMinX = Math.min(...newPositions.map(p => p.x));
-      const newMaxX = Math.max(...newPositions.map(p => p.x + seatSize));
-      const newMinY = Math.min(...newPositions.map(p => p.y));
-      const newMaxY = Math.max(...newPositions.map(p => p.y + seatSize));
-      const groupCX = (newMinX + newMaxX) / 2;
-      const groupCY = (newMinY + newMaxY) / 2;
-
+      // Abordagem: detectar grid por clustering adaptativo, depois redistribuir uniformemente
       const parentSector = sectors.find(s => s.seats.some(seat => selectedSeatIds.includes(seat.id)));
-      if (parentSector) {
-        const sectorCX = parentSector.bounds.x + parentSector.bounds.width / 2;
-        const sectorCY = parentSector.bounds.y + parentSector.bounds.height / 2;
-        const offsetX = sectorCX - groupCX;
-        const offsetY = sectorCY - groupCY;
-
-        selected.forEach(seat => {
-          const existing = moves[seat.id] || { dx: 0, dy: 0 };
-          moves[seat.id] = { dx: existing.dx + offsetX, dy: existing.dy + offsetY };
-        });
+      
+      // Clustering adaptativo: ordenar por Y e detectar "saltos" para separar fileiras
+      const sortedByY = [...selected].sort((a, b) => a.y - b.y);
+      
+      // Calcular gaps entre itens consecutivos em Y
+      const yGaps: number[] = [];
+      for (let i = 1; i < sortedByY.length; i++) {
+        yGaps.push(sortedByY[i].y - sortedByY[i - 1].y);
       }
+      
+      // Encontrar threshold: gaps significativos (> mediana * 1.5) indicam nova fileira
+      const sortedGaps = [...yGaps].sort((a, b) => a - b);
+      const medianGap = sortedGaps[Math.floor(sortedGaps.length / 2)] || 1;
+      const rowThreshold = Math.max(medianGap * 1.5, 15);
+      
+      // Agrupar em fileiras
+      const rows: typeof selected[] = [[sortedByY[0]]];
+      for (let i = 1; i < sortedByY.length; i++) {
+        if (sortedByY[i].y - sortedByY[i - 1].y > rowThreshold) {
+          rows.push([sortedByY[i]]);
+        } else {
+          rows[rows.length - 1].push(sortedByY[i]);
+        }
+      }
+      
+      // Ordenar cada fileira por X
+      rows.forEach(r => r.sort((a, b) => a.x - b.x));
+      
+      // Determinar número máximo de colunas
+      const maxCols = Math.max(...rows.map(r => r.length));
+      const numRows = rows.length;
+      
+      // Calcular tamanho de cada item (considerar mesa se existir)
+      const firstSeat = selected[0];
+      let itemW = seatSize;
+      let itemH = seatSize;
+      if (firstSeat.tableConfig) {
+        itemW = firstSeat.tableConfig.tableWidth || 40;
+        itemH = firstSeat.tableConfig.tableHeight || 40;
+      } else if (firstSeat.furnitureType === 'table' || firstSeat.furnitureType === 'bistro') {
+        itemW = 40;
+        itemH = 40;
+      }
+      
+      // Calcular espaçamento uniforme baseado no setor ou na área atual
+      let areaW: number, areaH: number, areaX: number, areaY: number;
+      if (parentSector) {
+        const padding = Math.max(itemW, itemH) * 0.8;
+        areaX = parentSector.bounds.x + padding;
+        areaY = parentSector.bounds.y + padding;
+        areaW = parentSector.bounds.width - padding * 2;
+        areaH = parentSector.bounds.height - padding * 2;
+      } else {
+        areaX = minX;
+        areaY = minY;
+        areaW = maxX - minX;
+        areaH = maxY - minY;
+      }
+      
+      // Calcular gap uniforme
+      const colStep = maxCols > 1 ? areaW / (maxCols - 1) : 0;
+      const rowStep = numRows > 1 ? areaH / (numRows - 1) : 0;
+      
+      // Posicionar cada item na grade uniforme, centralizado no setor
+      rows.forEach((row, rowIdx) => {
+        const targetY = numRows > 1 ? areaY + rowStep * rowIdx : areaY + areaH / 2;
+        
+        // Centralizar fileiras com menos colunas
+        const rowOffset = maxCols > 1 && row.length < maxCols 
+          ? (areaW - (row.length - 1) * colStep) / 2 
+          : 0;
+        
+        row.forEach((seat, colIdx) => {
+          const targetX = row.length > 1 
+            ? areaX + rowOffset + colStep * colIdx 
+            : areaX + areaW / 2;
+          
+          const dx = targetX - seat.x;
+          const dy = targetY - seat.y;
+          if (dx !== 0 || dy !== 0) moves[seat.id] = { dx, dy };
+        });
+      });
     } else if (type === 'distribute-h' || type === 'distribute-v') {
       const isH = type === 'distribute-h';
       const sorted = [...selected].sort((a, b) => isH ? a.x - b.x : a.y - b.y);
