@@ -1160,7 +1160,88 @@ export const MapStudio: React.FC = () => {
 
     const moves: Record<string, { dx: number; dy: number }> = {};
 
-    if (type === 'distribute-h' || type === 'distribute-v') {
+    if (type === 'auto-grid') {
+      // Detectar grid: agrupar por fileiras (Y similar) e colunas (X similar)
+      const tolerance = 30; // tolerância para agrupar em fileiras/colunas
+      
+      // Agrupar por fileiras (Y)
+      const rows: typeof selected[] = [];
+      const sortedByY = [...selected].sort((a, b) => a.y - b.y);
+      sortedByY.forEach(seat => {
+        const existingRow = rows.find(r => Math.abs(r[0].y - seat.y) < tolerance);
+        if (existingRow) {
+          existingRow.push(seat);
+        } else {
+          rows.push([seat]);
+        }
+      });
+
+      // Ordenar cada fileira por X
+      rows.forEach(r => r.sort((a, b) => a.x - b.x));
+
+      // Calcular posições médias para alinhar
+      const rowYPositions = rows.map(r => {
+        const avgY = r.reduce((sum, s) => sum + s.y, 0) / r.length;
+        return avgY;
+      });
+
+      // Distribuir fileiras uniformemente
+      const totalMinY = Math.min(...rowYPositions);
+      const totalMaxY = Math.max(...rowYPositions);
+      const rowGap = rows.length > 1 ? (totalMaxY - totalMinY) / (rows.length - 1) : 0;
+
+      // Para cada fileira, alinhar Y e distribuir X uniformemente
+      rows.forEach((row, rowIdx) => {
+        const targetY = rows.length > 1 ? totalMinY + rowGap * rowIdx : rowYPositions[0];
+        
+        if (row.length >= 2) {
+          const rowMinX = Math.min(...row.map(s => s.x));
+          const rowMaxX = Math.max(...row.map(s => s.x));
+          const colGap = (rowMaxX - rowMinX) / (row.length - 1);
+          
+          row.forEach((seat, colIdx) => {
+            const targetX = rowMinX + colGap * colIdx;
+            const dx = targetX - seat.x;
+            const dy = targetY - seat.y;
+            if (dx !== 0 || dy !== 0) moves[seat.id] = { dx, dy };
+          });
+        } else {
+          const dy = targetY - row[0].y;
+          if (dy !== 0) moves[row[0].id] = { dx: 0, dy };
+        }
+      });
+
+      // Centralizar o grupo inteiro no setor pai
+      if (Object.keys(moves).length > 0 || selected.length > 0) {
+        // Calcular novo bounding box após alinhamento
+        const newPositions = selected.map(s => {
+          const m = moves[s.id];
+          return { x: s.x + (m?.dx || 0), y: s.y + (m?.dy || 0) };
+        });
+        const newMinX = Math.min(...newPositions.map(p => p.x));
+        const newMaxX = Math.max(...newPositions.map(p => p.x + seatSize));
+        const newMinY = Math.min(...newPositions.map(p => p.y));
+        const newMaxY = Math.max(...newPositions.map(p => p.y + seatSize));
+        const groupW = newMaxX - newMinX;
+        const groupH = newMaxY - newMinY;
+        const groupCX = newMinX + groupW / 2;
+        const groupCY = newMinY + groupH / 2;
+
+        // Encontrar setor pai
+        const parentSector = sectors.find(s => s.seats.some(seat => selectedSeatIds.includes(seat.id)));
+        if (parentSector) {
+          const sectorCX = parentSector.bounds.x + parentSector.bounds.width / 2;
+          const sectorCY = parentSector.bounds.y + parentSector.bounds.height / 2;
+          const offsetX = sectorCX - groupCX;
+          const offsetY = sectorCY - groupCY;
+
+          selected.forEach(seat => {
+            const existing = moves[seat.id] || { dx: 0, dy: 0 };
+            moves[seat.id] = { dx: existing.dx + offsetX, dy: existing.dy + offsetY };
+          });
+        }
+      }
+    } else if (type === 'distribute-h' || type === 'distribute-v') {
       const isH = type === 'distribute-h';
       const sorted = [...selected].sort((a, b) => isH ? a.x - b.x : a.y - b.y);
       if (sorted.length >= 3) {
