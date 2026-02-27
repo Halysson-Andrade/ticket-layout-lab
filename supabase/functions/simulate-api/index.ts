@@ -99,7 +99,20 @@ Deno.serve(async (req) => {
     if (action === 'check-permissao') {
       const body = await req.json()
       console.log('Simulated permission check:', JSON.stringify(body))
-      // In simulation, always allow
+      
+      // Deny user-124 to test permission validation
+      const blockedUsers = ['user-124']
+      const isBlocked = blockedUsers.includes(body.id_usuario)
+      
+      if (isBlocked) {
+        return new Response(JSON.stringify({ 
+          allowed: false, 
+          message: `Usuário "${body.id_usuario}" não tem permissão para acessar o evento "${body.id_evento}". Contate o administrador.` 
+        }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
       return new Response(JSON.stringify({ 
         allowed: true, 
         message: 'Permissão concedida (simulação)' 
