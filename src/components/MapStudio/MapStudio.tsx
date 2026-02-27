@@ -1162,9 +1162,9 @@ export const MapStudio: React.FC = () => {
 
     if (type === 'auto-grid') {
       // Detectar grid: agrupar por fileiras (Y similar) e colunas (X similar)
-      const tolerance = 30; // tolerância para agrupar em fileiras/colunas
+      const tolerance = 30;
       
-      // Agrupar por fileiras (Y)
+      // === PASSO 1: Agrupar por fileiras (Y) ===
       const rows: typeof selected[] = [];
       const sortedByY = [...selected].sort((a, b) => a.y - b.y);
       sortedByY.forEach(seat => {
@@ -1175,71 +1175,72 @@ export const MapStudio: React.FC = () => {
           rows.push([seat]);
         }
       });
-
-      // Ordenar cada fileira por X
       rows.forEach(r => r.sort((a, b) => a.x - b.x));
 
-      // Calcular posições médias para alinhar
-      const rowYPositions = rows.map(r => {
-        const avgY = r.reduce((sum, s) => sum + s.y, 0) / r.length;
-        return avgY;
-      });
-
-      // Distribuir fileiras uniformemente
+      // === PASSO 2: Alinhar fileiras (Y uniforme) ===
+      const rowYPositions = rows.map(r => r.reduce((sum, s) => sum + s.y, 0) / r.length);
       const totalMinY = Math.min(...rowYPositions);
       const totalMaxY = Math.max(...rowYPositions);
       const rowGap = rows.length > 1 ? (totalMaxY - totalMinY) / (rows.length - 1) : 0;
 
-      // Para cada fileira, alinhar Y e distribuir X uniformemente
       rows.forEach((row, rowIdx) => {
         const targetY = rows.length > 1 ? totalMinY + rowGap * rowIdx : rowYPositions[0];
-        
-        if (row.length >= 2) {
-          const rowMinX = Math.min(...row.map(s => s.x));
-          const rowMaxX = Math.max(...row.map(s => s.x));
-          const colGap = (rowMaxX - rowMinX) / (row.length - 1);
-          
-          row.forEach((seat, colIdx) => {
-            const targetX = rowMinX + colGap * colIdx;
-            const dx = targetX - seat.x;
-            const dy = targetY - seat.y;
-            if (dx !== 0 || dy !== 0) moves[seat.id] = { dx, dy };
-          });
+        row.forEach(seat => {
+          const dy = targetY - seat.y;
+          if (dy !== 0) moves[seat.id] = { dx: 0, dy };
+        });
+      });
+
+      // === PASSO 3: Agrupar por colunas (X similar) e alinhar verticalmente ===
+      const cols: typeof selected[] = [];
+      const sortedByX = [...selected].sort((a, b) => a.x - b.x);
+      sortedByX.forEach(seat => {
+        const existingCol = cols.find(c => Math.abs(c[0].x - seat.x) < tolerance);
+        if (existingCol) {
+          existingCol.push(seat);
         } else {
-          const dy = targetY - row[0].y;
-          if (dy !== 0) moves[row[0].id] = { dx: 0, dy };
+          cols.push([seat]);
         }
       });
 
-      // Centralizar o grupo inteiro no setor pai
-      if (Object.keys(moves).length > 0 || selected.length > 0) {
-        // Calcular novo bounding box após alinhamento
-        const newPositions = selected.map(s => {
-          const m = moves[s.id];
-          return { x: s.x + (m?.dx || 0), y: s.y + (m?.dy || 0) };
+      // Para cada coluna, alinhar todos ao X médio da coluna
+      const colXPositions = cols.map(c => c.reduce((sum, s) => sum + s.x, 0) / c.length);
+      const totalMinX = Math.min(...colXPositions);
+      const totalMaxX = Math.max(...colXPositions);
+      const colGap = cols.length > 1 ? (totalMaxX - totalMinX) / (cols.length - 1) : 0;
+
+      cols.forEach((col, colIdx) => {
+        const targetX = cols.length > 1 ? totalMinX + colGap * colIdx : colXPositions[0];
+        col.forEach(seat => {
+          const existing = moves[seat.id] || { dx: 0, dy: 0 };
+          const dx = targetX - seat.x;
+          moves[seat.id] = { dx: existing.dx + dx, dy: existing.dy };
         });
-        const newMinX = Math.min(...newPositions.map(p => p.x));
-        const newMaxX = Math.max(...newPositions.map(p => p.x + seatSize));
-        const newMinY = Math.min(...newPositions.map(p => p.y));
-        const newMaxY = Math.max(...newPositions.map(p => p.y + seatSize));
-        const groupW = newMaxX - newMinX;
-        const groupH = newMaxY - newMinY;
-        const groupCX = newMinX + groupW / 2;
-        const groupCY = newMinY + groupH / 2;
+      });
 
-        // Encontrar setor pai
-        const parentSector = sectors.find(s => s.seats.some(seat => selectedSeatIds.includes(seat.id)));
-        if (parentSector) {
-          const sectorCX = parentSector.bounds.x + parentSector.bounds.width / 2;
-          const sectorCY = parentSector.bounds.y + parentSector.bounds.height / 2;
-          const offsetX = sectorCX - groupCX;
-          const offsetY = sectorCY - groupCY;
+      // === PASSO 4: Centralizar no setor pai ===
+      const newPositions = selected.map(s => {
+        const m = moves[s.id] || { dx: 0, dy: 0 };
+        return { x: s.x + m.dx, y: s.y + m.dy };
+      });
+      const newMinX = Math.min(...newPositions.map(p => p.x));
+      const newMaxX = Math.max(...newPositions.map(p => p.x + seatSize));
+      const newMinY = Math.min(...newPositions.map(p => p.y));
+      const newMaxY = Math.max(...newPositions.map(p => p.y + seatSize));
+      const groupCX = (newMinX + newMaxX) / 2;
+      const groupCY = (newMinY + newMaxY) / 2;
 
-          selected.forEach(seat => {
-            const existing = moves[seat.id] || { dx: 0, dy: 0 };
-            moves[seat.id] = { dx: existing.dx + offsetX, dy: existing.dy + offsetY };
-          });
-        }
+      const parentSector = sectors.find(s => s.seats.some(seat => selectedSeatIds.includes(seat.id)));
+      if (parentSector) {
+        const sectorCX = parentSector.bounds.x + parentSector.bounds.width / 2;
+        const sectorCY = parentSector.bounds.y + parentSector.bounds.height / 2;
+        const offsetX = sectorCX - groupCX;
+        const offsetY = sectorCY - groupCY;
+
+        selected.forEach(seat => {
+          const existing = moves[seat.id] || { dx: 0, dy: 0 };
+          moves[seat.id] = { dx: existing.dx + offsetX, dy: existing.dy + offsetY };
+        });
       }
     } else if (type === 'distribute-h' || type === 'distribute-v') {
       const isH = type === 'distribute-h';
