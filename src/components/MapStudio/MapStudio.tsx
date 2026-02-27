@@ -2110,8 +2110,32 @@ export const MapStudio: React.FC = () => {
 
   return (
     <div ref={containerRef} className="h-screen w-full flex flex-col overflow-hidden bg-background">
+      {/* Token validation error - block entire UI */}
+      {integrationState.isIntegration && integrationState.tokenValid === false && (
+        <div className="flex-1 flex items-center justify-center bg-background">
+          <div className="text-center space-y-4 max-w-md p-8">
+            <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+              <Cloud className="h-8 w-8 text-destructive" />
+            </div>
+            <h2 className="text-xl font-semibold text-foreground">Acesso Negado</h2>
+            <p className="text-muted-foreground text-sm">
+              {integrationState.tokenError || 'Token de integração inválido ou não fornecido.'}
+            </p>
+            <p className="text-muted-foreground text-xs">
+              Verifique se a URL contém um token válido no parâmetro <code className="bg-muted px-1 rounded">token</code>.
+            </p>
+            <Button variant="outline" onClick={() => navigate('/portal/simulacao')}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Only render the rest if token is not rejected */}
+      {!(integrationState.isIntegration && integrationState.tokenValid === false) && (<>
+
       {/* Integration Banner */}
-      {integrationState.isIntegration && (
+      {integrationState.isIntegration && integrationState.tokenValid !== false && (
         <div className="h-8 bg-primary/10 border-b border-primary/20 px-4 flex items-center gap-3 text-xs shrink-0">
           <Cloud className="h-3.5 w-3.5 text-primary" />
           <span className="text-primary font-medium">Modo Integração</span>
@@ -2592,6 +2616,8 @@ export const MapStudio: React.FC = () => {
           onUpdateRow={handleUpdateRowConfig}
         />
       )}
+
+      </>)}
     </div>
   );
 };
