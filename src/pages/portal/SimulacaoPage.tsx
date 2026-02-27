@@ -283,7 +283,7 @@ const SimulacaoPage: React.FC = () => {
 
       {/* Modal de Documentação de Redirecionamento */}
       <Dialog open={!!docEvent} onOpenChange={(v) => !v && setDocEvent(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[85vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -345,7 +345,7 @@ const SimulacaoPage: React.FC = () => {
                     </tbody>
                   </table>
                 </div>
-                <pre className="bg-muted rounded-md p-3 text-xs font-mono overflow-x-auto whitespace-pre">{`// SERVER-SIDE: Obter código de acesso
+                <pre className="bg-muted rounded-md p-3 text-xs font-mono whitespace-pre-wrap break-all">{`// SERVER-SIDE: Obter código de acesso
 const response = await fetch(
   "${apiBaseUrl}/integration-auth",
   {
@@ -373,7 +373,7 @@ const { exchange_code, expires_in } = await response.json();
                   Com o <code className="bg-muted px-1 rounded text-foreground">exchange_code</code> obtido, 
                   redirecione o usuário. O código é descartável e expira em 30 segundos.
                 </p>
-                <pre className="bg-muted rounded-md p-3 text-xs font-mono overflow-x-auto whitespace-pre">{`// CLIENT-SIDE: Redirecionar o usuário
+                <pre className="bg-muted rounded-md p-3 text-xs font-mono whitespace-pre-wrap break-all">{`// CLIENT-SIDE: Redirecionar o usuário
 const mapStudioUrl = "${window.location.origin}/mapstudio"
   + "?code=" + exchange_code;
 
@@ -390,7 +390,7 @@ window.open(mapStudioUrl, "_blank");`}</pre>
                   o sistema fará uma chamada POST para essa URL antes de gerar o código. 
                   O payload é assinado com HMAC-SHA256 para garantir autenticidade.
                 </p>
-                <pre className="bg-muted rounded-md p-3 text-xs font-mono overflow-x-auto whitespace-pre">{`// Payload enviado para url_check_permissao (POST)
+                <pre className="bg-muted rounded-md p-3 text-xs font-mono whitespace-pre-wrap break-all">{`// Payload enviado para url_check_permissao (POST)
 {
   "id_evento": "${docEvent.external_id}",
   "id_usuario": "TOKEN_OU_ID_DO_USUARIO",
@@ -423,7 +423,7 @@ window.open(mapStudioUrl, "_blank");`}</pre>
               {/* Exemplo completo */}
               <div className="space-y-2">
                 <h3 className="font-semibold text-foreground">Exemplo Completo (Node.js)</h3>
-                <pre className="bg-muted rounded-md p-3 text-xs font-mono overflow-x-auto whitespace-pre">{`// Backend do cliente (Node.js/Express)
+                <pre className="bg-muted rounded-md p-3 text-xs font-mono whitespace-pre-wrap break-all">{`// Backend do cliente (Node.js/Express)
 app.get('/abrir-mapa/:eventoId', async (req, res) => {
   const { eventoId } = req.params;
   const usuarioToken = req.user.externalToken; // ID do usuário
