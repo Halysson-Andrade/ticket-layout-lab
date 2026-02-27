@@ -200,6 +200,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     screenY: number;
   } | null>(null);
 
+
   // Estado para forçar re-render quando imagem carrega
   const [bgImageLoaded, setBgImageLoaded] = useState(false);
 
@@ -2044,6 +2045,25 @@ export const Canvas: React.FC<CanvasProps> = ({
     setIsRotating(false);
     setIsRotatingElement(false);
   }, [isDrawing, isDraggingSeat, isDraggingVertex, activeTool, drawStart, drawCurrent, onCreateSector, isBoxSelecting, boxSelectStart, boxSelectCurrent, sectors, onSelectSeats, activeSeatType, onApplySeatType, onSeatMoveEnd, onVertexMoveEnd, isRotating, isRotatingElement, selectedSectorIds, selectedElementIds, onRotateSector]);
+
+  // Window-level mouse events for drag operations (prevents losing events when mouse goes over overlays)
+  const isDraggingAny = isDragging || isDraggingShape || isDraggingElement || isDraggingSeat || isDraggingText || isDraggingVertex || isResizingElement || isResizingShape || isRotating || isRotatingElement || isPanning || isBoxSelecting;
+  
+  useEffect(() => {
+    if (!isDraggingAny) return;
+    const onWindowMouseMove = (e: MouseEvent) => {
+      handleMouseMove({ clientX: e.clientX, clientY: e.clientY, shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, metaKey: e.metaKey, button: e.button, preventDefault: () => e.preventDefault(), stopPropagation: () => e.stopPropagation() } as any);
+    };
+    const onWindowMouseUp = (e: MouseEvent) => {
+      handleMouseUp({ clientX: e.clientX, clientY: e.clientY, button: e.button, preventDefault: () => e.preventDefault(), stopPropagation: () => e.stopPropagation() } as any);
+    };
+    window.addEventListener('mousemove', onWindowMouseMove);
+    window.addEventListener('mouseup', onWindowMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', onWindowMouseMove);
+      window.removeEventListener('mouseup', onWindowMouseUp);
+    };
+  }, [isDraggingAny, handleMouseMove, handleMouseUp]);
 
   return (
     <div 
