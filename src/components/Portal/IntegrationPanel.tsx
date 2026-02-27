@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Loader2, Key, RefreshCw, Copy, Link2, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { Loader2, Key, RefreshCw, Copy, Link2, Eye, EyeOff, AlertTriangle, FileText } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface IntegrationPanelProps {
   companyId: string;
@@ -175,6 +176,7 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* URL Lista de Setores */}
           <div className="space-y-2">
             <Label>URL Lista de Setores (GET)</Label>
             <Input
@@ -182,7 +184,34 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
               onChange={(e) => setUrls({ ...urls, url_list_setores: e.target.value })}
               placeholder="https://api.cliente.com/setores"
             />
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="doc" className="border-none">
+                <AccordionTrigger className="py-1 text-xs text-muted-foreground hover:no-underline gap-1">
+                  <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Documentação do endpoint</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="bg-muted rounded-md p-3 text-xs font-mono space-y-2">
+                    <p className="font-sans text-sm font-medium text-foreground">GET /setores</p>
+                    <p className="font-sans text-muted-foreground">Retorna a lista de setores disponíveis para o evento. O MapStudio usa esses setores para popular o dropdown "Vincular a Setor".</p>
+                    <Separator />
+                    <p className="font-sans font-medium text-foreground">Response 200:</p>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
+  "setores": [
+    {
+      "id": "string",       // ID único do setor
+      "name": "string",     // Nome exibido (ex: "Pista", "VIP")
+      "color": "string"     // Cor HSL (ex: "hsl(142, 71%, 45%)")
+    }
+  ]
+}`}</pre>
+                    <p className="font-sans text-muted-foreground mt-1">Formato alternativo aceito: array direto de objetos (sem wrapper "setores").</p>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
+
+          {/* URL Criação do Mapa */}
           <div className="space-y-2">
             <Label>URL Criação do Mapa (POST)</Label>
             <Input
@@ -190,7 +219,92 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
               onChange={(e) => setUrls({ ...urls, url_create_mapa: e.target.value })}
               placeholder="https://api.cliente.com/mapas"
             />
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="doc" className="border-none">
+                <AccordionTrigger className="py-1 text-xs text-muted-foreground hover:no-underline gap-1">
+                  <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Documentação do endpoint</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="bg-muted rounded-md p-3 text-xs font-mono space-y-2">
+                    <p className="font-sans text-sm font-medium text-foreground">POST /mapas</p>
+                    <p className="font-sans text-muted-foreground">Chamado na primeira vez que o mapa é salvo para um evento. Envia o JSON completo do mapa.</p>
+                    <Separator />
+                    <p className="font-sans font-medium text-foreground">Request Body:</p>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
+  "map_id": "uuid",           // ID interno do mapa
+  "id_evento": "string",      // ID do evento externo
+  "map_json": {
+    "name": "string",
+    "version": 1,
+    "width": 2000,
+    "height": 1500,
+    "sectors": [
+      {
+        "id": "string",
+        "name": "string",
+        "color": "hsl(...)",
+        "bounds": { "x": 0, "y": 0, "width": 200, "height": 150 },
+        "vertices": [{ "x": 0, "y": 0 }],
+        "shape": "rectangle",
+        "rotation": 0,
+        "seats": [
+          {
+            "id": "string",
+            "sectorId": "string",
+            "row": "A",
+            "number": "1",
+            "type": "normal | pcd | companion | obeso | vip | blocked",
+            "status": "available | reserved | sold | blocked",
+            "x": 100,
+            "y": 200,
+            "rotation": 0,
+            "price": 150.00,
+            "description": "string | null"
+          }
+        ],
+        "categoryId": "string | null",
+        "visible": true,
+        "locked": false
+      }
+    ],
+    "elements": [
+      {
+        "id": "string",
+        "type": "stage | bar | bathroom | entrance | exit | speaker | dj | screen | vip-area | food | custom",
+        "label": "string",
+        "bounds": { "x": 0, "y": 0, "width": 300, "height": 100 },
+        "rotation": 0,
+        "color": "string | null"
+      }
+    ],
+    "geometricShapes": [
+      {
+        "id": "string",
+        "name": "string",
+        "color": "hsl(...)",
+        "opacity": 80,
+        "bounds": { "x": 0, "y": 0, "width": 200, "height": 150 },
+        "shape": "rectangle",
+        "rotation": 0,
+        "linkedSectorId": "string | null"
+      }
+    ]
+  }
+}`}</pre>
+                    <Separator />
+                    <p className="font-sans font-medium text-foreground">Response 200:</p>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
+  "success": true,
+  "message": "string",
+  "external_map_id": "string"  // ID do mapa no sistema externo
+}`}</pre>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
+
+          {/* URL Visualização do Mapa */}
           <div className="space-y-2">
             <Label>URL Visualização do Mapa (GET)</Label>
             <Input
@@ -198,15 +312,123 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
               onChange={(e) => setUrls({ ...urls, url_get_mapa: e.target.value })}
               placeholder="https://api.cliente.com/mapas/:id"
             />
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="doc" className="border-none">
+                <AccordionTrigger className="py-1 text-xs text-muted-foreground hover:no-underline gap-1">
+                  <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Documentação do endpoint</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="bg-muted rounded-md p-3 text-xs font-mono space-y-2">
+                    <p className="font-sans text-sm font-medium text-foreground">GET /mapas/:id</p>
+                    <p className="font-sans text-muted-foreground">Retorna o JSON do mapa salvo. Usado para carregar um mapa existente no MapStudio.</p>
+                    <Separator />
+                    <p className="font-sans font-medium text-foreground">Query Parameters:</p>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`map_id: "uuid"  // ID do mapa a ser consultado`}</pre>
+                    <Separator />
+                    <p className="font-sans font-medium text-foreground">Response 200:</p>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
+  "id": "uuid",
+  "name": "string",
+  "company_id": "uuid",
+  "id_evento_externo": "string",
+  "map_json": { ... },          // Mesmo formato do POST /mapas
+  "sync_status": "OK | PENDENTE | ERRO",
+  "created_at": "ISO 8601",
+  "updated_at": "ISO 8601"
+}`}</pre>
+                    <Separator />
+                    <p className="font-sans font-medium text-foreground">Response 404:</p>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{ "error": "not found" }`}</pre>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
+
+          {/* URL Atualização do Mapa */}
           <div className="space-y-2">
-            <Label>URL Atualização do Mapa (PUT)</Label>
+            <Label>URL Atualização do Mapa (PUT/POST)</Label>
             <Input
               value={urls.url_update_mapa}
               onChange={(e) => setUrls({ ...urls, url_update_mapa: e.target.value })}
               placeholder="https://api.cliente.com/mapas/:id"
             />
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="doc" className="border-none">
+                <AccordionTrigger className="py-1 text-xs text-muted-foreground hover:no-underline gap-1">
+                  <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Documentação do endpoint</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="bg-muted rounded-md p-3 text-xs font-mono space-y-2">
+                    <p className="font-sans text-sm font-medium text-foreground">POST /mapas/:id (atualização)</p>
+                    <p className="font-sans text-muted-foreground">Chamado quando o mapa já existe e é atualizado. O body é idêntico ao endpoint de criação.</p>
+                    <Separator />
+                    <p className="font-sans font-medium text-foreground">Request Body:</p>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
+  "map_id": "uuid",
+  "id_evento": "string",
+  "map_json": { ... }   // Mesmo formato do POST /mapas
+}`}</pre>
+                    <Separator />
+                    <p className="font-sans font-medium text-foreground">Response 200:</p>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
+  "success": true,
+  "message": "string"
+}`}</pre>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
+
+          {/* Tipos de Assento */}
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="seat-types" className="border rounded-md px-3">
+              <AccordionTrigger className="py-2 text-xs hover:no-underline gap-1">
+                <span className="flex items-center gap-1 text-sm font-medium"><FileText className="h-4 w-4" /> Referência: Tipos e Enums</span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="bg-muted rounded-md p-3 text-xs font-mono space-y-3">
+                  <div>
+                    <p className="font-sans font-medium text-foreground mb-1">SeatType (tipo do assento):</p>
+                    <pre className="bg-background p-2 rounded border text-xs">{`"normal"     — Assento padrão
+"pcd"        — Pessoa com deficiência
+"companion"  — Acompanhante PCD
+"obeso"      — Assento especial (obeso)
+"vip"        — Assento VIP
+"blocked"    — Bloqueado (indisponível)`}</pre>
+                  </div>
+                  <div>
+                    <p className="font-sans font-medium text-foreground mb-1">SeatStatus (status do assento):</p>
+                    <pre className="bg-background p-2 rounded border text-xs">{`"available"  — Disponível para venda
+"reserved"   — Reservado
+"sold"       — Vendido
+"blocked"    — Bloqueado`}</pre>
+                  </div>
+                  <div>
+                    <p className="font-sans font-medium text-foreground mb-1">ElementType (elementos do venue):</p>
+                    <pre className="bg-background p-2 rounded border text-xs">{`"stage" | "bar" | "bathroom" | "entrance" | "exit"
+"speaker" | "dj" | "screen" | "vip-area" | "food" | "custom"`}</pre>
+                  </div>
+                  <div>
+                    <p className="font-sans font-medium text-foreground mb-1">SectorShape (formas dos setores):</p>
+                    <pre className="bg-background p-2 rounded border text-xs">{`"rectangle" | "circle" | "triangle" | "hexagon" | "pentagon"
+"trapezoid" | "parallelogram" | "arc" | "diamond" | "octagon"
+"l-shape" | "u-shape" | "t-shape" | "z-shape" | "cross"
+"arrow" | "star" | "wave"`}</pre>
+                  </div>
+                  <div>
+                    <p className="font-sans font-medium text-foreground mb-1">Autenticação:</p>
+                    <p className="font-sans text-muted-foreground">Todas as requisições incluem os headers:</p>
+                    <pre className="bg-background p-2 rounded border text-xs">{`Authorization: Bearer <access_token>
+apikey: <supabase_anon_key>
+Content-Type: application/json`}</pre>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+
           <Button onClick={handleSaveUrls} disabled={savingUrls}>
             {savingUrls && <Loader2 className="h-4 w-4 animate-spin" />}
             Salvar URLs
