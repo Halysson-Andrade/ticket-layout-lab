@@ -85,6 +85,7 @@ export type Database = {
           token_expires_at: string | null
           token_secret_hash: string | null
           updated_at: string
+          url_check_permissao: string | null
           url_create_mapa: string | null
           url_get_mapa: string | null
           url_list_setores: string | null
@@ -97,6 +98,7 @@ export type Database = {
           token_expires_at?: string | null
           token_secret_hash?: string | null
           updated_at?: string
+          url_check_permissao?: string | null
           url_create_mapa?: string | null
           url_get_mapa?: string | null
           url_list_setores?: string | null
@@ -109,6 +111,7 @@ export type Database = {
           token_expires_at?: string | null
           token_secret_hash?: string | null
           updated_at?: string
+          url_check_permissao?: string | null
           url_create_mapa?: string | null
           url_get_mapa?: string | null
           url_list_setores?: string | null
@@ -119,6 +122,47 @@ export type Database = {
             foreignKeyName: "company_integrations_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_exchange_codes: {
+        Row: {
+          code: string
+          company_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          id_evento: string
+          id_usuario_externo: string
+          used: boolean
+        }
+        Insert: {
+          code: string
+          company_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          id_evento: string
+          id_usuario_externo: string
+          used?: boolean
+        }
+        Update: {
+          code?: string
+          company_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          id_evento?: string
+          id_usuario_externo?: string
+          used?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_exchange_codes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },

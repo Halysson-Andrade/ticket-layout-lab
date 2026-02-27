@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -16,6 +16,7 @@ interface IntegrationState {
   externalSetores: { id: string; name: string; color: string }[];
   tokenValid: boolean | null;
   tokenError: string | null;
+  idUsuarioExterno: string | null;
 }
 
 interface IntegrationResult {
@@ -30,14 +31,13 @@ interface IntegrationResult {
 
 export function useIntegrationMode(): IntegrationResult {
   const [searchParams] = useSearchParams();
-  const eventId = searchParams.get('id_evento');
+  const exchangeCode = searchParams.get('code');
   const existingMapId = searchParams.get('map_id');
-  const integrationToken = searchParams.get('token');
 
   const [state, setState] = useState<IntegrationState>({
-    isIntegration: !!(eventId && integrationToken),
-    companyId: null, // resolved from token
-    eventId,
+    isIntegration: !!exchangeCode,
+    companyId: null,
+    eventId: null,
     mapId: existingMapId,
     loading: false,
     saving: false,
@@ -46,6 +46,7 @@ export function useIntegrationMode(): IntegrationResult {
     externalSetores: [],
     tokenValid: null,
     tokenError: null,
+    idUsuarioExterno: null,
   });
 
   const loadIntegrationData = useCallback(async (
@@ -53,7 +54,7 @@ export function useIntegrationMode(): IntegrationResult {
     setElements: (e: VenueElement[]) => void,
     setMapData: (fn: (prev: VenueMap) => VenueMap) => void,
   ) => {
-    if (!eventId || !integrationToken) return;
+    if (!exchangeCode) return;
 
     setState(prev => ({ ...prev, loading: true }));
 
@@ -65,35 +66,43 @@ export function useIntegrationMode(): IntegrationResult {
         return;
       }
 
-      // 0. Validate integration token
-      if (!integrationToken) {
-        toast.error('Token de integração não fornecido na URL.');
-        setState(prev => ({ ...prev, loading: false, tokenValid: false, tokenError: 'Token não fornecido' }));
-        return;
-      }
-
-      const validateUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-token`;
-      const tokenRes = await fetch(validateUrl, {
+      // 1. Exchange the code for session data
+      const exchangeUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/exchange-code`;
+      const codeRes = await fetch(exchangeUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ token: integrationToken }),
+        body: JSON.stringify({ code: exchangeCode }),
       });
-      const tokenResult = await tokenRes.json();
+      const codeResult = await codeRes.json();
 
-      if (!tokenResult.valid) {
-        toast.error(`Acesso negado: ${tokenResult.error || 'Token inválido'}`);
-        setState(prev => ({ ...prev, loading: false, tokenValid: false, tokenError: tokenResult.error }));
+      if (!codeResult.valid) {
+        toast.error(`Acesso negado: ${codeResult.error || 'Código inválido'}`);
+        setState(prev => ({ 
+          ...prev, 
+          loading: false, 
+          tokenValid: false, 
+          tokenError: codeResult.error 
+        }));
         return;
       }
 
-      // Company resolved from token
-      const resolvedCompanyId = tokenResult.company_id;
-      setState(prev => ({ ...prev, tokenValid: true, tokenError: null, companyId: resolvedCompanyId }));
+      const resolvedCompanyId = codeResult.company_id;
+      const eventId = codeResult.id_evento;
+      const idUsuarioExterno = codeResult.id_usuario_externo;
 
-      // 1. Check for existing map
+      setState(prev => ({ 
+        ...prev, 
+        tokenValid: true, 
+        tokenError: null, 
+        companyId: resolvedCompanyId,
+        eventId,
+        idUsuarioExterno,
+      }));
+
+      // 2. Check for existing map
       const { data: existingMap } = await supabase
         .from('maps')
         .select('*')
@@ -110,12 +119,8 @@ export function useIntegrationMode(): IntegrationResult {
           loading: false,
         }));
         
-        if (mapJson?.sectors) {
-          setSectors(mapJson.sectors);
-        }
-        if (mapJson?.elements) {
-          setElements(mapJson.elements);
-        }
+        if (mapJson?.sectors) setSectors(mapJson.sectors);
+        if (mapJson?.elements) setElements(mapJson.elements);
         setMapData(prev => ({
           ...prev,
           name: existingMap.name,
@@ -125,7 +130,7 @@ export function useIntegrationMode(): IntegrationResult {
         return;
       }
 
-      // 2. Fetch company integration URLs
+      // 3. Fetch company integration URLs
       const { data: integration } = await supabase
         .from('company_integrations')
         .select('*')
@@ -138,7 +143,7 @@ export function useIntegrationMode(): IntegrationResult {
         return;
       }
 
-      // 3. Fetch sectors from external API
+      // 4. Fetch sectors from external API
       const setoresRes = await fetch(integration.url_list_setores, {
         headers: {
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
@@ -148,7 +153,6 @@ export function useIntegrationMode(): IntegrationResult {
       const setoresData = await setoresRes.json();
       const externalSetores = setoresData?.setores || setoresData || [];
 
-      // 4. Store external sectors for dropdown (canvas starts empty)
       setMapData(prev => ({
         ...prev,
         name: `Evento ${eventId}`,
@@ -156,7 +160,7 @@ export function useIntegrationMode(): IntegrationResult {
 
       setState(prev => ({
         ...prev,
-        externalSetores: externalSetores,
+        externalSetores,
         eventName: `Evento ${eventId}`,
         loading: false,
       }));
@@ -167,10 +171,10 @@ export function useIntegrationMode(): IntegrationResult {
       toast.error('Erro ao carregar dados da integração');
       setState(prev => ({ ...prev, loading: false }));
     }
-  }, [eventId, integrationToken]);
+  }, [exchangeCode]);
 
   const saveIntegration = useCallback(async (exportData: any) => {
-    if (!state.companyId || !eventId) return;
+    if (!state.companyId || !state.eventId) return;
 
     setState(prev => ({ ...prev, saving: true, syncStatus: 'syncing' }));
 
@@ -182,11 +186,10 @@ export function useIntegrationMode(): IntegrationResult {
         return;
       }
 
-      // 1. Save/update in maps table
       const mapRecord = {
-        name: exportData.name || `Evento ${eventId}`,
+        name: exportData.name || `Evento ${state.eventId}`,
         company_id: state.companyId,
-        id_evento_externo: eventId,
+        id_evento_externo: state.eventId,
         map_json: exportData,
         created_by_user_id: session.user.id,
         sync_status: 'PENDENTE',
@@ -215,7 +218,7 @@ export function useIntegrationMode(): IntegrationResult {
         setState(prev => ({ ...prev, mapId: savedMapId }));
       }
 
-      // 2. POST to external API
+      // POST to external API
       const { data: integration } = await supabase
         .from('company_integrations')
         .select('url_create_mapa, url_update_mapa')
@@ -236,7 +239,7 @@ export function useIntegrationMode(): IntegrationResult {
           },
           body: JSON.stringify({
             map_id: savedMapId,
-            id_evento: eventId,
+            id_evento: state.eventId,
             map_json: exportData,
           }),
         });
@@ -268,7 +271,7 @@ export function useIntegrationMode(): IntegrationResult {
       setState(prev => ({ ...prev, saving: false, syncStatus: 'error' }));
       toast.error(`Erro ao salvar: ${err.message}`);
     }
-  }, [eventId, state.companyId, state.mapId]);
+  }, [state.eventId, state.companyId, state.mapId]);
 
   return { state, loadIntegrationData, saveIntegration };
 }

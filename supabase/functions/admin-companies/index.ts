@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'update-urls') {
-      const { url_list_setores, url_create_mapa, url_get_mapa, url_update_mapa } = body
+      const { url_list_setores, url_create_mapa, url_get_mapa, url_update_mapa, url_check_permissao } = body
 
       const { error } = await adminClient.from('company_integrations').upsert({
         company_id,
@@ -142,6 +142,7 @@ Deno.serve(async (req) => {
         url_create_mapa,
         url_get_mapa,
         url_update_mapa,
+        url_check_permissao,
       }, { onConflict: 'company_id' })
 
       if (error) throw error
