@@ -960,11 +960,18 @@ export const MapStudio: React.FC = () => {
 
   // Adiciona elemento de venue
   const handleAddElement = useCallback((type: ElementType) => {
+    const bounds = { x: 400, y: 100, width: 150, height: 80 };
     const newElement: VenueElement = {
       id: generateId(),
       type,
       label: ELEMENT_ICONS[type] + ' ' + type.charAt(0).toUpperCase() + type.slice(1).replace('-', ' '),
-      bounds: { x: 400, y: 100, width: 150, height: 80 },
+      bounds,
+      vertices: [
+        { x: bounds.x, y: bounds.y },
+        { x: bounds.x + bounds.width, y: bounds.y },
+        { x: bounds.x + bounds.width, y: bounds.y + bounds.height },
+        { x: bounds.x, y: bounds.y + bounds.height },
+      ],
       rotation: 0,
       color: type === 'stage' ? '#6366f1' : type === 'bar' ? '#f59e0b' : '#64748b',
     };
@@ -990,6 +997,7 @@ export const MapStudio: React.FC = () => {
           x: el.bounds.x + dx,
           y: el.bounds.y + dy,
         },
+        vertices: el.vertices?.map(v => ({ ...v, x: v.x + dx, y: v.y + dy, controlPoint: v.controlPoint ? { x: v.controlPoint.x + dx, y: v.controlPoint.y + dy } : undefined })),
       };
     }));
   }, []);
@@ -998,15 +1006,64 @@ export const MapStudio: React.FC = () => {
   const handleResizeElement = useCallback((id: string, width: number, height: number, x?: number, y?: number) => {
     setElements(prev => prev.map(el => {
       if (el.id !== id) return el;
-      return {
-        ...el,
-        bounds: { 
-          x: x !== undefined ? x : el.bounds.x, 
-          y: y !== undefined ? y : el.bounds.y, 
-          width, 
-          height 
-        },
+      const newBounds = { 
+        x: x !== undefined ? x : el.bounds.x, 
+        y: y !== undefined ? y : el.bounds.y, 
+        width, 
+        height 
       };
+      // Scale vertices proportionally
+      let newVertices = el.vertices;
+      if (el.vertices && el.vertices.length > 0) {
+        const oldB = el.bounds;
+        const scaleX = oldB.width > 0 ? width / oldB.width : 1;
+        const scaleY = oldB.height > 0 ? height / oldB.height : 1;
+        newVertices = el.vertices.map(v => ({
+          ...v,
+          x: newBounds.x + (v.x - oldB.x) * scaleX,
+          y: newBounds.y + (v.y - oldB.y) * scaleY,
+          controlPoint: v.controlPoint ? {
+            x: newBounds.x + (v.controlPoint.x - oldB.x) * scaleX,
+            y: newBounds.y + (v.controlPoint.y - oldB.y) * scaleY,
+          } : undefined,
+        }));
+      }
+      return { ...el, bounds: newBounds, vertices: newVertices };
+    }));
+  }, []);
+
+  // Adiciona vértice em aresta de elemento
+  const handleAddElementVertex = useCallback((elementId: string, edgeIndex: number, position: { x: number; y: number }) => {
+    setElements(prev => prev.map(el => {
+      if (el.id !== elementId || !el.vertices) return el;
+      const newVertices = [...el.vertices];
+      newVertices.splice(edgeIndex + 1, 0, { x: position.x, y: position.y });
+      return { ...el, vertices: newVertices };
+    }));
+    toast.success('Ponto adicionado ao elemento');
+  }, []);
+
+  // Remove vértice de elemento
+  const handleRemoveElementVertex = useCallback((elementId: string, vertexIndex: number) => {
+    const el = elements.find(e => e.id === elementId);
+    if (!el || !el.vertices || el.vertices.length <= 3) {
+      toast.error('Não é possível remover - mínimo de 3 pontos');
+      return;
+    }
+    setElements(prev => prev.map(e => {
+      if (e.id !== elementId || !e.vertices) return e;
+      const newVertices = e.vertices.filter((_, i) => i !== vertexIndex);
+      return { ...e, vertices: newVertices };
+    }));
+    toast.success('Ponto removido do elemento');
+  }, [elements]);
+
+  // Atualiza vértices de elemento
+  const handleUpdateElementVertices = useCallback((elementId: string, vertices: Vertex[]) => {
+    setElements(prev => prev.map(el => {
+      if (el.id !== elementId) return el;
+      const newBounds = getBoundsFromVertices(vertices);
+      return { ...el, vertices, bounds: newBounds };
     }));
   }, []);
 
@@ -2071,6 +2128,9 @@ export const MapStudio: React.FC = () => {
           onVertexMoveEnd={handleVertexMoveEnd}
           onAddVertex={handleAddVertex}
           onRemoveVertex={handleRemoveVertex}
+          onAddElementVertex={handleAddElementVertex}
+          onRemoveElementVertex={handleRemoveElementVertex}
+          onUpdateElementVertices={handleUpdateElementVertices}
           onDuplicateSector={handleDuplicate}
           onDuplicateSectorById={handleDuplicateSectorById}
           onDeleteSector={handleDelete}
