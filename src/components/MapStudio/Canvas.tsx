@@ -943,71 +943,7 @@ export const Canvas: React.FC<CanvasProps> = ({
       ctx.restore();
     });
 
-    // Desenha formas geométricas (não vinculadas a setores)
-    geometricShapes.forEach(shape => {
-      const isSelected = selectedShapeIds.includes(shape.id);
-      const bounds = getBoundsFromVertices(shape.vertices);
-      const centerX = bounds.x + bounds.width / 2;
-      const centerY = bounds.y + bounds.height / 2;
-      
-      ctx.save();
-      
-      // Aplica rotação se existir
-      if (shape.rotation && shape.rotation !== 0) {
-        ctx.translate(centerX, centerY);
-        ctx.rotate((shape.rotation * Math.PI) / 180);
-        ctx.translate(-centerX, -centerY);
-      }
-      
-      // Desenha polígono
-      if (shape.vertices && shape.vertices.length > 2) {
-        ctx.beginPath();
-        ctx.moveTo(shape.vertices[0].x, shape.vertices[0].y);
-        for (let i = 1; i < shape.vertices.length; i++) {
-          ctx.lineTo(shape.vertices[i].x, shape.vertices[i].y);
-        }
-        ctx.closePath();
-        
-        // Fill com opacidade
-        const shapeColor = shape.color || '#6366f1';
-        const shapeOpacity = shape.opacity !== undefined ? shape.opacity : 60;
-        
-        if (shapeColor.startsWith('hsl')) {
-          ctx.fillStyle = shapeColor.replace(')', `, ${shapeOpacity / 100})`).replace('hsl(', 'hsla(');
-        } else if (shapeColor.startsWith('#')) {
-          const r = parseInt(shapeColor.slice(1, 3), 16) || 100;
-          const g = parseInt(shapeColor.slice(3, 5), 16) || 102;
-          const b = parseInt(shapeColor.slice(5, 7), 16) || 241;
-          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${shapeOpacity / 100})`;
-        } else {
-          ctx.fillStyle = shapeColor;
-          ctx.globalAlpha = shapeOpacity / 100;
-        }
-        ctx.fill();
-        ctx.globalAlpha = 1;
-        
-        // Stroke - borda sólida
-        ctx.strokeStyle = isSelected ? '#3b82f6' : shape.color;
-        ctx.lineWidth = isSelected ? 3 / zoom : 1.5 / zoom;
-        if (!shape.linkedSectorId) {
-          // Sem vínculo: borda sólida (é um background colorido)
-          ctx.stroke();
-        } else {
-          ctx.stroke();
-        }
-      }
-      
-      // Nome da forma (se tiver)
-      if (shape.name) {
-        ctx.fillStyle = '#fff';
-        ctx.font = `bold ${13}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(shape.name, centerX, centerY);
-      }
-      
-      ctx.restore();
-    });
+
 
     // Desenha labels e handles das formas geométricas (ACIMA de tudo)
     geometricShapes.forEach(shape => {
