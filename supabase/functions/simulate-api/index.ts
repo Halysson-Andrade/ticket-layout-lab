@@ -95,6 +95,19 @@ Deno.serve(async (req) => {
       })
     }
 
+    // Simulated permission check endpoint
+    if (action === 'check-permissao') {
+      const body = await req.json()
+      console.log('Simulated permission check:', JSON.stringify(body))
+      // In simulation, always allow
+      return new Response(JSON.stringify({ 
+        allowed: true, 
+        message: 'Permissão concedida (simulação)' 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     return new Response(JSON.stringify({ error: 'Unknown action' }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

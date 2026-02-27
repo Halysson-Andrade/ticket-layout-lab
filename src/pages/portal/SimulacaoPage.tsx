@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { Search, Play, Calendar, MapPin, Loader2, ExternalLink, FileText, Copy, Check, Key, AlertTriangle } from 'lucide-react';
+import { Search, Play, Calendar, MapPin, Loader2, ExternalLink, FileText, Copy, Check, Key, AlertTriangle, User } from 'lucide-react';
 
 const COMPANY_ID = '00000000-0000-0000-0000-000000000001';
 
@@ -34,6 +34,8 @@ const SimulacaoPage: React.FC = () => {
   const [docEvent, setDocEvent] = useState<SimEvent | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [integrationToken, setIntegrationToken] = useState<string | null>(null);
+  const [idUsuario, setIdUsuario] = useState<string>('user-123');
+  const [openingEvent, setOpeningEvent] = useState<string | null>(null);
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
@@ -56,47 +58,63 @@ const SimulacaoPage: React.FC = () => {
     }
     setLoading(false);
   }, [session]);
-  // Check if token is configured
-  const fetchTokenStatus = useCallback(async () => {
-    const { data } = await supabase
-      .from('company_integrations')
-      .select('token_secret_hash')
-      .eq('company_id', COMPANY_ID)
-      .maybeSingle();
-    if (!data?.token_secret_hash) {
-      setIntegrationToken(null);
-    }
-    // Token hash exists but we can't retrieve the raw value - user must input it
-  }, []);
 
   useEffect(() => {
     if (session) {
       fetchEvents();
-      fetchTokenStatus();
     }
-  }, [fetchEvents, fetchTokenStatus, session]);
+  }, [fetchEvents, session]);
 
-  const handleOpenEvent = (evt: SimEvent) => {
+  const handleOpenEvent = async (evt: SimEvent) => {
     if (!integrationToken) {
-      toast.error('Informe o Token de Integração no campo acima antes de abrir um evento.');
+      toast.error('Informe o Token de Integração antes de abrir um evento.');
       return;
     }
-    const params = new URLSearchParams({
-      id_evento: evt.external_id,
-      token: integrationToken,
-    });
-    navigate(`/mapstudio?${params.toString()}`);
+    if (!idUsuario.trim()) {
+      toast.error('Informe o ID do Usuário.');
+      return;
+    }
+
+    setOpeningEvent(evt.id);
+
+    try {
+      // Step 1: Call integration-auth to get exchange code
+      const authUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/integration-auth`;
+      const res = await fetch(authUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          token: integrationToken,
+          id_evento: evt.external_id,
+          id_usuario: idUsuario,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || 'Erro na autenticação de integração');
+        setOpeningEvent(null);
+        return;
+      }
+
+      // Step 2: Redirect with exchange code (not token!)
+      navigate(`/mapstudio?code=${data.exchange_code}`);
+    } catch (err: any) {
+      toast.error('Erro ao autenticar integração');
+      console.error(err);
+    } finally {
+      setOpeningEvent(null);
+    }
   };
 
   const handleCopy = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
-  };
-
-  const buildRedirectUrl = (evt: SimEvent) => {
-    const base = window.location.origin;
-    return `${base}/mapstudio?id_evento=${evt.external_id}&token=SEU_TOKEN_AQUI`;
   };
 
   const filtered = events.filter(
@@ -119,6 +137,8 @@ const SimulacaoPage: React.FC = () => {
     });
   };
 
+  const apiBaseUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+
   return (
     <div className="p-6 space-y-6">
       <div>
@@ -130,21 +150,38 @@ const SimulacaoPage: React.FC = () => {
         </p>
       </div>
 
-      {/* Token Input */}
+      {/* Token + User ID Input */}
       <Alert className="border-amber-500/30 bg-amber-500/5">
         <Key className="h-4 w-4 text-amber-600" />
-        <AlertDescription className="flex items-center gap-3">
-          <span className="text-sm font-medium text-foreground whitespace-nowrap">Token de Integração:</span>
-          <Input
-            type="password"
-            placeholder="Cole aqui o token gerado em Empresas > Integração"
-            value={integrationToken || ''}
-            onChange={(e) => setIntegrationToken(e.target.value || null)}
-            className="max-w-md h-8 text-sm"
-          />
+        <AlertDescription className="space-y-3">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-foreground whitespace-nowrap">Token:</span>
+            <Input
+              type="password"
+              placeholder="Cole o token gerado em Empresas > Integração"
+              value={integrationToken || ''}
+              onChange={(e) => setIntegrationToken(e.target.value || null)}
+              className="max-w-sm h-8 text-sm"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-foreground whitespace-nowrap flex items-center gap-1">
+              <User className="h-3.5 w-3.5" /> Usuário:
+            </span>
+            <Input
+              type="text"
+              placeholder="ID do usuário externo (token ou identificador)"
+              value={idUsuario}
+              onChange={(e) => setIdUsuario(e.target.value)}
+              className="max-w-sm h-8 text-sm"
+            />
+            <span className="text-xs text-muted-foreground">
+              Identificador do usuário no sistema do cliente
+            </span>
+          </div>
           {!integrationToken && (
-            <span className="text-xs text-amber-600 whitespace-nowrap flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3" /> Obrigatório para abrir eventos
+            <span className="text-xs text-amber-600 flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" /> Token obrigatório para abrir eventos
             </span>
           )}
         </AlertDescription>
@@ -184,6 +221,11 @@ const SimulacaoPage: React.FC = () => {
                 className="relative h-40 bg-muted overflow-hidden cursor-pointer"
                 onClick={() => handleOpenEvent(evt)}
               >
+                {openingEvent === evt.id && (
+                  <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                )}
                 {evt.image_url ? (
                   <img
                     src={evt.image_url}
@@ -245,7 +287,7 @@ const SimulacaoPage: React.FC = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Documentação de Redirecionamento
+              Documentação de Integração (2 etapas)
             </DialogTitle>
           </DialogHeader>
 
@@ -260,49 +302,27 @@ const SimulacaoPage: React.FC = () => {
 
               <Separator />
 
-              {/* Como funciona */}
+              {/* Segurança */}
               <div className="space-y-2">
-                <h3 className="font-semibold text-foreground">Como funciona o redirecionamento</h3>
+                <h3 className="font-semibold text-foreground">🔒 Modelo de Segurança</h3>
                 <p className="text-muted-foreground text-xs leading-relaxed">
-                  O sistema do cliente redireciona o usuário para o MapStudio passando os parâmetros de integração na URL.
-                  Ao abrir, o MapStudio detecta os parâmetros, verifica se já existe um mapa salvo para o evento e 
-                  carrega os setores disponíveis via API. Ao salvar, o mapa é persistido internamente e sincronizado
-                  com a API do cliente.
+                  O fluxo usa <strong>Exchange Token em 2 etapas</strong>. O token de integração e o ID do usuário 
+                  <strong> nunca aparecem na URL do navegador</strong>. O sistema cliente faz uma chamada server-side 
+                  para obter um código temporário (30s, uso único), e só esse código é passado na URL de redirecionamento.
                 </p>
               </div>
 
               <Separator />
 
-              {/* URL de Redirecionamento */}
-              <div className="space-y-2">
-                <h3 className="font-semibold text-foreground">URL de Redirecionamento</h3>
-                <div className="bg-muted rounded-md p-3 flex items-start gap-2">
-                  <code className="flex-1 text-xs break-all font-mono text-foreground">
-                    {buildRedirectUrl(docEvent)}
-                  </code>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 shrink-0"
-                    onClick={() => handleCopy(buildRedirectUrl(docEvent), 'url')}
-                  >
-                    {copiedField === 'url' ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-                  </Button>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Parâmetros */}
+              {/* Etapa 1 */}
               <div className="space-y-3">
-                <h3 className="font-semibold text-foreground">Parâmetros da URL</h3>
+                <h3 className="font-semibold text-foreground">Etapa 1: Obter código de acesso (Server-side)</h3>
                 <div className="border rounded-lg overflow-hidden">
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-muted">
-                        <th className="text-left p-2 font-medium">Parâmetro</th>
+                        <th className="text-left p-2 font-medium">Campo</th>
                         <th className="text-left p-2 font-medium">Tipo</th>
-                        <th className="text-left p-2 font-medium">Obrigatório</th>
                         <th className="text-left p-2 font-medium">Descrição</th>
                       </tr>
                     </thead>
@@ -310,77 +330,126 @@ const SimulacaoPage: React.FC = () => {
                       <tr className="border-t">
                         <td className="p-2 font-mono text-primary">token</td>
                         <td className="p-2">string</td>
-                        <td className="p-2"><Badge variant="destructive" className="text-[10px] px-1.5 py-0">Sim</Badge></td>
-                        <td className="p-2 text-muted-foreground">Token de integração da empresa (identifica a empresa automaticamente)</td>
+                        <td className="p-2 text-muted-foreground">Token de integração da empresa</td>
                       </tr>
                       <tr className="border-t">
                         <td className="p-2 font-mono text-primary">id_evento</td>
                         <td className="p-2">string</td>
-                        <td className="p-2"><Badge variant="destructive" className="text-[10px] px-1.5 py-0">Sim</Badge></td>
                         <td className="p-2 text-muted-foreground">ID do evento no sistema do cliente</td>
                       </tr>
                       <tr className="border-t">
-                        <td className="p-2 font-mono text-primary">map_id</td>
-                        <td className="p-2">UUID</td>
-                        <td className="p-2"><Badge variant="outline" className="text-[10px] px-1.5 py-0">Não</Badge></td>
-                        <td className="p-2 text-muted-foreground">ID de um mapa existente (para edição direta)</td>
+                        <td className="p-2 font-mono text-primary">id_usuario</td>
+                        <td className="p-2">string</td>
+                        <td className="p-2 text-muted-foreground">Identificador do usuário (token ou ID opaco)</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
+                <pre className="bg-muted rounded-md p-3 text-xs font-mono overflow-x-auto whitespace-pre">{`// SERVER-SIDE: Obter código de acesso
+const response = await fetch(
+  "${apiBaseUrl}/integration-auth",
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      token: "SEU_TOKEN_INTEGRACAO",
+      id_evento: "${docEvent.external_id}",
+      id_usuario: "TOKEN_OU_ID_DO_USUARIO"
+    })
+  }
+);
+
+const { exchange_code, expires_in } = await response.json();
+// exchange_code: código temporário (30s, uso único)
+// expires_in: tempo em segundos até expirar`}</pre>
               </div>
 
               <Separator />
 
-              {/* Fluxo */}
+              {/* Etapa 2 */}
               <div className="space-y-3">
-                <h3 className="font-semibold text-foreground">Fluxo de Abertura</h3>
-                <ol className="space-y-2 text-xs text-muted-foreground list-decimal list-inside">
-                  <li>O usuário é redirecionado para a URL com os parâmetros <code className="bg-muted px-1 rounded text-foreground">id_evento</code> e <code className="bg-muted px-1 rounded text-foreground">token</code></li>
-                  <li>O MapStudio verifica se o usuário está autenticado (redireciona para login se necessário)</li>
-                  <li><strong className="text-foreground">Valida o token de integração</strong> — identifica automaticamente a empresa associada ao token</li>
-                  <li>Se o token for inválido ou expirado → exibe tela de "Acesso Negado"</li>
-                  <li>Busca na base se já existe um mapa salvo para <code className="bg-muted px-1 rounded text-foreground">company_id (do token) + id_evento_externo</code></li>
-                  <li>Se existir → carrega o mapa salvo no canvas</li>
-                  <li>Se não existir → abre o canvas vazio e busca os setores via <code className="bg-muted px-1 rounded text-foreground">url_list_setores</code> da empresa</li>
-                  <li>Os setores ficam disponíveis no dropdown "Vincular a Setor" para associar formas criadas</li>
-                </ol>
+                <h3 className="font-semibold text-foreground">Etapa 2: Redirecionar o usuário</h3>
+                <p className="text-xs text-muted-foreground">
+                  Com o <code className="bg-muted px-1 rounded text-foreground">exchange_code</code> obtido, 
+                  redirecione o usuário. O código é descartável e expira em 30 segundos.
+                </p>
+                <pre className="bg-muted rounded-md p-3 text-xs font-mono overflow-x-auto whitespace-pre">{`// CLIENT-SIDE: Redirecionar o usuário
+const mapStudioUrl = "${window.location.origin}/mapstudio"
+  + "?code=" + exchange_code;
+
+window.open(mapStudioUrl, "_blank");`}</pre>
               </div>
 
               <Separator />
 
-              {/* Fluxo de Save */}
+              {/* Permissão */}
               <div className="space-y-3">
-                <h3 className="font-semibold text-foreground">Fluxo de Salvamento</h3>
-                <ol className="space-y-2 text-xs text-muted-foreground list-decimal list-inside">
-                  <li>O usuário clica em "Salvar" no MapStudio</li>
-                  <li>O mapa é salvo na base interna com status <code className="bg-muted px-1 rounded text-foreground">PENDENTE</code></li>
-                  <li>O sistema faz POST para <code className="bg-muted px-1 rounded text-foreground">url_create_mapa</code> (novo) ou <code className="bg-muted px-1 rounded text-foreground">url_update_mapa</code> (existente)</li>
-                  <li>Se a API responder com sucesso → status atualizado para <code className="bg-muted px-1 rounded text-foreground">OK</code></li>
-                  <li>Se houver erro → status marcado como <code className="bg-muted px-1 rounded text-foreground">ERRO</code></li>
-                  <li>Toast exibido ao usuário com o resultado da sincronização</li>
-                </ol>
-              </div>
-
-              <Separator />
-
-              {/* Exemplo de implementação */}
-              <div className="space-y-2">
-                <h3 className="font-semibold text-foreground">Exemplo de Implementação (Cliente)</h3>
-                <pre className="bg-muted rounded-md p-3 text-xs font-mono overflow-x-auto whitespace-pre">{`// Redirecionar o usuário para criar/editar o mapa de um evento
-function abrirMapStudio(eventoId, tokenIntegracao) {
-  const url = "${window.location.origin}/mapstudio"
-    + "?id_evento=" + eventoId
-    + "&token=" + tokenIntegracao;
-  
-  window.open(url, "_blank");
+                <h3 className="font-semibold text-foreground">🛡️ Verificação de Permissão (Opcional)</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Se a empresa configurar a <strong>URL de Verificação de Permissão</strong> no painel de integração, 
+                  o sistema fará uma chamada POST para essa URL antes de gerar o código. 
+                  O payload é assinado com HMAC-SHA256 para garantir autenticidade.
+                </p>
+                <pre className="bg-muted rounded-md p-3 text-xs font-mono overflow-x-auto whitespace-pre">{`// Payload enviado para url_check_permissao (POST)
+{
+  "id_evento": "${docEvent.external_id}",
+  "id_usuario": "TOKEN_OU_ID_DO_USUARIO",
+  "timestamp": "2025-01-01T00:00:00.000Z",
+  "signature": "hmac_sha256_hex_string"
 }
 
-// Exemplo de uso:
-abrirMapStudio(
-  "${docEvent.external_id}",
-  "SEU_TOKEN_DE_INTEGRACAO"
-);`}</pre>
+// Resposta esperada:
+{ "allowed": true }  // ou { "allowed": false, "message": "Motivo" }`}</pre>
+              </div>
+
+              <Separator />
+
+              {/* Fluxo completo */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-foreground">Fluxo Completo</h3>
+                <ol className="space-y-2 text-xs text-muted-foreground list-decimal list-inside">
+                  <li><strong className="text-foreground">Server-side:</strong> Cliente envia token + id_evento + id_usuario para <code className="bg-muted px-1 rounded text-foreground">/integration-auth</code></li>
+                  <li><strong className="text-foreground">Validação do token:</strong> Sistema identifica a empresa pelo hash do token</li>
+                  <li><strong className="text-foreground">Verificação de permissão:</strong> Se configurada, chama URL da empresa com payload assinado</li>
+                  <li><strong className="text-foreground">Código temporário:</strong> Gera código de 30s, uso único, armazenado com hash</li>
+                  <li><strong className="text-foreground">Redirecionamento:</strong> Cliente abre <code className="bg-muted px-1 rounded text-foreground">/mapstudio?code=XXX</code></li>
+                  <li><strong className="text-foreground">Exchange:</strong> MapStudio troca o código por sessão (company_id, evento, usuário)</li>
+                  <li><strong className="text-foreground">Carregamento:</strong> Mapa existente ou canvas vazio com setores externos</li>
+                </ol>
+              </div>
+
+              <Separator />
+
+              {/* Exemplo completo */}
+              <div className="space-y-2">
+                <h3 className="font-semibold text-foreground">Exemplo Completo (Node.js)</h3>
+                <pre className="bg-muted rounded-md p-3 text-xs font-mono overflow-x-auto whitespace-pre">{`// Backend do cliente (Node.js/Express)
+app.get('/abrir-mapa/:eventoId', async (req, res) => {
+  const { eventoId } = req.params;
+  const usuarioToken = req.user.externalToken; // ID do usuário
+
+  // Etapa 1: Obter código server-side
+  const authResponse = await fetch(
+    "${apiBaseUrl}/integration-auth",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token: process.env.MAPSTUDIO_TOKEN,
+        id_evento: eventoId,
+        id_usuario: usuarioToken
+      })
+    }
+  );
+
+  const { exchange_code, error } = await authResponse.json();
+  if (error) return res.status(403).json({ error });
+
+  // Etapa 2: Redirecionar o browser
+  const redirectUrl = "${window.location.origin}/mapstudio?code=" 
+    + exchange_code;
+  res.redirect(redirectUrl);
+});`}</pre>
               </div>
             </div>
           )}

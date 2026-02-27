@@ -27,6 +27,7 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
     url_create_mapa: '',
     url_get_mapa: '',
     url_update_mapa: '',
+    url_check_permissao: '',
   });
 
   const fetchIntegration = async () => {
@@ -43,6 +44,7 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
         url_create_mapa: data.url_create_mapa || '',
         url_get_mapa: data.url_get_mapa || '',
         url_update_mapa: data.url_update_mapa || '',
+        url_check_permissao: (data as any).url_check_permissao || '',
       });
     }
   };
@@ -394,6 +396,43 @@ Content-Type: application/json`}</pre>
   "success": true,
   "message": "string"
 }`}</pre>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+
+          {/* URL Verificação de Permissão */}
+          <div className="space-y-2">
+            <Label>URL Verificação de Permissão (POST) — Opcional</Label>
+            <Input
+              value={urls.url_check_permissao}
+              onChange={(e) => setUrls({ ...urls, url_check_permissao: e.target.value })}
+              placeholder="https://api.cliente.com/permissao"
+            />
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="doc-perm" className="border-none">
+                <AccordionTrigger className="py-1 text-xs text-muted-foreground hover:no-underline gap-1">
+                  <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Documentação do endpoint</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="bg-muted rounded-md p-3 text-xs font-mono space-y-2">
+                    <p className="font-sans text-sm font-medium text-foreground">POST /permissao</p>
+                    <p className="font-sans text-muted-foreground">Chamado antes de gerar o código de acesso. Verifica se o usuário tem permissão para acessar o evento. O payload é assinado com HMAC-SHA256.</p>
+                    <Separator />
+                    <p className="font-sans font-medium text-foreground">Request Body (assinado):</p>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
+  "id_evento": "EVT-001",
+  "id_usuario": "user-token-123",
+  "timestamp": "2025-01-01T00:00:00.000Z",
+  "signature": "hmac_sha256_hex..."
+}`}</pre>
+                    <Separator />
+                    <p className="font-sans font-medium text-foreground">Response 200 (permitido):</p>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{ "allowed": true }`}</pre>
+                    <Separator />
+                    <p className="font-sans font-medium text-foreground">Response 403 (negado):</p>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{ "allowed": false, "message": "Motivo da recusa" }`}</pre>
                   </div>
                 </AccordionContent>
               </AccordionItem>
