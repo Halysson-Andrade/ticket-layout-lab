@@ -10,12 +10,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { BlockSeatModal } from './BlockSeatModal';
 
+interface SectorCategory {
+  id: string;
+  name: string;
+  color: string;
+}
+
 interface RightSidebarProps {
   selectedSector: Sector | null;
   selectedSeats: Seat[];
   selectedShape?: GeometricShape | null;
   sectors?: Sector[];
   selectedSectorIds?: string[];
+  sectorCategories?: SectorCategory[];
   onUpdateSector: (id: string, updates: Partial<Sector>) => void;
   onUpdateSeats: (ids: string[], updates: Partial<Seat>) => void;
   onRegenerateSeats?: (sectorId: string) => void;
@@ -48,6 +55,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   selectedShape,
   sectors = [],
   selectedSectorIds = [],
+  sectorCategories,
   onUpdateSector,
   onUpdateSeats,
   onRegenerateSeats,
@@ -64,6 +72,8 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   onResizeShape,
   onUpdateShapeText,
 }) => {
+  // Use integration categories if provided, otherwise default
+  const availableCategories = sectorCategories || PREDEFINED_SECTORS;
   // Local state para edição em tempo real com debounce
   const [localRotation, setLocalRotation] = useState(0);
   const [localCurvature, setLocalCurvature] = useState(0);
@@ -506,7 +516,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                     <SelectValue placeholder="Manter como background..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {PREDEFINED_SECTORS.map((sector) => (
+                    {availableCategories.map((sector) => (
                       <SelectItem key={sector.id} value={sector.id}>
                         <div className="flex items-center gap-2">
                           <div 
@@ -579,7 +589,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                     <SelectValue placeholder="Selecione um setor para agrupar..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {PREDEFINED_SECTORS.map((sector) => (
+                    {availableCategories.map((sector) => (
                       <SelectItem key={sector.id} value={sector.id}>
                         <div className="flex items-center gap-2">
                           <div 
@@ -643,9 +653,9 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                     Setor
                   </Label>
                   <Select
-                    value={PREDEFINED_SECTORS.find(s => s.name === selectedSector.name)?.id || ''}
+                    value={availableCategories.find(s => s.name === selectedSector.name)?.id || ''}
                     onValueChange={(categoryId) => {
-                      const category = PREDEFINED_SECTORS.find(s => s.id === categoryId);
+                      const category = availableCategories.find(s => s.id === categoryId);
                       if (category) {
                         onUpdateSector(selectedSector.id, { 
                           name: category.name, 
@@ -658,7 +668,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                       <SelectValue placeholder={selectedSector.name} />
                     </SelectTrigger>
                     <SelectContent>
-                      {PREDEFINED_SECTORS.map((sector) => (
+                      {availableCategories.map((sector) => (
                         <SelectItem key={sector.id} value={sector.id}>
                           <div className="flex items-center gap-2">
                             <div 

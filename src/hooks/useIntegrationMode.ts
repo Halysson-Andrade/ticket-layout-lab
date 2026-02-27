@@ -2,8 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Sector, SECTOR_COLORS, VenueElement, VenueMap } from '@/types/mapStudio';
-import { generateId, generateVerticesForShape } from '@/lib/mapUtils';
+import { Sector, VenueElement, VenueMap } from '@/types/mapStudio';
 
 interface IntegrationState {
   isIntegration: boolean;
@@ -118,34 +117,7 @@ export function useIntegrationMode(): IntegrationResult {
       const setoresData = await setoresRes.json();
       const externalSetores = setoresData?.setores || setoresData || [];
 
-      // 4. Pre-create sectors on canvas
-      const newSectors: Sector[] = externalSetores.map((s: any, i: number) => {
-        const cols = 3; // arrange sectors in grid
-        const col = i % cols;
-        const row = Math.floor(i / cols);
-        const x = 100 + col * 350;
-        const y = 100 + row * 300;
-        const bounds = { x, y, width: 300, height: 200 };
-
-        return {
-          id: generateId(),
-          name: s.name,
-          color: s.color || SECTOR_COLORS[i % SECTOR_COLORS.length],
-          opacity: 60,
-          bounds,
-          vertices: generateVerticesForShape('rectangle', bounds),
-          shape: 'rectangle' as const,
-          rotation: 0,
-          curvature: 0,
-          seats: [],
-          visible: true,
-          locked: false,
-          categoryId: s.id,
-          sectorLabel: s.name,
-        };
-      });
-
-      setSectors(newSectors);
+      // 4. Store external sectors for dropdown (canvas starts empty)
       setMapData(prev => ({
         ...prev,
         name: `Evento ${eventId}`,
@@ -158,7 +130,7 @@ export function useIntegrationMode(): IntegrationResult {
         loading: false,
       }));
 
-      toast.success(`${newSectors.length} setor(es) carregados da integração!`);
+      toast.success(`${externalSetores.length} setor(es) disponíveis para vincular!`);
     } catch (err: any) {
       console.error('Integration load error:', err);
       toast.error('Erro ao carregar dados da integração');
