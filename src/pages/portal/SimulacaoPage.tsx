@@ -187,6 +187,56 @@ const SimulacaoPage: React.FC = () => {
         </AlertDescription>
       </Alert>
 
+      {/* Exemplo de URL de Teste */}
+      {integrationToken && (
+        <Alert className="border-blue-500/30 bg-blue-500/5">
+          <ExternalLink className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-foreground">🧪 URL de Teste — Persistência Usuário/Evento</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Use o cURL abaixo para gerar um <code className="bg-muted px-1 rounded">exchange_code</code> e 
+              montar a URL de redirecionamento. O código expira em 30 segundos.
+            </p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-foreground whitespace-nowrap">cURL (Etapa 1):</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => {
+                    const curlCmd = `curl -X POST "${apiBaseUrl}/integration-auth" \\\n  -H "Content-Type: application/json" \\\n  -H "apikey: ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}" \\\n  -d '{"token":"${integrationToken}","id_evento":"EVT-002","id_usuario":"${idUsuario}"}'`;
+                    handleCopy(curlCmd, 'curl-test');
+                  }}
+                >
+                  {copiedField === 'curl-test' ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                </Button>
+              </div>
+              <pre className="bg-muted rounded-md p-3 text-xs font-mono whitespace-pre-wrap break-all">{`curl -X POST "${apiBaseUrl}/integration-auth" \\
+  -H "Content-Type: application/json" \\
+  -H "apikey: ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}" \\
+  -d '{"token":"<SEU_TOKEN>","id_evento":"EVT-002","id_usuario":"${idUsuario}"}'
+
+# Resposta:
+# { "exchange_code": "abc123...", "expires_in": 30, "redirect_url": "/mapstudio?code=abc123..." }
+
+# Etapa 2: Abrir no navegador
+# ${window.location.origin}/mapstudio?code=<exchange_code>`}</pre>
+            </div>
+            <Separator />
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground">
+                <strong>Teste rápido:</strong> Clique no card do <strong>Lollapalooza Brasil 2026</strong> acima 
+                com o token preenchido e usuário <code className="bg-muted px-1 rounded">{idUsuario}</code> para 
+                executar o fluxo completo automaticamente.
+              </span>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex items-center gap-2">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
