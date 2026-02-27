@@ -175,13 +175,18 @@ export const MapStudio: React.FC = () => {
     toast.success(`Forma "${newShape.name}" criada!`);
   }, [geometricShapes.length]);
 
-  // Vincula forma geométrica a um setor da lista predefinida
+  // Resolve categories: integration or predefined
+  const activeSectorCategories = integrationState.isIntegration && integrationState.externalSetores.length > 0
+    ? integrationState.externalSetores
+    : PREDEFINED_SECTORS;
+
+  // Vincula forma geométrica a um setor da lista
   const handleLinkShapeToSector = useCallback((shapeId: string, categoryId: string) => {
     const shape = geometricShapes.find(s => s.id === shapeId);
     if (!shape) return;
     
-    // Busca categoria da lista predefinida
-    const category = PREDEFINED_SECTORS.find(s => s.id === categoryId);
+    // Busca categoria da lista ativa
+    const category = activeSectorCategories.find(s => s.id === categoryId);
     if (!category) return;
     
     // Cria um novo setor a partir da forma com nome/cor da categoria
@@ -209,7 +214,7 @@ export const MapStudio: React.FC = () => {
     setSelectedShapeIds([]);
     setSelectedSectorIds([newSector.id]);
     toast.success(`Forma vinculada ao setor "${category.name}"!`);
-  }, [geometricShapes, sectors, pushHistory]);
+  }, [geometricShapes, sectors, pushHistory, activeSectorCategories]);
 
   // Seleciona forma geométrica
   const handleSelectShape = useCallback((id: string, additive: boolean) => {
@@ -2348,6 +2353,7 @@ export const MapStudio: React.FC = () => {
             onUpdateSeats={handleUpdateSeats}
             onRegenerateSeats={handleRegenerateSeats}
             onResizeSector={handleResizeSector}
+            sectorCategories={activeSectorCategories}
             onLinkShapeToSector={handleLinkShapeToSector}
             onUpdateSpacing={handleUpdateSpacing}
             onCenterSeats={handleCenterSeats}
@@ -2359,7 +2365,7 @@ export const MapStudio: React.FC = () => {
             onResizeShape={handleResizeShape}
             onUpdateShapeText={(id, textConfig) => setGeometricShapes(prev => prev.map(s => s.id === id ? { ...s, textConfig: { ...(s.textConfig || { text: s.name, fontFamily: 'sans-serif', fontSize: 13, fontWeight: 'bold', fontStyle: 'normal', textAlign: 'center', color: '#ffffff', textDecoration: 'none' }), ...textConfig } } : s))}
             onGroupSectors={(sectorIds, categoryId) => {
-              const category = PREDEFINED_SECTORS.find(s => s.id === categoryId);
+              const category = activeSectorCategories.find(s => s.id === categoryId);
               if (category) {
                 setSectors(prev => prev.map(s => 
                   sectorIds.includes(s.id) 
