@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
-import { Sector, Seat, SeatType, SEAT_COLORS, SECTOR_COLORS, SHAPE_NAMES, GeometricShape, PREDEFINED_SECTORS } from '@/types/mapStudio';
+import { Sector, Seat, SeatType, SEAT_COLORS, SECTOR_COLORS, SHAPE_NAMES, GeometricShape, PREDEFINED_SECTORS, SectorShape } from '@/types/mapStudio';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { BlockSeatModal } from './BlockSeatModal';
@@ -28,6 +28,8 @@ interface RightSidebarProps {
   onUpdateShapeName?: (shapeId: string, name: string) => void;
   onUpdateShapeColor?: (shapeId: string, color: string) => void;
   onUpdateShapeOpacity?: (shapeId: string, opacity: number) => void;
+  onUpdateShapeType?: (shapeId: string, shapeType: SectorShape) => void;
+  onResizeShape?: (shapeId: string, width: number, height: number, x: number, y: number) => void;
 }
 
 const SEAT_TYPE_LABELS: Record<SeatType, string> = {
@@ -57,6 +59,8 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   onUpdateShapeName,
   onUpdateShapeColor,
   onUpdateShapeOpacity,
+  onUpdateShapeType,
+  onResizeShape,
 }) => {
   // Local state para edição em tempo real com debounce
   const [localRotation, setLocalRotation] = useState(0);
@@ -227,6 +231,48 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                 />
               </div>
 
+              {/* Tipo de Forma */}
+              <div className="space-y-2">
+                <Label className="text-xs flex items-center gap-2">
+                  <Maximize2 className="h-3 w-3" />
+                  Tipo de Forma
+                </Label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {([
+                    { type: 'rectangle' as SectorShape, icon: '▬', label: 'Retângulo' },
+                    { type: 'circle' as SectorShape, icon: '●', label: 'Círculo/Oval' },
+                    { type: 'triangle' as SectorShape, icon: '▲', label: 'Triângulo' },
+                    { type: 'diamond' as SectorShape, icon: '◆', label: 'Losango' },
+                    { type: 'hexagon' as SectorShape, icon: '⬡', label: 'Hexágono' },
+                    { type: 'pentagon' as SectorShape, icon: '⬠', label: 'Pentágono' },
+                    { type: 'octagon' as SectorShape, icon: '⯃', label: 'Octágono' },
+                    { type: 'star' as SectorShape, icon: '★', label: 'Estrela' },
+                    { type: 'trapezoid' as SectorShape, icon: '⏢', label: 'Trapézio' },
+                    { type: 'parallelogram' as SectorShape, icon: '▱', label: 'Paralelogramo' },
+                    { type: 'arc' as SectorShape, icon: '◠', label: 'Arco' },
+                    { type: 'arrow' as SectorShape, icon: '⬆', label: 'Seta' },
+                    { type: 'cross' as SectorShape, icon: '✚', label: 'Cruz' },
+                    { type: 'l-shape' as SectorShape, icon: '⌐', label: 'Forma L' },
+                    { type: 'u-shape' as SectorShape, icon: '⊔', label: 'Forma U' },
+                    { type: 't-shape' as SectorShape, icon: '⊤', label: 'Forma T' },
+                  ]).map(({ type, icon, label }) => (
+                    <button
+                      key={type}
+                      className={`flex flex-col items-center justify-center p-1.5 rounded text-xs transition-all border ${
+                        selectedShape.shape === type
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border hover:border-primary/50 text-muted-foreground hover:text-foreground'
+                      }`}
+                      onClick={() => onUpdateShapeType?.(selectedShape.id, type)}
+                      title={label}
+                    >
+                      <span className="text-base leading-none">{icon}</span>
+                      <span className="text-[9px] mt-0.5 truncate w-full text-center">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Cor */}
               <div className="space-y-2">
                 <Label className="text-xs flex items-center gap-2">
@@ -235,7 +281,6 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                 </Label>
                 <div className="grid grid-cols-8 gap-1">
                   {(() => {
-                    // Gera paleta dinâmica: 10 matizes × 4 luminosidades + 8 neutros = 48 cores
                     const hues = [0, 15, 30, 45, 60, 120, 150, 180, 210, 240, 270, 300, 330, 340];
                     const variations = [
                       { s: 80, l: 40 },
@@ -249,11 +294,9 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                         colors.push(`hsl(${h}, ${s}%, ${l}%)`);
                       });
                     });
-                    // Neutros
                     [10, 20, 30, 40, 50, 60, 70, 80, 90].forEach(l => {
                       colors.push(`hsl(0, 0%, ${l}%)`);
                     });
-                    // Remove duplicatas
                     const unique = [...new Set(colors)];
                     return unique.map((color) => (
                       <button
@@ -269,12 +312,10 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                     ));
                   })()}
                 </div>
-                {/* Color picker customizado */}
                 <div className="flex items-center gap-2 mt-2">
                   <input
                     type="color"
                     value={(() => {
-                      // Converte HSL para hex para o input
                       const c = selectedShape.color;
                       if (c.startsWith('#')) return c;
                       return '#6366f1';
@@ -301,20 +342,36 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                 />
               </div>
 
-              {/* Dimensões */}
+              {/* Dimensões editáveis */}
               <div className="space-y-2">
                 <Label className="text-xs flex items-center gap-2">
-                  <Maximize2 className="h-3 w-3" />
+                  <ArrowLeftRight className="h-3 w-3" />
                   Dimensões
                 </Label>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div className="p-2 bg-muted/50 rounded">
-                    <span className="text-muted-foreground">Largura:</span>
-                    <span className="ml-1 font-medium">{Math.round(selectedShape.bounds.width)}px</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-muted-foreground">Largura</span>
+                    <Input
+                      type="number"
+                      value={Math.round(selectedShape.bounds.width)}
+                      onChange={(e) => {
+                        const w = Math.max(30, parseInt(e.target.value) || 30);
+                        onResizeShape?.(selectedShape.id, w, selectedShape.bounds.height, selectedShape.bounds.x, selectedShape.bounds.y);
+                      }}
+                      className="h-7 text-xs"
+                    />
                   </div>
-                  <div className="p-2 bg-muted/50 rounded">
-                    <span className="text-muted-foreground">Altura:</span>
-                    <span className="ml-1 font-medium">{Math.round(selectedShape.bounds.height)}px</span>
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-muted-foreground">Altura</span>
+                    <Input
+                      type="number"
+                      value={Math.round(selectedShape.bounds.height)}
+                      onChange={(e) => {
+                        const h = Math.max(30, parseInt(e.target.value) || 30);
+                        onResizeShape?.(selectedShape.id, selectedShape.bounds.width, h, selectedShape.bounds.x, selectedShape.bounds.y);
+                      }}
+                      className="h-7 text-xs"
+                    />
                   </div>
                 </div>
               </div>
