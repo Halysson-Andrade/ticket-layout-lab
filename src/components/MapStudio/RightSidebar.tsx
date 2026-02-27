@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3, CircleDot, Maximize2, Info, Link, ArrowLeftRight, ArrowUpDown, Circle, AlignCenter, FlipHorizontal, FlipVertical, Ban } from 'lucide-react';
+import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3, CircleDot, Maximize2, Info, Link, ArrowLeftRight, ArrowUpDown, Circle, AlignCenter, AlignLeft, AlignRight, FlipHorizontal, FlipVertical, Ban, Bold, Italic, Underline } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
-import { Sector, Seat, SeatType, SEAT_COLORS, SECTOR_COLORS, SHAPE_NAMES, GeometricShape, PREDEFINED_SECTORS, SectorShape } from '@/types/mapStudio';
+import { Sector, Seat, SeatType, SEAT_COLORS, SECTOR_COLORS, SHAPE_NAMES, GeometricShape, PREDEFINED_SECTORS, SectorShape, ShapeTextConfig } from '@/types/mapStudio';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { BlockSeatModal } from './BlockSeatModal';
@@ -30,6 +30,7 @@ interface RightSidebarProps {
   onUpdateShapeOpacity?: (shapeId: string, opacity: number) => void;
   onUpdateShapeType?: (shapeId: string, shapeType: SectorShape) => void;
   onResizeShape?: (shapeId: string, width: number, height: number, x: number, y: number) => void;
+  onUpdateShapeText?: (shapeId: string, textConfig: Partial<ShapeTextConfig>) => void;
 }
 
 const SEAT_TYPE_LABELS: Record<SeatType, string> = {
@@ -61,6 +62,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   onUpdateShapeOpacity,
   onUpdateShapeType,
   onResizeShape,
+  onUpdateShapeText,
 }) => {
   // Local state para edição em tempo real com debounce
   const [localRotation, setLocalRotation] = useState(0);
@@ -371,6 +373,121 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                         onResizeShape?.(selectedShape.id, selectedShape.bounds.width, h, selectedShape.bounds.x, selectedShape.bounds.y);
                       }}
                       className="h-7 text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Texto na Forma */}
+              <div className="space-y-3 pt-2 border-t border-border">
+                <Label className="text-xs flex items-center gap-2">
+                  <Type className="h-3 w-3" />
+                  Texto
+                </Label>
+                <textarea
+                  value={selectedShape.textConfig?.text || selectedShape.name || ''}
+                  onChange={(e) => onUpdateShapeText?.(selectedShape.id, { text: e.target.value })}
+                  className="w-full h-16 p-2 text-xs rounded border border-border bg-background resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="Digite o texto..."
+                />
+                
+                {/* Fonte e Tamanho */}
+                <div className="flex items-center gap-1.5">
+                  <Select
+                    value={selectedShape.textConfig?.fontFamily || 'sans-serif'}
+                    onValueChange={(v) => onUpdateShapeText?.(selectedShape.id, { fontFamily: v })}
+                  >
+                    <SelectTrigger className="flex-1 h-7 text-[10px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {['sans-serif', 'serif', 'monospace', 'Arial', 'Georgia', 'Courier New', 'Verdana', 'Impact', 'Comic Sans MS'].map(f => (
+                        <SelectItem key={f} value={f}>
+                          <span style={{ fontFamily: f }}>{f}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    type="number"
+                    value={selectedShape.textConfig?.fontSize || 13}
+                    onChange={(e) => onUpdateShapeText?.(selectedShape.id, { fontSize: Math.max(8, parseInt(e.target.value) || 13) })}
+                    className="w-14 h-7 text-[10px]"
+                    min={8}
+                    max={120}
+                  />
+                </div>
+
+                {/* Toolbar de formatação */}
+                <div className="flex items-center gap-0.5">
+                  <button
+                    className={`p-1.5 rounded transition-all ${selectedShape.textConfig?.fontWeight === 'bold' ? 'bg-primary/20 text-primary' : 'hover:bg-muted text-muted-foreground'}`}
+                    onClick={() => onUpdateShapeText?.(selectedShape.id, { fontWeight: selectedShape.textConfig?.fontWeight === 'bold' ? 'normal' : 'bold' })}
+                    title="Negrito"
+                  >
+                    <Bold className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    className={`p-1.5 rounded transition-all ${selectedShape.textConfig?.fontStyle === 'italic' ? 'bg-primary/20 text-primary' : 'hover:bg-muted text-muted-foreground'}`}
+                    onClick={() => onUpdateShapeText?.(selectedShape.id, { fontStyle: selectedShape.textConfig?.fontStyle === 'italic' ? 'normal' : 'italic' })}
+                    title="Itálico"
+                  >
+                    <Italic className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    className={`p-1.5 rounded transition-all ${selectedShape.textConfig?.textDecoration === 'underline' ? 'bg-primary/20 text-primary' : 'hover:bg-muted text-muted-foreground'}`}
+                    onClick={() => onUpdateShapeText?.(selectedShape.id, { textDecoration: selectedShape.textConfig?.textDecoration === 'underline' ? 'none' : 'underline' })}
+                    title="Sublinhado"
+                  >
+                    <Underline className="h-3.5 w-3.5" />
+                  </button>
+
+                  <div className="w-px h-4 bg-border mx-1" />
+
+                  <button
+                    className={`p-1.5 rounded transition-all ${(selectedShape.textConfig?.textAlign || 'center') === 'left' ? 'bg-primary/20 text-primary' : 'hover:bg-muted text-muted-foreground'}`}
+                    onClick={() => onUpdateShapeText?.(selectedShape.id, { textAlign: 'left' })}
+                    title="Alinhar à esquerda"
+                  >
+                    <AlignLeft className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    className={`p-1.5 rounded transition-all ${(selectedShape.textConfig?.textAlign || 'center') === 'center' ? 'bg-primary/20 text-primary' : 'hover:bg-muted text-muted-foreground'}`}
+                    onClick={() => onUpdateShapeText?.(selectedShape.id, { textAlign: 'center' })}
+                    title="Centralizar"
+                  >
+                    <AlignCenter className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    className={`p-1.5 rounded transition-all ${(selectedShape.textConfig?.textAlign || 'center') === 'right' ? 'bg-primary/20 text-primary' : 'hover:bg-muted text-muted-foreground'}`}
+                    onClick={() => onUpdateShapeText?.(selectedShape.id, { textAlign: 'right' })}
+                    title="Alinhar à direita"
+                  >
+                    <AlignRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                {/* Cor do texto */}
+                <div className="space-y-1">
+                  <span className="text-[10px] text-muted-foreground">Cor do texto</span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {['#ffffff', '#000000', '#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899', '#6b7280', '#f97316'].map(c => (
+                      <button
+                        key={c}
+                        className={`w-5 h-5 rounded border-2 transition-all hover:scale-125 ${
+                          (selectedShape.textConfig?.color || '#ffffff') === c
+                            ? 'border-primary ring-1 ring-primary/30 scale-110'
+                            : 'border-border'
+                        }`}
+                        style={{ backgroundColor: c }}
+                        onClick={() => onUpdateShapeText?.(selectedShape.id, { color: c })}
+                      />
+                    ))}
+                    <input
+                      type="color"
+                      value={selectedShape.textConfig?.color || '#ffffff'}
+                      onChange={(e) => onUpdateShapeText?.(selectedShape.id, { color: e.target.value })}
+                      className="w-5 h-5 rounded cursor-pointer border border-border"
                     />
                   </div>
                 </div>

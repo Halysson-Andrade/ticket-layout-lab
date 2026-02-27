@@ -2121,6 +2121,7 @@ export const MapStudio: React.FC = () => {
             onUpdateShapeOpacity={(id, opacity) => setGeometricShapes(prev => prev.map(s => s.id === id ? { ...s, opacity } : s))}
             onUpdateShapeType={handleUpdateShapeType}
             onResizeShape={handleResizeShape}
+            onUpdateShapeText={(id, textConfig) => setGeometricShapes(prev => prev.map(s => s.id === id ? { ...s, textConfig: { ...(s.textConfig || { text: s.name, fontFamily: 'sans-serif', fontSize: 13, fontWeight: 'bold', fontStyle: 'normal', textAlign: 'center', color: '#ffffff', textDecoration: 'none' }), ...textConfig } } : s))}
             onGroupSectors={(sectorIds, categoryId) => {
               const category = PREDEFINED_SECTORS.find(s => s.id === categoryId);
               if (category) {

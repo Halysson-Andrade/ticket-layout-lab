@@ -959,12 +959,51 @@ export const Canvas: React.FC<CanvasProps> = ({
         ctx.translate(-centerX, -centerY);
       }
       
-      if (shape.name) {
-        ctx.fillStyle = '#fff';
-        ctx.font = `bold ${13}px sans-serif`;
-        ctx.textAlign = 'center';
+      // Renderiza texto estilizado
+      const tc = shape.textConfig;
+      const displayText = tc?.text || shape.name;
+      if (displayText) {
+        const fontSize = tc?.fontSize || 13;
+        const fontFamily = tc?.fontFamily || 'sans-serif';
+        const fontWeight = tc?.fontWeight || 'bold';
+        const fontStyle = tc?.fontStyle || 'normal';
+        const textColor = tc?.color || '#fff';
+        const textAlign = tc?.textAlign || 'center';
+        
+        ctx.fillStyle = textColor;
+        ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
+        ctx.textAlign = textAlign as CanvasTextAlign;
         ctx.textBaseline = 'middle';
-        ctx.fillText(shape.name, centerX, centerY);
+        
+        // Calcula posição X baseado no alinhamento
+        let textX = centerX;
+        if (textAlign === 'left') textX = bounds.x + 8;
+        else if (textAlign === 'right') textX = bounds.x + bounds.width - 8;
+        
+        // Quebra de linhas
+        const lines = displayText.split('\n');
+        const lineHeight = fontSize * 1.3;
+        const startY = centerY - ((lines.length - 1) * lineHeight) / 2;
+        
+        lines.forEach((line, i) => {
+          const y = startY + i * lineHeight;
+          ctx.fillText(line, textX, y);
+          
+          // Underline
+          if (tc?.textDecoration === 'underline') {
+            const metrics = ctx.measureText(line);
+            let lineStartX = textX;
+            if (textAlign === 'center') lineStartX = textX - metrics.width / 2;
+            else if (textAlign === 'right') lineStartX = textX - metrics.width;
+            
+            ctx.beginPath();
+            ctx.strokeStyle = textColor;
+            ctx.lineWidth = 1;
+            ctx.moveTo(lineStartX, y + fontSize * 0.35);
+            ctx.lineTo(lineStartX + metrics.width, y + fontSize * 0.35);
+            ctx.stroke();
+          }
+        });
       }
       
       if (isSelected) {
