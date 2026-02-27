@@ -94,40 +94,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (username: string, password: string): Promise<{ error?: string }> => {
-    // Lookup email by username
-    const { data: profileData, error: lookupError } = await supabase
-      .from('profiles')
-      .select('email, status')
-      .eq('username', username)
-      .maybeSingle();
-
-    if (lookupError || !profileData) {
-      return { error: 'Usuário ou senha inválidos' };
-    }
-
-    if (profileData.status === 'inativo') {
-      return { error: 'Usuário inativo. Contate o administrador.' };
-    }
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: profileData.email,
-      password,
-    });
-
-    if (error) {
-      return { error: 'Usuário ou senha inválidos' };
-    }
-
-    // Log success
-    if (data.user) {
-      await supabase.from('audit_logs').insert({
-        action: 'LOGIN_SUCCESS',
-        actor_user_id: data.user.id,
-        metadata: { username },
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auth-login`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ username, password }),
       });
-    }
 
-    return {};
+      const data = await res.json();
+
+      if (!res.ok) {
+        return { error: data.error || 'Erro ao autenticar' };
+      }
+
+      // Set session from edge function response
+      if (data.session) {
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+      }
+
+      return {};
+    } catch (err: any) {
+      return { error: 'Erro de conexão. Tente novamente.' };
+    }
   };
 
   const signOut = async () => {
