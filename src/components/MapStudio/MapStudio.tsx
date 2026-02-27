@@ -2131,8 +2131,21 @@ export const MapStudio: React.FC = () => {
         </div>
       )}
 
-      {/* Only render the rest if token is not rejected */}
-      {!(integrationState.isIntegration && integrationState.tokenValid === false) && (<>
+      {/* Integration loading overlay */}
+      {integrationState.isIntegration && integrationState.loading && (
+        <div className="flex-1 flex items-center justify-center bg-background">
+          <div className="text-center space-y-4 max-w-md p-8">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+            <h2 className="text-lg font-semibold text-foreground">Carregando integração...</h2>
+            <p className="text-muted-foreground text-sm">
+              Validando acesso e buscando dados do evento.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Only render the rest if token is not rejected and not loading */}
+      {!(integrationState.isIntegration && (integrationState.tokenValid === false || integrationState.loading)) && (<>
 
       {/* Integration Banner */}
       {integrationState.isIntegration && integrationState.tokenValid !== false && (
