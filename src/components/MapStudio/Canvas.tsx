@@ -67,6 +67,9 @@ interface CanvasProps {
   onSelectText?: (id: string, additive: boolean) => void;
   onMoveText?: (id: string, dx: number, dy: number) => void;
   onDeleteText?: (id: string) => void;
+  onUpdateText?: (id: string, updates: Partial<TextElement>) => void;
+  autoEditTextId?: string | null;
+  onAutoEditTextDone?: () => void;
   onGetTextScreenPos?: (id: string) => { x: number; y: number } | null;
 }
 
@@ -126,6 +129,9 @@ export const Canvas: React.FC<CanvasProps> = ({
   onSelectText,
   onMoveText,
   onDeleteText,
+  onUpdateText,
+  autoEditTextId,
+  onAutoEditTextDone,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -152,6 +158,9 @@ export const Canvas: React.FC<CanvasProps> = ({
   const [editingElementId, setEditingElementId] = useState<string | null>(null);
   const [editingElementLabel, setEditingElementLabel] = useState('');
   const editInputRef = useRef<HTMLInputElement>(null);
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [editingTextValue, setEditingTextValue] = useState('');
+  const editTextRef = useRef<HTMLTextAreaElement>(null);
   const [curvingVertexInfo, setCurvingVertexInfo] = useState<{ sectorId: string; vertexIndex: number } | null>(null);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const dragCenterRef = useRef<{ x: number; y: number } | null>(null);
@@ -161,6 +170,19 @@ export const Canvas: React.FC<CanvasProps> = ({
   const [boxSelectCurrent, setBoxSelectCurrent] = useState({ x: 0, y: 0 });
   const bgImageRef = useRef<HTMLImageElement | null>(null);
   
+  // Auto-enter edit mode for newly created text
+  React.useEffect(() => {
+    if (autoEditTextId) {
+      const te = textElements.find(t => t.id === autoEditTextId);
+      if (te) {
+        setEditingTextId(te.id);
+        setEditingTextValue(te.text || '');
+        onAutoEditTextDone?.();
+        setTimeout(() => editTextRef.current?.focus(), 100);
+      }
+    }
+  }, [autoEditTextId, textElements, onAutoEditTextDone]);
+
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -963,6 +985,8 @@ export const Canvas: React.FC<CanvasProps> = ({
     // Desenha elementos de texto independentes
     textElements.forEach(te => {
       const isSelected = selectedTextIds.includes(te.id);
+      // Don't render text being edited inline
+      if (te.id === editingTextId) return;
       ctx.save();
       
       if (te.rotation && te.rotation !== 0) {
@@ -971,12 +995,13 @@ export const Canvas: React.FC<CanvasProps> = ({
         ctx.translate(-te.x, -te.y);
       }
       
-      ctx.fillStyle = te.color || '#ffffff';
+      const displayText = te.text || 'Texto';
+      ctx.fillStyle = te.text ? (te.color || '#ffffff') : 'rgba(255,255,255,0.3)';
       ctx.font = `${te.fontStyle || 'normal'} ${te.fontWeight || 'normal'} ${te.fontSize || 14}px ${te.fontFamily || 'sans-serif'}`;
       ctx.textAlign = (te.textAlign || 'left') as CanvasTextAlign;
       ctx.textBaseline = 'top';
       
-      const lines = (te.text || 'Texto').split('\n');
+      const lines = displayText.split('\n');
       const lineHeight = (te.fontSize || 14) * 1.3;
       
       lines.forEach((line, i) => {
@@ -1552,14 +1577,16 @@ export const Canvas: React.FC<CanvasProps> = ({
           if (tCtx) {
             tCtx.font = `${te.fontStyle || 'normal'} ${te.fontWeight || 'normal'} ${te.fontSize || 14}px ${te.fontFamily || 'sans-serif'}`;
             const lines = (te.text || 'Texto').split('\n');
+            const minClickW = Math.max(40 / zoom, 0);
             let maxW = 0;
             lines.forEach(l => { const m = tCtx.measureText(l); if (m.width > maxW) maxW = m.width; });
-            const totalH = lines.length * (te.fontSize || 14) * 1.3;
+            const clickW = Math.max(maxW, minClickW);
+            const totalH = Math.max(lines.length * (te.fontSize || 14) * 1.3, (te.fontSize || 14) * 1.5);
             let bx = te.x;
             if (te.textAlign === 'center') bx -= maxW / 2;
             else if (te.textAlign === 'right') bx -= maxW;
             
-            if (pos.x >= bx - 4 && pos.x <= bx + maxW + 4 && pos.y >= te.y - 4 && pos.y <= te.y + totalH + 4) {
+            if (pos.x >= bx - 4 && pos.x <= bx + clickW + 4 && pos.y >= te.y - 4 && pos.y <= te.y + totalH + 4) {
               onSelectText?.(te.id, e.shiftKey);
               setIsDraggingText(true);
               setDragStart(pos);
@@ -2036,6 +2063,35 @@ export const Canvas: React.FC<CanvasProps> = ({
         onDoubleClick={(e) => {
           const pos = screenToCanvas(e.clientX, e.clientY);
           
+          // Duplo clique em texto - edita inline
+          for (const te of textElements) {
+            const canvas = canvasRef.current;
+            if (canvas) {
+              const tCtx = canvas.getContext('2d');
+              if (tCtx) {
+                tCtx.font = `${te.fontStyle || 'normal'} ${te.fontWeight || 'normal'} ${te.fontSize || 14}px ${te.fontFamily || 'sans-serif'}`;
+                const lines = (te.text || 'Texto').split('\n');
+                let maxW = 0;
+                lines.forEach(l => { const m = tCtx.measureText(l); if (m.width > maxW) maxW = m.width; });
+                const totalH = lines.length * (te.fontSize || 14) * 1.3;
+                let bx = te.x;
+                if (te.textAlign === 'center') bx -= maxW / 2;
+                else if (te.textAlign === 'right') bx -= maxW;
+                
+                if (pos.x >= bx - 4 && pos.x <= bx + maxW + 4 && pos.y >= te.y - 4 && pos.y <= te.y + totalH + 4) {
+                  setEditingTextId(te.id);
+                  setEditingTextValue(te.text || 'Texto');
+                  onSelectText?.(te.id, false);
+                  setTimeout(() => {
+                    editTextRef.current?.focus();
+                    editTextRef.current?.select();
+                  }, 50);
+                  return;
+                }
+              }
+            }
+          }
+          
           // Duplo clique em elemento - edita label inline
           for (const el of elements) {
             if (isPointInBounds(pos, el.bounds)) {
@@ -2174,6 +2230,58 @@ export const Canvas: React.FC<CanvasProps> = ({
               }}
             />
           </div>
+        );
+      })()}
+
+      {/* Inline text editing overlay */}
+      {editingTextId && (() => {
+        const te = textElements.find(t => t.id === editingTextId);
+        if (!te) return null;
+        const rect = containerRef.current?.getBoundingClientRect();
+        if (!rect) return null;
+        const screenX = te.x * zoom + pan.x + rect.left;
+        const screenY = te.y * zoom + pan.y + rect.top;
+        const scaledFontSize = (te.fontSize || 14) * zoom;
+        return (
+          <textarea
+            ref={editTextRef}
+            className="fixed z-[60] bg-transparent border-2 border-primary rounded outline-none resize-none"
+            style={{
+              left: screenX - 4,
+              top: screenY - 4,
+              minWidth: Math.max(100, 200 * zoom),
+              minHeight: scaledFontSize * 1.5 + 8,
+              fontFamily: te.fontFamily || 'sans-serif',
+              fontSize: `${scaledFontSize}px`,
+              fontWeight: te.fontWeight || 'normal',
+              fontStyle: te.fontStyle || 'normal',
+              textAlign: (te.textAlign || 'left') as any,
+              color: te.color || '#ffffff',
+              textDecoration: te.textDecoration === 'underline' ? 'underline' : 'none',
+              lineHeight: 1.3,
+              padding: '2px 4px',
+            }}
+            value={editingTextValue}
+            onChange={(e) => setEditingTextValue(e.target.value)}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === 'Escape') {
+                onUpdateText?.(editingTextId, { text: editingTextValue });
+                setEditingTextId(null);
+              }
+              // Enter sem shift = confirma, com shift = nova linha
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                onUpdateText?.(editingTextId, { text: editingTextValue });
+                setEditingTextId(null);
+              }
+            }}
+            onBlur={() => {
+              onUpdateText?.(editingTextId!, { text: editingTextValue });
+              setEditingTextId(null);
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+          />
         );
       })()}
       
