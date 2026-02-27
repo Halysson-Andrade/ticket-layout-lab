@@ -20,7 +20,8 @@ export type AlignType =
 
 interface AlignmentBarProps {
   onAlign: (type: AlignType) => void;
-  sectorCount: number;
+  itemCount: number;
+  itemLabel?: string;
 }
 
 interface AlignButtonProps {
@@ -47,11 +48,11 @@ const AlignButton: React.FC<AlignButtonProps> = ({ icon, label, onClick }) => (
   </Tooltip>
 );
 
-export const AlignmentBar: React.FC<AlignmentBarProps> = ({ onAlign, sectorCount }) => {
+export const AlignmentBar: React.FC<AlignmentBarProps> = ({ onAlign, itemCount, itemLabel = 'setores' }) => {
   return (
     <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 flex items-center gap-0.5 bg-card/95 backdrop-blur-sm border border-border rounded-lg px-2 py-1 shadow-lg">
       <span className="text-xs text-muted-foreground mr-1.5 whitespace-nowrap">
-        {sectorCount} setores
+        {itemCount} {itemLabel}
       </span>
 
       <Separator orientation="vertical" className="h-5 mx-1" />
