@@ -146,6 +146,18 @@ export interface VenueElement {
   color?: string;
 }
 
+// Configuração de texto para formas geométricas
+export interface ShapeTextConfig {
+  text: string;
+  fontFamily: string;
+  fontSize: number;
+  fontWeight: 'normal' | 'bold';
+  fontStyle: 'normal' | 'italic';
+  textAlign: 'left' | 'center' | 'right';
+  color: string;
+  textDecoration: 'none' | 'underline';
+}
+
 // Forma geométrica independente (não vinculada a setor)
 export interface GeometricShape {
   id: string;
@@ -158,6 +170,7 @@ export interface GeometricShape {
   rotation: number;
   curvature: number;
   linkedSectorId?: string; // ID do setor vinculado (opcional)
+  textConfig?: ShapeTextConfig; // Texto estilizado dentro da forma
 }
 
 export interface Layer {
