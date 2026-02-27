@@ -42,6 +42,7 @@ interface CanvasProps {
   onMoveSelectedSeats?: (dx: number, dy: number) => void;
   onSeatMoveEnd?: () => void;
   onSectorMoveEnd?: () => void;
+  onElementMoveEnd?: () => void;
   onAddVertex?: (sectorId: string, edgeIndex: number, position: { x: number; y: number }) => void;
   onRemoveVertex?: (sectorId: string, vertexIndex: number) => void;
   onVertexMoveEnd?: () => void;
@@ -108,6 +109,7 @@ export const Canvas: React.FC<CanvasProps> = ({
   onMoveSelectedSeats,
   onSeatMoveEnd,
   onSectorMoveEnd,
+  onElementMoveEnd,
   onAddVertex,
   onRemoveVertex,
   onVertexMoveEnd,
@@ -2163,6 +2165,11 @@ export const Canvas: React.FC<CanvasProps> = ({
       onSectorMoveEnd();
     }
 
+    // Salva histórico se estava arrastando elemento
+    if (isDraggingElement && onElementMoveEnd) {
+      onElementMoveEnd();
+    }
+
     // Finaliza rotação - apenas marca como finalizado para salvar no histórico
     if (isRotating && selectedSectorIds.length === 1 && onRotateSector) {
       const sector = sectors.find(s => s.id === selectedSectorIds[0]);
@@ -2190,7 +2197,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     setResizeCorner(null);
     setIsRotating(false);
     setIsRotatingElement(false);
-  }, [isDrawing, isDraggingSeat, isDraggingVertex, activeTool, drawStart, drawCurrent, onCreateSector, isBoxSelecting, boxSelectStart, boxSelectCurrent, sectors, onSelectSeats, activeSeatType, onApplySeatType, onSeatMoveEnd, onVertexMoveEnd, isRotating, isRotatingElement, selectedSectorIds, selectedElementIds, onRotateSector]);
+  }, [isDrawing, isDraggingSeat, isDraggingElement, isDraggingVertex, activeTool, drawStart, drawCurrent, onCreateSector, isBoxSelecting, boxSelectStart, boxSelectCurrent, sectors, onSelectSeats, activeSeatType, onApplySeatType, onSeatMoveEnd, onVertexMoveEnd, onElementMoveEnd, isRotating, isRotatingElement, selectedSectorIds, selectedElementIds, onRotateSector]);
 
   // Window-level mouse events for drag operations (prevents losing events when mouse goes over overlays)
   const isDraggingAny = isDragging || isDraggingShape || isDraggingElement || isDraggingSeat || isDraggingText || isDraggingVertex || isResizingElement || isResizingShape || isRotating || isRotatingElement || isPanning || isBoxSelecting;
