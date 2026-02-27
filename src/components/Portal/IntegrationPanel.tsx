@@ -194,6 +194,13 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
                     <p className="font-sans text-sm font-medium text-foreground">GET /setores</p>
                     <p className="font-sans text-muted-foreground">Retorna a lista de setores disponíveis para o evento. O MapStudio usa esses setores para popular o dropdown "Vincular a Setor".</p>
                     <Separator />
+                    <p className="font-sans font-medium text-foreground">Query Parameters:</p>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`id_evento: 456       // ID do evento (int) - obrigatório`}</pre>
+                    <Separator />
+                    <p className="font-sans font-medium text-foreground">Headers:</p>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`Authorization: Bearer <token>
+Content-Type: application/json`}</pre>
+                    <Separator />
                     <p className="font-sans font-medium text-foreground">Response 200:</p>
                     <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
   "setores": [
@@ -228,6 +235,10 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
                   <div className="bg-muted rounded-md p-3 text-xs font-mono space-y-2">
                     <p className="font-sans text-sm font-medium text-foreground">POST /mapas</p>
                     <p className="font-sans text-muted-foreground">Chamado na primeira vez que o mapa é salvo para um evento. Envia o JSON completo do mapa.</p>
+                    <Separator />
+                    <p className="font-sans font-medium text-foreground">Headers:</p>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`Authorization: Bearer <token>
+Content-Type: application/json`}</pre>
                     <Separator />
                     <p className="font-sans font-medium text-foreground">Request Body:</p>
                     <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
@@ -322,6 +333,10 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
                     <p className="font-sans text-sm font-medium text-foreground">GET /mapas/:id</p>
                     <p className="font-sans text-muted-foreground">Retorna o JSON do mapa salvo. Usado para carregar um mapa existente no MapStudio.</p>
                     <Separator />
+                    <p className="font-sans font-medium text-foreground">Headers:</p>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`Authorization: Bearer <token>
+Content-Type: application/json`}</pre>
+                    <Separator />
                     <p className="font-sans font-medium text-foreground">Query Parameters:</p>
                     <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`map_id: 123  // ID do mapa a ser consultado (int)`}</pre>
                     <Separator />
@@ -362,6 +377,10 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
                   <div className="bg-muted rounded-md p-3 text-xs font-mono space-y-2">
                     <p className="font-sans text-sm font-medium text-foreground">POST /mapas/:id (atualização)</p>
                     <p className="font-sans text-muted-foreground">Chamado quando o mapa já existe e é atualizado. O body é idêntico ao endpoint de criação.</p>
+                    <Separator />
+                    <p className="font-sans font-medium text-foreground">Headers:</p>
+                    <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`Authorization: Bearer <token>
+Content-Type: application/json`}</pre>
                     <Separator />
                     <p className="font-sans font-medium text-foreground">Request Body:</p>
                     <pre className="bg-background p-2 rounded border overflow-x-auto whitespace-pre text-xs">{`{
