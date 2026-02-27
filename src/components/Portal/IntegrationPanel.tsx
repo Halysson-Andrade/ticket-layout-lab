@@ -7,10 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Loader2, Key, RefreshCw, Copy, Link2, Eye, EyeOff, AlertTriangle, FileText } from 'lucide-react';
+import { Loader2, Key, RefreshCw, Copy, Link2, Eye, EyeOff, AlertTriangle, FileText, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { generateNodeProject, downloadBlob } from '@/lib/generateNodeProject';
 
 interface IntegrationPanelProps {
   companyId: string;
@@ -20,6 +21,7 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
   const { session } = useAuth();
   const [loading, setLoading] = useState(false);
   const [savingUrls, setSavingUrls] = useState(false);
+  const [downloadingProject, setDownloadingProject] = useState(false);
   const [integration, setIntegration] = useState<any>(null);
   const [generatedToken, setGeneratedToken] = useState<string | null>(null);
   const [showToken, setShowToken] = useState(false);
@@ -97,6 +99,32 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
       toast.error(err.message);
     } finally {
       setSavingUrls(false);
+    }
+  };
+
+  const handleDownloadProject = async () => {
+    setDownloadingProject(true);
+    try {
+      // Fetch company name
+      const { data: company } = await supabase
+        .from('companies')
+        .select('name')
+        .eq('id', companyId)
+        .single();
+
+      const blob = await generateNodeProject({
+        companyName: company?.name || 'Empresa',
+        token: generatedToken,
+        apiBaseUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`,
+        mapstudioOrigin: window.location.origin,
+      });
+
+      downloadBlob(blob, 'mapstudio-integration.zip');
+      toast.success('Projeto baixado com sucesso');
+    } catch (err: any) {
+      toast.error('Erro ao gerar projeto: ' + err.message);
+    } finally {
+      setDownloadingProject(false);
     }
   };
 
@@ -665,10 +693,27 @@ app.get('/abrir-mapa/:eventoId', async (req, res) => {
             </AccordionItem>
           </Accordion>
 
-          <Button onClick={handleSaveUrls} disabled={savingUrls}>
-            {savingUrls && <Loader2 className="h-4 w-4 animate-spin" />}
-            Salvar URLs
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={handleSaveUrls} disabled={savingUrls}>
+              {savingUrls && <Loader2 className="h-4 w-4 animate-spin" />}
+              Salvar URLs
+            </Button>
+          </div>
+
+          <Separator />
+
+          {/* Download Projeto Node.js */}
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Projeto Node.js de Referência</p>
+            <p className="text-xs text-muted-foreground">
+              Baixe um projeto Express + Sequelize completo com todos os endpoints já estruturados, 
+              migrations, models, controllers e services. Pronto para conectar ao seu banco de dados.
+            </p>
+            <Button variant="outline" onClick={handleDownloadProject} disabled={downloadingProject}>
+              {downloadingProject ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Download className="h-4 w-4 mr-1" />}
+              Baixar Projeto Node.js
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
