@@ -14,6 +14,7 @@ import { ExportModal } from './ExportModal';
 import { RowEditorModal } from './RowEditorModal';
 import { BackgroundImagePanel, BackgroundImageConfig } from './BackgroundImagePanel';
 import { SeatPlacementPopup, SeatPlacementConfig } from './SeatPlacementPopup';
+import { TextToolbar } from './TextToolbar';
 import { 
   VenueMap, 
   Sector, 
@@ -28,6 +29,7 @@ import {
   FurnitureType,
   TableConfig,
   GeometricShape,
+  TextElement,
   SECTOR_COLORS,
   PREDEFINED_SECTORS,
   GridGeneratorParams,
@@ -61,6 +63,8 @@ export const MapStudio: React.FC = () => {
   const [selectedShapeIds, setSelectedShapeIds] = useState<string[]>([]);
   const [selectedSeatIds, setSelectedSeatIds] = useState<string[]>([]);
   const [selectedElementIds, setSelectedElementIds] = useState<string[]>([]);
+  const [textElements, setTextElements] = useState<TextElement[]>([]);
+  const [selectedTextIds, setSelectedTextIds] = useState<string[]>([]);
   
   // UI state
   const [activeTool, setActiveTool] = useState<ToolType>('select');
@@ -279,6 +283,55 @@ export const MapStudio: React.FC = () => {
     }));
   }, []);
 
+  // Cria elemento de texto no canvas
+  const handleCreateText = useCallback((position: { x: number; y: number }) => {
+    const newText: TextElement = {
+      id: generateId(),
+      text: 'Texto',
+      x: position.x,
+      y: position.y,
+      fontFamily: 'sans-serif',
+      fontSize: 24,
+      fontWeight: 'normal',
+      fontStyle: 'normal',
+      textAlign: 'left',
+      color: '#ffffff',
+      textDecoration: 'none',
+      rotation: 0,
+    };
+    setTextElements(prev => [...prev, newText]);
+    setSelectedTextIds([newText.id]);
+    setSelectedSectorIds([]);
+    setSelectedShapeIds([]);
+    setSelectedSeatIds([]);
+    setActiveTool('select');
+    toast.success('Texto criado! Edite nas propriedades.');
+  }, []);
+
+  const handleSelectText = useCallback((id: string, additive: boolean) => {
+    if (additive) {
+      setSelectedTextIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    } else {
+      setSelectedTextIds([id]);
+    }
+    setSelectedSectorIds([]);
+    setSelectedShapeIds([]);
+    setSelectedSeatIds([]);
+  }, []);
+
+  const handleMoveText = useCallback((id: string, dx: number, dy: number) => {
+    setTextElements(prev => prev.map(t => t.id === id ? { ...t, x: t.x + dx, y: t.y + dy } : t));
+  }, []);
+
+  const handleDeleteText = useCallback((id: string) => {
+    setTextElements(prev => prev.filter(t => t.id !== id));
+    setSelectedTextIds(prev => prev.filter(x => x !== id));
+  }, []);
+
+  const handleUpdateText = useCallback((id: string, updates: Partial<TextElement>) => {
+    setTextElements(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+  }, []);
+
 
   const handleSelectSector = useCallback((id: string, additive: boolean) => {
     if (additive) {
@@ -297,6 +350,7 @@ export const MapStudio: React.FC = () => {
     setSelectedSeatIds([]);
     setSelectedElementIds([]);
     setSelectedShapeIds([]);
+    setSelectedTextIds([]);
   }, []);
 
   // Seleciona assentos
@@ -1464,6 +1518,13 @@ export const MapStudio: React.FC = () => {
 
   // Delete selecionados
   const handleDelete = useCallback(() => {
+    // Deleta textos selecionados
+    if (selectedTextIds.length > 0) {
+      setTextElements(prev => prev.filter(t => !selectedTextIds.includes(t.id)));
+      setSelectedTextIds([]);
+      toast.success('Textos excluídos');
+      return;
+    }
     // Deleta formas geométricas selecionadas
     if (selectedShapeIds.length > 0) {
       setGeometricShapes(prev => prev.filter(s => !selectedShapeIds.includes(s.id)));
@@ -1811,7 +1872,7 @@ export const MapStudio: React.FC = () => {
           break;
         case 's': setActiveTool('seat-single'); break;
         case 'e': setActiveTool('element'); break;
-        case 't': setActiveTool('table'); break;
+        case 't': setActiveTool('text'); break;
         case 'a':
           if (e.ctrlKey || e.metaKey) {
             e.preventDefault();
@@ -2021,7 +2082,30 @@ export const MapStudio: React.FC = () => {
           onResizeShape={handleResizeShape}
           onAddFurniture={handleRequestFurniture}
           onDeselectAll={handleDeselectAll}
+          textElements={textElements}
+          selectedTextIds={selectedTextIds}
+          onCreateText={handleCreateText}
+          onSelectText={handleSelectText}
+          onMoveText={handleMoveText}
+          onDeleteText={handleDeleteText}
         />
+
+        {/* Floating Text Toolbar */}
+        {selectedTextIds.length === 1 && (() => {
+          const te = textElements.find(t => t.id === selectedTextIds[0]);
+          if (!te) return null;
+          // Convert canvas coords to screen coords
+          const screenX = te.x * zoom + pan.x + (containerRef.current?.querySelector('.overflow-hidden')?.getBoundingClientRect()?.left || 300);
+          const screenY = te.y * zoom + pan.y + (containerRef.current?.querySelector('.overflow-hidden')?.getBoundingClientRect()?.top || 100);
+          return (
+            <TextToolbar
+              textElement={te}
+              position={{ x: screenX, y: screenY }}
+              onUpdate={handleUpdateText}
+              onDelete={handleDeleteText}
+            />
+          );
+        })()}
 
         {/* Toolbar */}
         {showToolbar ? (

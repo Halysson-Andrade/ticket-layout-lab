@@ -18,7 +18,8 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  Armchair
+  Armchair,
+  Type
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -154,9 +155,15 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       <ToolButton
         icon={<Armchair className="h-4 w-4" />}
         label="Adicionar Mobília"
-        shortcut="T"
         active={activeTool === 'table'}
         onClick={() => onToolChange('table')}
+      />
+      <ToolButton
+        icon={<Type className="h-4 w-4" />}
+        label="Adicionar Texto"
+        shortcut="T"
+        active={activeTool === 'text'}
+        onClick={() => onToolChange('text')}
       />
       
       <Separator orientation="vertical" className="h-6 mx-1" />
