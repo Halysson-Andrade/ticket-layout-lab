@@ -149,7 +149,7 @@ const IntegrationPanel: React.FC<IntegrationPanelProps> = ({ companyId }) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Accordion type="single" collapsible className="w-full" defaultValue="flow">
+          <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="flow" className="border rounded-md px-3">
               <AccordionTrigger className="py-2 text-xs hover:no-underline gap-1">
                 <span className="flex items-center gap-1 text-sm font-medium"><FileText className="h-4 w-4" /> Ver documentação completa</span>
