@@ -22,22 +22,27 @@ const UsuariosPage: React.FC = () => {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users`;
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setUsers(data);
+      // Query directly via RLS (admin policies already allow full access)
+      const [profilesRes, rolesRes] = await Promise.all([
+        supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+        supabase.from('user_roles').select('user_id, role'),
+      ]);
+
+      if (profilesRes.error) throw profilesRes.error;
+
+      const roleMap = new Map((rolesRes.data || []).map((r) => [r.user_id, r.role]));
+      const result = (profilesRes.data || []).map((p) => ({
+        ...p,
+        user_roles: [{ role: roleMap.get(p.user_id) || 'basico' }],
+      }));
+
+      setUsers(result);
     } catch (err: any) {
       toast.error('Erro ao carregar usuários: ' + err.message);
     } finally {
       setLoading(false);
     }
-  }, [session]);
+  }, []);
 
   const fetchCompanies = async () => {
     const { data } = await supabase.from('companies').select('id, name').eq('status', 'ativo');
