@@ -352,6 +352,190 @@ app.get('/abrir-mapa/:eventoId', async (req, res) => {
         </CardContent>
       </Card>
 
+      {/* Estrutura de Segurança - Documentação */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Estrutura de Segurança
+          </CardTitle>
+          <CardDescription>
+            Visão detalhada de todas as camadas de proteção implementadas no sistema de integração.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="security" className="border rounded-md px-3">
+              <AccordionTrigger className="py-2 text-xs hover:no-underline gap-1">
+                <span className="flex items-center gap-1 text-sm font-medium"><FileText className="h-4 w-4" /> Ver documentação de segurança</span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-5 text-xs">
+                  {/* Visão geral */}
+                  <div className="space-y-2">
+                    <p className="font-medium text-foreground text-sm">🛡️ Visão Geral da Segurança</p>
+                    <p className="text-muted-foreground leading-relaxed">
+                      O sistema foi projetado com <strong>múltiplas camadas de segurança</strong> para garantir que 
+                      nenhuma informação sensível seja exposta e que cada acesso seja devidamente autorizado. 
+                      O modelo segue o princípio de <strong>zero trust</strong>: nenhuma requisição é confiável sem validação.
+                    </p>
+                  </div>
+
+                  <Separator />
+
+                  {/* Camada 1: Token de Integração */}
+                  <div className="space-y-2">
+                    <p className="font-medium text-foreground text-sm">1. Token de Integração (Camada de Identidade)</p>
+                    <ul className="space-y-1.5 text-muted-foreground list-disc list-inside">
+                      <li>Token gerado com <strong>entropia criptográfica</strong> (128 bytes aleatórios)</li>
+                      <li>Armazenado no banco <strong>apenas como hash SHA-256</strong> — o token original nunca é persistido</li>
+                      <li>Política de <strong>visualização única</strong>: só é exibido uma vez no momento da geração</li>
+                      <li>Suporte a <strong>expiração configurável</strong> para forçar rotação periódica</li>
+                      <li>Mecanismo de <strong>rotação</strong>: ao girar, o token anterior é invalidado imediatamente</li>
+                      <li>Identificação da empresa feita pelo hash — sem necessidade de enviar ID da empresa</li>
+                    </ul>
+                  </div>
+
+                  <Separator />
+
+                  {/* Camada 2: Exchange Code */}
+                  <div className="space-y-2">
+                    <p className="font-medium text-foreground text-sm">2. Exchange Code (Camada de Transporte)</p>
+                    <ul className="space-y-1.5 text-muted-foreground list-disc list-inside">
+                      <li>Código temporário com <strong>validade de 30 segundos</strong></li>
+                      <li>Armazenado como hash — código bruto só existe em trânsito</li>
+                      <li><strong>Uso único</strong>: marcado como consumido após a primeira troca</li>
+                      <li>Limpeza automática de códigos expirados a cada nova requisição</li>
+                      <li>O token de integração e o ID do usuário <strong>nunca aparecem na URL do navegador</strong></li>
+                      <li>Mesmo que interceptado, o código expira antes de poder ser reutilizado</li>
+                    </ul>
+                  </div>
+
+                  <Separator />
+
+                  {/* Camada 3: Verificação de Permissão */}
+                  <div className="space-y-2">
+                    <p className="font-medium text-foreground text-sm">3. Verificação de Permissão (Camada de Autorização)</p>
+                    <ul className="space-y-1.5 text-muted-foreground list-disc list-inside">
+                      <li>Validação opcional via <code className="bg-muted px-1 rounded text-foreground">url_check_permissao</code> configurada pela empresa</li>
+                      <li>Payload assinado com <strong>HMAC-SHA256</strong> usando o hash do token como chave</li>
+                      <li>Inclui <strong>timestamp</strong> para prevenir ataques de replay</li>
+                      <li>A empresa pode negar acesso a eventos específicos para usuários específicos</li>
+                      <li>Se a URL estiver inacessível, o acesso é <strong>negado por padrão</strong> (fail-closed)</li>
+                    </ul>
+                    <pre className="bg-muted rounded-md p-3 font-mono overflow-x-auto whitespace-pre">{`// Payload enviado para url_check_permissao:
+POST {url_check_permissao}
+Content-Type: application/json
+
+{
+  "id_evento": "EVT-001",
+  "id_usuario": "user-token-abc123",
+  "timestamp": "2026-03-02T10:30:00.000Z",
+  "signature": "hmac_sha256(payload, token_hash)"
+}
+
+// Resposta esperada:
+{ "allowed": true }   // ou false para negar
+`}</pre>
+                  </div>
+
+                  <Separator />
+
+                  {/* Camada 4: RLS e Banco */}
+                  <div className="space-y-2">
+                    <p className="font-medium text-foreground text-sm">4. Row-Level Security (Camada de Dados)</p>
+                    <ul className="space-y-1.5 text-muted-foreground list-disc list-inside">
+                      <li>Todas as tabelas possuem <strong>RLS (Row-Level Security)</strong> ativado</li>
+                      <li>Operações administrativas usam <strong>service_role</strong> via Edge Functions</li>
+                      <li>Roles de usuário (<code className="bg-muted px-1 rounded text-foreground">admin</code>, <code className="bg-muted px-1 rounded text-foreground">basico</code>) armazenadas em tabela separada</li>
+                      <li>Função <code className="bg-muted px-1 rounded text-foreground">has_role()</code> com <strong>SECURITY DEFINER</strong> evita recursão em políticas RLS</li>
+                      <li>Mapas vinculados a empresas — isolamento total entre organizações</li>
+                    </ul>
+                  </div>
+
+                  <Separator />
+
+                  {/* Camada 5: Autenticação do Portal */}
+                  <div className="space-y-2">
+                    <p className="font-medium text-foreground text-sm">5. Autenticação do Portal (Camada de Acesso)</p>
+                    <ul className="space-y-1.5 text-muted-foreground list-disc list-inside">
+                      <li>Login por <strong>username</strong> — e-mail nunca é exposto na interface</li>
+                      <li>Resolução username → e-mail feita no backend com <strong>service_role</strong></li>
+                      <li>Troca obrigatória de senha no <strong>primeiro acesso</strong> (flag <code className="bg-muted px-1 rounded text-foreground">must_change_password</code>)</li>
+                      <li>Sessões JWT com renovação automática</li>
+                      <li>Controle de acesso baseado em roles (RBAC)</li>
+                    </ul>
+                  </div>
+
+                  <Separator />
+
+                  {/* Camada 6: Auditoria */}
+                  <div className="space-y-2">
+                    <p className="font-medium text-foreground text-sm">6. Auditoria e Rastreabilidade</p>
+                    <ul className="space-y-1.5 text-muted-foreground list-disc list-inside">
+                      <li>Tabela <code className="bg-muted px-1 rounded text-foreground">audit_logs</code> registra todas as ações críticas</li>
+                      <li>Eventos registrados: login, geração/rotação de tokens, alterações de configuração</li>
+                      <li>Cada log contém: ação, ator, entidade afetada e metadados</li>
+                      <li>Rastreabilidade completa de quem fez o quê e quando</li>
+                    </ul>
+                  </div>
+
+                  <Separator />
+
+                  {/* Resumo visual */}
+                  <div className="space-y-2">
+                    <p className="font-medium text-foreground text-sm">📊 Resumo das Camadas</p>
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-muted">
+                            <th className="text-left p-2 font-medium">Camada</th>
+                            <th className="text-left p-2 font-medium">Proteção</th>
+                            <th className="text-left p-2 font-medium">Mecanismo</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-t">
+                            <td className="p-2 font-medium">Identidade</td>
+                            <td className="p-2 text-muted-foreground">Token de integração</td>
+                            <td className="p-2 text-muted-foreground">SHA-256, visualização única, rotação</td>
+                          </tr>
+                          <tr className="border-t">
+                            <td className="p-2 font-medium">Transporte</td>
+                            <td className="p-2 text-muted-foreground">Exchange code</td>
+                            <td className="p-2 text-muted-foreground">30s TTL, uso único, hash</td>
+                          </tr>
+                          <tr className="border-t">
+                            <td className="p-2 font-medium">Autorização</td>
+                            <td className="p-2 text-muted-foreground">Permissão por evento</td>
+                            <td className="p-2 text-muted-foreground">HMAC-SHA256, fail-closed</td>
+                          </tr>
+                          <tr className="border-t">
+                            <td className="p-2 font-medium">Dados</td>
+                            <td className="p-2 text-muted-foreground">Isolamento por empresa</td>
+                            <td className="p-2 text-muted-foreground">RLS, RBAC, security definer</td>
+                          </tr>
+                          <tr className="border-t">
+                            <td className="p-2 font-medium">Acesso</td>
+                            <td className="p-2 text-muted-foreground">Autenticação do portal</td>
+                            <td className="p-2 text-muted-foreground">JWT, troca senha obrigatória</td>
+                          </tr>
+                          <tr className="border-t">
+                            <td className="p-2 font-medium">Auditoria</td>
+                            <td className="p-2 text-muted-foreground">Rastreabilidade</td>
+                            <td className="p-2 text-muted-foreground">Logs de ações críticas</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </CardContent>
+      </Card>
+
       {/* Token Section */}
       <Card>
         <CardHeader>
