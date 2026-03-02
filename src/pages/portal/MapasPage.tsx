@@ -8,30 +8,49 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
-import { Map, Plus, Search, MoreHorizontal, RefreshCw, ExternalLink, Loader2 } from 'lucide-react';
+import { Map, Plus, Search, MoreHorizontal, RefreshCw, ExternalLink, Loader2, Building2 } from 'lucide-react';
 
 const MapasPage: React.FC = () => {
   const { user, profile, isAdmin, session } = useAuth();
   const navigate = useNavigate();
   const [maps, setMaps] = useState<any[]>([]);
+  const [companies, setCompanies] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
   const fetchMaps = useCallback(async () => {
     setLoading(true);
-    let query = supabase
-      .from('maps')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      // RLS already filters: users see own maps, admins see all
+      const { data, error } = await supabase
+        .from('maps')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    const { data, error } = await query;
-    if (error) {
-      toast.error('Erro ao carregar mapas');
-    } else {
+      if (error) throw error;
       setMaps(data || []);
+
+      // Fetch company names for admin view
+      if (isAdmin && data && data.length > 0) {
+        const companyIds = [...new Set(data.map(m => m.company_id).filter(Boolean))];
+        if (companyIds.length > 0) {
+          const { data: companiesData } = await supabase
+            .from('companies')
+            .select('id, name')
+            .in('id', companyIds);
+          
+          if (companiesData) {
+            const map: Record<string, string> = {};
+            companiesData.forEach(c => { map[c.id] = c.name; });
+            setCompanies(map);
+          }
+        }
+      }
+    } catch (err: any) {
+      toast.error('Erro ao carregar mapas: ' + err.message);
     }
     setLoading(false);
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     fetchMaps();
@@ -42,11 +61,8 @@ const MapasPage: React.FC = () => {
   };
 
   const handleOpenMap = (map: any) => {
-    const params = new URLSearchParams();
-    if (map.company_id) params.set('empresa', map.company_id);
-    if (map.id_evento_externo) params.set('id_evento', map.id_evento_externo);
-    params.set('map_id', map.id);
-    navigate(`/mapstudio?${params.toString()}`);
+    // Only map_id is needed — session auth validates access in MapStudio
+    navigate(`/mapstudio?map_id=${map.id}`);
   };
 
   const handleNewMap = () => {
@@ -62,7 +78,8 @@ const MapasPage: React.FC = () => {
   const filtered = maps.filter((m) =>
     !search ||
     m.name?.toLowerCase().includes(search.toLowerCase()) ||
-    m.id_evento_externo?.toLowerCase().includes(search.toLowerCase())
+    m.id_evento_externo?.toLowerCase().includes(search.toLowerCase()) ||
+    (m.company_id && companies[m.company_id]?.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
@@ -85,7 +102,7 @@ const MapasPage: React.FC = () => {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nome ou ID evento..."
+            placeholder={isAdmin ? "Buscar por nome, evento ou empresa..." : "Buscar por nome ou ID evento..."}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -98,6 +115,7 @@ const MapasPage: React.FC = () => {
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
+              {isAdmin && <TableHead>Empresa</TableHead>}
               <TableHead>ID Evento</TableHead>
               <TableHead>Sync</TableHead>
               <TableHead>Criado em</TableHead>
@@ -108,22 +126,35 @@ const MapasPage: React.FC = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8">
+                <TableCell colSpan={isAdmin ? 7 : 6} className="text-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={isAdmin ? 7 : 6} className="text-center py-8 text-muted-foreground">
                   Nenhum mapa encontrado
                 </TableCell>
               </TableRow>
             ) : (
               filtered.map((m) => {
                 const syncCfg = syncStatusConfig[m.sync_status] || syncStatusConfig.PENDENTE;
+                const companyName = m.company_id ? companies[m.company_id] : null;
                 return (
                   <TableRow key={m.id}>
                     <TableCell className="font-medium">{m.name}</TableCell>
+                    {isAdmin && (
+                      <TableCell>
+                        {companyName ? (
+                          <span className="flex items-center gap-1.5 text-sm">
+                            <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                            {companyName}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                      </TableCell>
+                    )}
                     <TableCell className="font-mono text-sm">{m.id_evento_externo || '—'}</TableCell>
                     <TableCell>
                       <Badge variant={syncCfg.variant}

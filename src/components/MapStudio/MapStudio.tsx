@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { LayoutGrid, FileJson, Plus, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ChevronUp, ChevronDown, Save, Loader2, Cloud, ArrowLeft } from 'lucide-react';
+import { LayoutGrid, FileJson, Plus, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ChevronUp, ChevronDown, Save, Loader2, Cloud, ArrowLeft, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useIntegrationMode } from '@/hooks/useIntegrationMode';
+import { usePortalMapLoader } from '@/hooks/usePortalMapLoader';
 import { Button } from '@/components/ui/button';
 import { Toolbar } from './Toolbar';
 import { AlignmentBar, AlignType } from './AlignmentBar';
@@ -115,12 +116,23 @@ export const MapStudio: React.FC = () => {
   const { state: integrationState, loadIntegrationData, saveIntegration } = useIntegrationMode();
   const integrationLoaded = useRef(false);
 
+  // Portal map mode (opening from /portal/mapas)
+  const { state: portalState, loadPortalMap, savePortalMap } = usePortalMapLoader();
+  const portalLoaded = useRef(false);
+
   useEffect(() => {
     if (integrationState.isIntegration && !integrationLoaded.current) {
       integrationLoaded.current = true;
       loadIntegrationData(setSectors, setElements, setMapData);
     }
   }, [integrationState.isIntegration, loadIntegrationData]);
+
+  useEffect(() => {
+    if (portalState.isPortalMode && !portalLoaded.current) {
+      portalLoaded.current = true;
+      loadPortalMap(setSectors, setElements, setMapData);
+    }
+  }, [portalState.isPortalMode, loadPortalMap]);
 
   // Clipboard para copiar/colar setores
   const [clipboardSectors, setClipboardSectors] = useState<Sector[]>([]);
@@ -2131,6 +2143,37 @@ export const MapStudio: React.FC = () => {
         </div>
       )}
 
+      {/* Portal map access denied */}
+      {portalState.isPortalMode && portalState.accessDenied && (
+        <div className="flex-1 flex items-center justify-center bg-background">
+          <div className="text-center space-y-4 max-w-md p-8">
+            <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+              <ShieldAlert className="h-8 w-8 text-destructive" />
+            </div>
+            <h2 className="text-xl font-semibold text-foreground">Acesso Negado</h2>
+            <p className="text-muted-foreground text-sm">
+              {portalState.accessError || 'Você não tem permissão para acessar este mapa.'}
+            </p>
+            <Button variant="outline" onClick={() => navigate('/portal/mapas')}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar ao Portal
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Portal map loading overlay */}
+      {portalState.isPortalMode && portalState.loading && (
+        <div className="flex-1 flex items-center justify-center bg-background">
+          <div className="text-center space-y-4 max-w-md p-8">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+            <h2 className="text-lg font-semibold text-foreground">Carregando mapa...</h2>
+            <p className="text-muted-foreground text-sm">
+              Validando sessão e carregando dados do mapa.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Integration loading overlay */}
       {integrationState.isIntegration && integrationState.loading && (
         <div className="flex-1 flex items-center justify-center bg-background">
@@ -2144,8 +2187,9 @@ export const MapStudio: React.FC = () => {
         </div>
       )}
 
-      {/* Only render the rest if token is not rejected and not loading */}
-      {!(integrationState.isIntegration && (integrationState.tokenValid === false || integrationState.loading)) && (<>
+      {/* Only render the rest if not blocked by access denied or loading */}
+      {!(integrationState.isIntegration && (integrationState.tokenValid === false || integrationState.loading)) && 
+       !(portalState.isPortalMode && (portalState.accessDenied || portalState.loading)) && (<>
 
       {/* Integration Banner */}
       {integrationState.isIntegration && integrationState.tokenValid !== false && (
@@ -2172,8 +2216,8 @@ export const MapStudio: React.FC = () => {
       {/* Header */}
       <header className="h-14 border-b border-border px-4 flex items-center justify-between bg-card shrink-0">
         <div className="flex items-center gap-3">
-          {integrationState.isIntegration && (
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/portal/simulacao')}>
+          {(integrationState.isIntegration || portalState.isPortalMode) && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(integrationState.isIntegration ? '/portal/simulacao' : '/portal/mapas')}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
           )}
@@ -2209,8 +2253,18 @@ export const MapStudio: React.FC = () => {
               Salvar
             </Button>
           )}
+          {portalState.isPortalMode && !integrationState.isIntegration && (
+            <Button 
+              variant="default" 
+              size="sm"
+              onClick={() => savePortalMap(exportData)}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Salvar
+            </Button>
+          )}
           <Button 
-            variant={integrationState.isIntegration ? "outline" : "default"}
+            variant={(integrationState.isIntegration || portalState.isPortalMode) ? "outline" : "default"}
             size="sm"
             onClick={() => setShowExport(true)}
           >
