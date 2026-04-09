@@ -84,6 +84,9 @@ export type SectorShape =
   | 'star'
   | 'wave';
 
+// Modo de venda da mesa
+export type TableSellMode = 'per-chair' | 'closed-table';
+
 // Configuração de mesa/bistrô
 export interface TableConfig {
   shape: TableShape;
@@ -93,6 +96,8 @@ export interface TableConfig {
   chairStartAngle?: number; // Ângulo inicial das cadeiras em graus (0-360)
   chairRadius?: number; // Raio das cadeiras (padrão 6)
   tableColor?: string; // Cor da mesa (padrão depende do tipo)
+  chairAngles?: number[]; // Ângulos individuais das cadeiras em graus (posicionamento manual)
+  sellMode?: TableSellMode; // Modo de venda: por cadeira ou mesa fechada
 }
 
 export interface Seat {
