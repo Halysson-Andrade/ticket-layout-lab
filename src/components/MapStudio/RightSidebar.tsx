@@ -1187,6 +1187,25 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                     {(selectedSeats[0].furnitureType === 'table' || selectedSeats[0].furnitureType === 'bistro') && selectedSeats[0].tableConfig && (
                       <div className="space-y-3 pt-3 border-t border-border">
                         <Label className="text-xs font-medium">Configuração da Mesa</Label>
+
+                        {/* Modo de venda */}
+                        <div className="space-y-1">
+                          <Label className="text-[10px] text-muted-foreground">Modo de Venda</Label>
+                          <Select
+                            value={selectedSeats[0].tableConfig.sellMode || 'closed-table'}
+                            onValueChange={(v) => onUpdateSeats([selectedSeats[0].id], {
+                              tableConfig: { ...selectedSeats[0].tableConfig!, sellMode: v as 'per-chair' | 'closed-table' }
+                            })}
+                          >
+                            <SelectTrigger className="h-7 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="closed-table">Mesa Fechada</SelectItem>
+                              <SelectItem value="per-chair">Por Cadeira</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                         
                         {/* Tamanho da cadeira */}
                         <div className="space-y-1">

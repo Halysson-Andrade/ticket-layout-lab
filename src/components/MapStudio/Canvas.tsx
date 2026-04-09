@@ -373,7 +373,12 @@ export const Canvas: React.FC<CanvasProps> = ({
     
     const startAngle = ((config.chairStartAngle || 0) * Math.PI) / 180;
     for (let i = 0; i < config.chairCount; i++) {
-      const angle = startAngle + (i / config.chairCount) * Math.PI * 2 - Math.PI / 2;
+      let angle: number;
+      if (config.chairAngles && config.chairAngles.length === config.chairCount) {
+        angle = (config.chairAngles[i] * Math.PI) / 180;
+      } else {
+        angle = startAngle + (i / config.chairCount) * Math.PI * 2 - Math.PI / 2;
+      }
       
       // Posiciona cadeiras encostadas na borda da mesa
       let chairX: number, chairY: number;
