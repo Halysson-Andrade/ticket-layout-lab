@@ -455,7 +455,21 @@ const ManualPage: React.FC = () => {
             <li><strong className="text-foreground">Forma L / U / T / Z</strong> — cantos e extensões</li>
             <li><strong className="text-foreground">Cruz, Seta, Estrela, Onda</strong> — layouts especiais</li>
           </ul>
-          <Figure src={templatesCompleto} caption="Etapa 1 — Galeria completa com 18 formas geométricas." size="lg" />
+          <AnnotatedFigure
+            src={templatesCompleto}
+            caption="Etapa 1 — Galeria completa com 18 formas geométricas."
+            size="lg"
+            annotations={[
+              { shape: 'arrow', x: 50, y: 8, arrowFromX: 50, arrowFromY: 1, label: '1', color: 'primary' },
+              { shape: 'circle', x: 50, y: 50, w: 90, h: 70, label: '2', color: 'success' },
+              { shape: 'arrow', x: 92, y: 96, arrowFromX: 80, arrowFromY: 88, label: '3', color: 'warning' },
+            ]}
+            legend={[
+              { label: '1', text: 'Indicador de etapa do assistente (1 = Forma, 2 = Configurar, 3 = Preview).', color: 'primary' },
+              { label: '2', text: 'Galeria de formas — clique em uma para selecioná-la.', color: 'success' },
+              { label: '3', text: 'Botão "Próximo" para avançar à etapa de configuração.', color: 'warning' },
+            ]}
+          />
 
           <h3 className="font-semibold text-lg pt-2">Etapa 2 — Configurar geometria e assentos</h3>
           <p className="text-sm text-muted-foreground">
