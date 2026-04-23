@@ -140,6 +140,7 @@ export function useIntegrationMode(): IntegrationResult {
 
               if (mapJson.sectors) setSectors(mapJson.sectors);
               if (mapJson.elements) setElements(mapJson.elements);
+              if (setBackground) setBackground(mapJson.backgroundImage || null);
               setMapData(prev => ({
                 ...prev,
                 name: mapData.name || `Evento ${eventId}`,
