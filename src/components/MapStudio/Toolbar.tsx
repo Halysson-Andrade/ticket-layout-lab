@@ -19,7 +19,8 @@ import {
   AlignCenter,
   AlignRight,
   Armchair,
-  Type
+  Type,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -39,6 +40,7 @@ interface ToolbarProps {
   onToggleBgPanel: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
+  onOpenAIAssistant: () => void;
   canUndo: boolean;
   canRedo: boolean;
   hasSelection: boolean;
@@ -97,6 +99,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onToggleBgPanel,
   onDelete,
   onDuplicate,
+  onOpenAIAssistant,
   canUndo,
   canRedo,
   hasSelection,
@@ -235,6 +238,34 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         label="Exportar JSON"
         onClick={onExport}
       />
+
+      <Separator orientation="vertical" className="h-6 mx-1" />
+
+      {/* IA - Geração automática de mapa */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "h-9 w-9 p-0 transition-all relative",
+              "bg-gradient-to-br from-primary/15 to-purple-500/15 hover:from-primary/25 hover:to-purple-500/25",
+              !hasBgImage && "opacity-60"
+            )}
+            onClick={onOpenAIAssistant}
+          >
+            <Sparkles className="h-4 w-4 text-primary" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="flex flex-col gap-0.5 max-w-[200px]">
+          <span className="font-semibold">Gerar Mapa com IA</span>
+          <span className="text-[10px] text-muted-foreground">
+            {hasBgImage
+              ? 'Analisa a imagem e gera setores + assentos automaticamente'
+              : 'Importe uma imagem primeiro'}
+          </span>
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 };
