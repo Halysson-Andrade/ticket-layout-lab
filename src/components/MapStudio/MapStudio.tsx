@@ -120,19 +120,30 @@ export const MapStudio: React.FC = () => {
   const { state: portalState, loadPortalMap, savePortalMap } = usePortalMapLoader();
   const portalLoaded = useRef(false);
 
+  // Restaura imagem de fundo carregada do banco
+  const applyLoadedBackground = useCallback((bg: { url: string; opacity: number; scale: number; x: number; y: number } | null) => {
+    if (bg && bg.url) {
+      setBgConfig(bg);
+      setBackgroundImage(bg.url);
+    } else {
+      setBgConfig(null);
+      setBackgroundImage(null);
+    }
+  }, []);
+
   useEffect(() => {
     if (integrationState.isIntegration && !integrationLoaded.current) {
       integrationLoaded.current = true;
-      loadIntegrationData(setSectors, setElements, setMapData);
+      loadIntegrationData(setSectors, setElements, setMapData, applyLoadedBackground);
     }
-  }, [integrationState.isIntegration, loadIntegrationData]);
+  }, [integrationState.isIntegration, loadIntegrationData, applyLoadedBackground]);
 
   useEffect(() => {
     if (portalState.isPortalMode && !portalLoaded.current) {
       portalLoaded.current = true;
-      loadPortalMap(setSectors, setElements, setMapData);
+      loadPortalMap(setSectors, setElements, setMapData, applyLoadedBackground);
     }
-  }, [portalState.isPortalMode, loadPortalMap]);
+  }, [portalState.isPortalMode, loadPortalMap, applyLoadedBackground]);
 
   // Clipboard para copiar/colar setores
   const [clipboardSectors, setClipboardSectors] = useState<Sector[]>([]);
@@ -2110,6 +2121,14 @@ export const MapStudio: React.FC = () => {
       rotation: e.rotation,
       color: e.color,
     })),
+    // Imagem de fundo (persistida com o mapa)
+    backgroundImage: bgConfig ? {
+      url: bgConfig.url,
+      opacity: bgConfig.opacity,
+      scale: bgConfig.scale,
+      x: bgConfig.x,
+      y: bgConfig.y,
+    } : null,
     // Metadados de exportação
     exportedAt: new Date().toISOString(),
     totalSeats: sectors.reduce((acc, s) => acc + s.seats.length, 0),

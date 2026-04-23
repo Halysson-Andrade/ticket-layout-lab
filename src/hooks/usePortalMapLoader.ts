@@ -20,6 +20,7 @@ interface PortalMapResult {
     setSectors: (s: Sector[]) => void,
     setElements: (e: VenueElement[]) => void,
     setMapData: (fn: (prev: VenueMap) => VenueMap) => void,
+    setBackground?: (bg: { url: string; opacity: number; scale: number; x: number; y: number } | null) => void,
   ) => Promise<void>;
   savePortalMap: (exportData: any) => Promise<void>;
 }
@@ -46,6 +47,7 @@ export function usePortalMapLoader(): PortalMapResult {
     setSectors: (s: Sector[]) => void,
     setElements: (e: VenueElement[]) => void,
     setMapData: (fn: (prev: VenueMap) => VenueMap) => void,
+    setBackground?: (bg: { url: string; opacity: number; scale: number; x: number; y: number } | null) => void,
   ) => {
     if (!isPortalMode || !mapId) return;
 
@@ -105,6 +107,7 @@ export function usePortalMapLoader(): PortalMapResult {
 
       if (mapJson?.sectors) setSectors(mapJson.sectors);
       if (mapJson?.elements) setElements(mapJson.elements);
+      if (setBackground) setBackground(mapJson?.backgroundImage || null);
       setMapData(prev => ({
         ...prev,
         name: map.name,

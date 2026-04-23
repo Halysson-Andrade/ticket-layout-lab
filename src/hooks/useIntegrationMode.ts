@@ -25,6 +25,7 @@ interface IntegrationResult {
     setSectors: (s: Sector[]) => void,
     setElements: (e: VenueElement[]) => void,
     setMapData: (fn: (prev: VenueMap) => VenueMap) => void,
+    setBackground?: (bg: { url: string; opacity: number; scale: number; x: number; y: number } | null) => void,
   ) => Promise<void>;
   saveIntegration: (exportData: any) => Promise<void>;
 }
@@ -53,6 +54,7 @@ export function useIntegrationMode(): IntegrationResult {
     setSectors: (s: Sector[]) => void,
     setElements: (e: VenueElement[]) => void,
     setMapData: (fn: (prev: VenueMap) => VenueMap) => void,
+    setBackground?: (bg: { url: string; opacity: number; scale: number; x: number; y: number } | null) => void,
   ) => {
     if (!exchangeCode) return;
 
@@ -138,6 +140,7 @@ export function useIntegrationMode(): IntegrationResult {
 
               if (mapJson.sectors) setSectors(mapJson.sectors);
               if (mapJson.elements) setElements(mapJson.elements);
+              if (setBackground) setBackground(mapJson.backgroundImage || null);
               setMapData(prev => ({
                 ...prev,
                 name: mapData.name || `Evento ${eventId}`,
@@ -171,6 +174,7 @@ export function useIntegrationMode(): IntegrationResult {
         
         if (mapJson?.sectors) setSectors(mapJson.sectors);
         if (mapJson?.elements) setElements(mapJson.elements);
+        if (setBackground) setBackground(mapJson?.backgroundImage || null);
         setMapData(prev => ({
           ...prev,
           name: existingMap.name,
