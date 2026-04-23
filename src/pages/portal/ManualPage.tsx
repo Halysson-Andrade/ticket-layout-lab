@@ -4,7 +4,7 @@ import {
   Armchair, Type, Undo2, Redo2, Copy, Trash2, ZoomIn, Image as ImageIcon,
   Download, MousePointerClick, Keyboard, Settings, Palette, Map as MapIcon,
   AlertCircle, Sparkles, Plus, Minus, Spline, Link2, Eye, Lock, Printer,
-  Info, ListOrdered, Move, RotateCw, Wand2,
+  Info, ListOrdered, Move, RotateCw, Wand2, Ban, AlignCenter,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
