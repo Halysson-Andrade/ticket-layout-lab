@@ -128,33 +128,30 @@ const AnnotatedFigure: React.FC<{
           </defs>
           {annotations.map((a, i) => {
             const color = ANNOTATION_COLORS[a.color || 'primary'];
-            if (a.shape === 'circle') {
-              const w = a.w ?? 8;
-              const h = a.h ?? 8;
+            // Pequeno marcador numerado discreto sobre o local indicado.
+            // Tipo "arrow" desenha uma linha curta opcional para apontar de fora.
+            if (a.shape === 'arrow') {
+              const fx = a.arrowFromX ?? Math.max(2, a.x - 6);
+              const fy = a.arrowFromY ?? Math.max(2, a.y - 5);
               return (
                 <g key={i}>
-                  <ellipse
-                    cx={a.x}
-                    cy={a.y}
-                    rx={w / 2}
-                    ry={h / 2}
-                    fill="none"
+                  <line
+                    x1={fx}
+                    y1={fy}
+                    x2={a.x}
+                    y2={a.y}
                     stroke={color}
-                    strokeWidth={0.6}
+                    strokeWidth={0.4}
                     vectorEffect="non-scaling-stroke"
+                    markerEnd={`url(#arrowhead-${a.color || 'primary'})`}
                   />
                   {a.label && (
                     <g>
-                      <circle
-                        cx={a.x + w / 2 + 1.5}
-                        cy={a.y - h / 2 - 1.5}
-                        r={2}
-                        fill={color}
-                      />
+                      <circle cx={fx} cy={fy} r={1.8} fill={color} stroke="white" strokeWidth={0.3} vectorEffect="non-scaling-stroke" />
                       <text
-                        x={a.x + w / 2 + 1.5}
-                        y={a.y - h / 2 - 1.5}
-                        fontSize={2.4}
+                        x={fx}
+                        y={fy}
+                        fontSize={2.2}
                         fill="white"
                         textAnchor="middle"
                         dominantBaseline="central"
@@ -167,36 +164,30 @@ const AnnotatedFigure: React.FC<{
                 </g>
               );
             }
-            // arrow
-            const fx = a.arrowFromX ?? Math.max(2, a.x - 12);
-            const fy = a.arrowFromY ?? Math.max(2, a.y - 10);
+            // shape === 'circle' → marcador numerado discreto no ponto exato
             return (
               <g key={i}>
-                <line
-                  x1={fx}
-                  y1={fy}
-                  x2={a.x}
-                  y2={a.y}
-                  stroke={color}
-                  strokeWidth={0.6}
+                <circle
+                  cx={a.x}
+                  cy={a.y}
+                  r={1.8}
+                  fill={color}
+                  stroke="white"
+                  strokeWidth={0.3}
                   vectorEffect="non-scaling-stroke"
-                  markerEnd={`url(#arrowhead-${a.color || 'primary'})`}
                 />
                 {a.label && (
-                  <g>
-                    <circle cx={fx} cy={fy} r={2.2} fill={color} />
-                    <text
-                      x={fx}
-                      y={fy}
-                      fontSize={2.6}
-                      fill="white"
-                      textAnchor="middle"
-                      dominantBaseline="central"
-                      fontWeight="bold"
-                    >
-                      {a.label}
-                    </text>
-                  </g>
+                  <text
+                    x={a.x}
+                    y={a.y}
+                    fontSize={2.2}
+                    fill="white"
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontWeight="bold"
+                  >
+                    {a.label}
+                  </text>
                 )}
               </g>
             );
