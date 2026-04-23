@@ -851,7 +851,25 @@ const ManualPage: React.FC = () => {
             exibe a mensagem <em>"Nenhuma seleção"</em>.
           </p>
 
-          <Figure src={setorPropriedades} caption="Setor selecionado: nome, paleta de cores, texto interno, posição e botão de gerar assentos." size="lg" />
+          <AnnotatedFigure
+            src={setorPropriedades}
+            caption="Painel de propriedades de um setor selecionado."
+            size="lg"
+            annotations={[
+              { shape: 'circle', x: 50, y: 8, w: 90, h: 6, label: '1', color: 'primary' },
+              { shape: 'circle', x: 50, y: 22, w: 90, h: 12, label: '2', color: 'success' },
+              { shape: 'circle', x: 50, y: 40, w: 90, h: 10, label: '3', color: 'warning' },
+              { shape: 'circle', x: 50, y: 58, w: 90, h: 14, label: '4', color: 'destructive' },
+              { shape: 'circle', x: 50, y: 92, w: 90, h: 10, label: '5', color: 'primary' },
+            ]}
+            legend={[
+              { label: '1', text: 'Nome do setor (aparece em todas as listagens e exportações).', color: 'primary' },
+              { label: '2', text: 'Paleta de cores predefinidas + cor personalizada (color picker).', color: 'success' },
+              { label: '3', text: 'Texto interno exibido sobre o setor (ex.: "Pista", "VIP").', color: 'warning' },
+              { label: '4', text: 'Posição (X, Y) e rotação em graus.', color: 'destructive' },
+              { label: '5', text: 'Botão "Gerar Assentos neste Setor" — abre o gerador respeitando a forma.', color: 'primary' },
+            ]}
+          />
 
           <h3 className="font-semibold text-lg pt-2">Setor selecionado</h3>
           <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
