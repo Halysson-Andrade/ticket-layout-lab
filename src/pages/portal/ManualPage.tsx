@@ -66,21 +66,17 @@ const Figure: React.FC<{ src: string; caption: string; size?: 'sm' | 'md' | 'lg'
 };
 
 /**
- * Anotação posicionada sobre uma imagem (em % do tamanho da imagem).
- * - shape: "circle" desenha um círculo; "arrow" desenha uma seta apontando para o ponto.
- * - x, y: centro do alvo (0-100).
- * - w, h: tamanho do círculo (0-100, em % da largura/altura). Default 8x14.
- * - arrowFrom: origem da seta (0-100). Default sai do canto superior esquerdo.
- * - label: número/letra exibida junto à anotação.
+ * Anotação posicionada sobre uma imagem (coords em % 0-100).
+ * - x, y: ponto exato sendo indicado (alvo da seta).
+ * - badgeX, badgeY: posição do badge numerado (origem da seta). Se omitido,
+ *   usa um offset padrão acima/à esquerda do alvo.
+ * - label: número/letra exibido no badge.
  */
 type Annotation = {
-  shape: 'circle' | 'arrow';
   x: number;
   y: number;
-  w?: number;
-  h?: number;
-  arrowFromX?: number;
-  arrowFromY?: number;
+  badgeX?: number;
+  badgeY?: number;
   label?: string;
   color?: 'primary' | 'destructive' | 'success' | 'warning';
 };
