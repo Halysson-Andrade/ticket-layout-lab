@@ -4,7 +4,7 @@ import {
   Armchair, Type, Undo2, Redo2, Copy, Trash2, ZoomIn, Image as ImageIcon,
   Download, MousePointerClick, Keyboard, Settings, Palette, Map as MapIcon,
   AlertCircle, Sparkles, Plus, Minus, Spline, Link2, Eye, Lock, Printer,
-  Info, ListOrdered, Move, RotateCw, Wand2,
+  Info, ListOrdered, Move, RotateCw, Wand2, Ban, AlignCenter,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,11 @@ import geradorPasso2 from '@/assets/manual/13-gerador-passo2.png';
 import mobiliaMesaConfig from '@/assets/manual/14-mobilia-mesa-config.png';
 import mesaPreviewInterativo from '@/assets/manual/15-mesa-preview-interativo.png';
 import exportJson from '@/assets/manual/16-export-json.png';
+import setorSelecionadoCompleto from '@/assets/manual/17-setor-selecionado-completo.png';
+import propriedadesRotacaoCurvatura from '@/assets/manual/18-propriedades-rotacao-curvatura.png';
+import geradorTipoMobilia from '@/assets/manual/19-gerador-tipo-mobilia.png';
+import geradorConfigDetalhada from '@/assets/manual/20-gerador-config-detalhada.png';
+import geradorCustomizacao from '@/assets/manual/21-gerador-customizacao.png';
 
 const Kbd: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <kbd className="px-2 py-0.5 text-xs font-mono bg-muted border border-border rounded shadow-sm print:bg-transparent print:border-foreground/40">
@@ -156,10 +161,14 @@ const ManualPage: React.FC = () => {
               <li><a href="#toolbar" className="hover:text-foreground">Barra de ferramentas</a></li>
               <li><a href="#templates" className="hover:text-foreground">Criação de setores (Templates)</a></li>
               <li><a href="#shapes-vs-sectors" className="hover:text-foreground">Formas vs Setores</a></li>
-              <li><a href="#seat-generator" className="hover:text-foreground">Gerador de assentos</a></li>
+              <li><a href="#seat-generator" className="hover:text-foreground">Gerador de assentos (detalhado)</a></li>
               <li><a href="#left-sidebar" className="hover:text-foreground">Sidebar esquerda</a></li>
               <li><a href="#furniture" className="hover:text-foreground">Mobília (Mesa / Bistrô)</a></li>
-              <li><a href="#right-sidebar" className="hover:text-foreground">Sidebar direita (propriedades)</a></li>
+              <li><a href="#right-sidebar" className="hover:text-foreground">Propriedades de Setor</a></li>
+              <li><a href="#sector-transforms" className="hover:text-foreground">Rotação, curvatura e espelhamento</a></li>
+              <li><a href="#seat-properties" className="hover:text-foreground">Propriedades dos assentos e bloqueio</a></li>
+              <li><a href="#vertices" className="hover:text-foreground">Vértices: criação, remoção e curvatura</a></li>
+              <li><a href="#alignment" className="hover:text-foreground">Alinhamento e distribuição de setores</a></li>
               <li><a href="#context-menu" className="hover:text-foreground">Menu de contexto (botão direito)</a></li>
               <li><a href="#background" className="hover:text-foreground">Imagem de fundo</a></li>
               <li><a href="#maps-portal" className="hover:text-foreground">Mapas no portal</a></li>
@@ -346,10 +355,9 @@ const ManualPage: React.FC = () => {
         </Section>
 
         {/* 5. Gerador de assentos */}
-        <Section id="seat-generator" icon={<Grid3X3 className="h-6 w-6" />} title="5. Gerador de assentos">
+        <Section id="seat-generator" icon={<Grid3X3 className="h-6 w-6" />} title="5. Gerador de assentos — guia completo">
           <p className="text-sm">
-            Existem <strong>duas formas</strong> de gerar assentos no Map Studio. Ambas usam o mesmo
-            modal, mas com escopos diferentes:
+            Existem <strong>duas formas</strong> de gerar assentos. Ambas usam o mesmo modal:
           </p>
 
           <div className="grid sm:grid-cols-2 gap-4">
@@ -358,8 +366,7 @@ const ManualPage: React.FC = () => {
                 <Grid3X3 className="h-4 w-4 text-primary" /> Grade livre <Kbd>G</Kbd>
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Cria a grade <strong>solta no canvas</strong>, em qualquer área vazia, sem precisar de
-                setor. Ideal para layouts simples ou para "esboçar" antes de organizar em setores.
+                Cria a grade <strong>solta no canvas</strong>, sem precisar de setor. Útil para esboços rápidos.
               </p>
             </div>
             <div className="rounded-md border border-primary/40 bg-primary/5 p-3 print:bg-transparent">
@@ -367,46 +374,95 @@ const ManualPage: React.FC = () => {
                 <Layers className="h-4 w-4 text-primary" /> Dentro de um setor
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Selecione um setor → clique em <em>"Gerar Assentos neste Setor"</em> no painel direito
-                ou na barra flutuante do canvas. Os assentos respeitam o <strong>polígono</strong> do setor
-                (descarta os que ficam fora) e ficam vinculados a ele.
+                Selecione o setor → <em>"Gerar Assentos neste Setor"</em>. Os assentos respeitam o
+                polígono (descarta os que ficam fora) e ficam vinculados ao setor.
               </p>
             </div>
           </div>
 
           <h3 className="font-semibold text-lg pt-3">Etapa 1 — Tipo de mobília e tipo de assento</h3>
           <p className="text-sm text-muted-foreground">
-            Escolha entre <strong>Cadeira</strong> (assentos numerados convencionais),
-            <strong> Mesa</strong> (mesas com cadeiras configuráveis) ou <strong>Bistrô</strong>
-            (mesa alta com banquetas). Defina também o tipo de assento padrão (Normal, VIP, PCD, Obeso).
+            Escolha entre <strong>Cadeira</strong>, <strong>Mesa</strong> ou <strong>Bistrô</strong>.
+            Para Mesa/Bistrô, você ainda define <strong>Forma da Mesa</strong> (Redonda / Quadrada /
+            Retangular) e <strong>Cadeiras por Mesa</strong> (2 a 12). O tipo de assento padrão pode
+            ser <strong>Normal</strong>, <strong>VIP</strong>, <strong>PCD</strong> ou <strong>Obeso</strong>
+            — define a cor e a categoria comercial dos assentos gerados.
           </p>
-          <Figure src={geradorPasso1} caption="Gerador — passo 1: escolha de mobília e tipo de assento." />
+          <Figure src={geradorTipoMobilia} caption="Etapa 1 — Tipo de mobília (Cadeira / Mesa / Bistrô) e tipo de assento (Normal / VIP / PCD / Obeso)." size="lg" />
 
-          <h3 className="font-semibold text-lg pt-2">Etapa 2 — Geometria e numeração</h3>
+          <h3 className="font-semibold text-lg pt-2">Etapa 2 — Configuração detalhada</h3>
           <p className="text-sm text-muted-foreground">
-            Configure todos os parâmetros visuais e de numeração. O preview à direita reflete cada
-            ajuste em tempo real e mostra quantos assentos efetivamente caberão no setor.
+            Esta é a etapa mais rica. Cada parâmetro afeta o preview à direita em tempo real, e o
+            contador no topo (<em>"X assentos dentro do setor (Y lugares)"</em>) confirma o resultado.
           </p>
-          <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-0.5">
-            <li><strong>Filas (linhas):</strong> número de fileiras horizontais.</li>
-            <li><strong>Assentos por Fila:</strong> número de assentos em cada fileira.</li>
-            <li><strong>Espaçamento entre Filas / Assentos:</strong> separação visual em pixels.</li>
-            <li><strong>Tamanho do Assento:</strong> raio do círculo em pixels (8 a 32).</li>
-            <li><strong>Tipo de Fila:</strong> Letras (A, B, C…), Números (1, 2, 3…) ou Romanos (I, II, III…).</li>
-            <li><strong>Início da Fila:</strong> de onde a numeração começa (ex.: começar em "C" ou "10").</li>
-            <li><strong>Numeração do Assento:</strong> Sequencial, Reverso, Ímpares à esquerda ou Pares à esquerda.</li>
-            <li><strong>Direção:</strong> Esquerda → Direita ou Direita → Esquerda.</li>
-            <li><strong>Quantidade variável:</strong> ative para definir manualmente o número de assentos por fileira (ex.: arquibancadas trapezoidais).</li>
-            <li><strong>Rotação:</strong> gira toda a grade em graus.</li>
-            <li><strong>Prefixo:</strong> texto opcional antes do número (ex.: "VIP-").</li>
-            <li><strong>Redimensionar forma:</strong> se ativo, ajusta o tamanho do setor para caber a grade exata.</li>
+          <Figure src={geradorConfigDetalhada} caption="Etapa 2 — Visão completa: dimensões, espaçamentos, tamanho, tipo de fila, numeração, direção e preview ao vivo." size="lg" />
+
+          <h4 className="font-semibold text-base pt-2">Dimensões da grade</h4>
+          <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
+            <li><strong>Filas (Linhas)</strong> — número de fileiras horizontais (1 a 100). Cada fila recebe um identificador (A, 1, I…).</li>
+            <li><strong>Assentos por Fila</strong> — quantos lugares cada fila terá (1 a 200). Para mesas, é a quantidade de mesas por fila.</li>
           </ul>
-          <Figure src={geradorPasso2} caption="Gerador — passo 2: configuração com preview ao vivo, contagem (200/200) e dimensões do setor." size="lg" />
+
+          <h4 className="font-semibold text-base pt-2">Espaçamento e tamanho</h4>
+          <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
+            <li><strong>Espaçamento entre Filas</strong> — distância vertical em pixels (0 a 30). Mais espaço facilita a circulação.</li>
+            <li><strong>Espaçamento entre Assentos</strong> — distância horizontal entre assentos da mesma fila.</li>
+            <li><strong>Tamanho do Assento</strong> — diâmetro do círculo em pixels (8 a 40). Assentos maiores ficam mais legíveis em zoom baixo.</li>
+          </ul>
+
+          <h4 className="font-semibold text-base pt-2">Identificação das filas</h4>
+          <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
+            <li><strong>Tipo de Fila</strong> — <em>Letras</em> (A, B, C…), <em>Números</em> (1, 2, 3…) ou <em>Romano</em> (I, II, III…).</li>
+            <li><strong>Início da Fila</strong> — onde a numeração começa. Ex.: digitar "C" pula A e B; digitar "10" começa na fila 10.</li>
+            <li><strong>Posição do nome da fila</strong> — <em>Esquerda</em>, <em>Direita</em>, <em>Ambos</em> ou <em>Não informar</em>. Útil para arenas com acesso pelos dois lados.</li>
+          </ul>
+
+          <h4 className="font-semibold text-base pt-2">Numeração dos assentos</h4>
+          <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
+            <li><strong>Sequencial</strong> — 1, 2, 3, 4… na ordem natural.</li>
+            <li><strong>Reverso</strong> — começa pelo último (N…3, 2, 1).</li>
+            <li><strong>Somente Ímpares</strong> — 1, 3, 5, 7… (raro, mas usado em palcos antigos).</li>
+            <li><strong>Somente Pares</strong> — 2, 4, 6, 8…</li>
+            <li><strong>Ímpares à Esquerda / Pares à Direita</strong> — clássico de teatros: 5, 3, 1 | 2, 4, 6 a partir do corredor central.</li>
+            <li><strong>Pares à Esquerda / Ímpares à Direita</strong> — variação invertida do anterior.</li>
+            <li><strong>Customizada</strong> — você lista os números (ex.: <code>2, 7, 10, 15</code>) e eles são aplicados na ordem.</li>
+            <li><strong>Customizada por Fileira</strong> — abre uma sub-tabela onde cada fila tem seu próprio modo (numérico, ímpares, pares, customizado), número inicial e direção. Ideal para arquibancadas com layouts irregulares.</li>
+          </ul>
+
+          <h4 className="font-semibold text-base pt-2">Número Inicial e Direção</h4>
+          <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
+            <li><strong>Número Inicial</strong> — primeiro número da numeração (geralmente 1).</li>
+            <li><strong>Direção</strong> — <em>E → D</em> (Esquerda para Direita), <em>D → E</em> (Direita para Esquerda) ou <em>Centro →</em> (cresce a partir do meio para ambos os lados).</li>
+          </ul>
+
+          <h4 className="font-semibold text-base pt-2">Quantidade variável (assentos por fileira)</h4>
+          <p className="text-sm text-muted-foreground">
+            Ative <strong>"Quantidade de assentos por fileira (customizada)"</strong> para definir
+            valores diferentes para cada fila. Digite separados por vírgula (ex.:{' '}
+            <code>10, 12, 14, 16, 18</code>). Ideal para <strong>arquibancadas trapezoidais</strong>,
+            arenas em leque ou setores com curvatura. Quando ativo, surge um seletor de{' '}
+            <strong>Alinhamento</strong> (Esquerda / Centro / Direita) para definir como cada fila
+            é posicionada dentro da forma.
+          </p>
+
+          <h4 className="font-semibold text-base pt-2">Rotação e Prefixo</h4>
+          <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
+            <li><strong>Rotação</strong> — gira toda a grade em graus (0° a 360°, passos de 5°). O preview mostra a rotação aplicada.</li>
+            <li><strong>Prefixo</strong> — texto opcional antes do número de cada assento (ex.: <code>VIP-</code> gera <em>VIP-1, VIP-2, VIP-3…</em>; <code>SETOR1-</code> gera <em>SETOR1-A1, SETOR1-A2…</em>).</li>
+          </ul>
+          <Figure src={geradorCustomizacao} caption="Customização: rotação, prefixo, assentos por fileira variáveis e alinhamento." size="lg" />
+
+          <h4 className="font-semibold text-base pt-2">Redimensionar forma</h4>
+          <p className="text-sm text-muted-foreground">
+            Quando ativo (checkbox no painel direito do gerador), o setor é <strong>redimensionado
+            automaticamente</strong> para acomodar exatamente a grade configurada. Útil quando você
+            sabe quantos lugares quer e prefere que a forma se adapte, em vez do contrário.
+          </p>
 
           <Tip type="warn">
-            Quando o setor é menor que a grade configurada, o preview mostra em vermelho/cinza os
-            assentos que ficarão fora do polígono. Aumente o setor, reduza a grade ou ative
-            <em> Redimensionar forma</em>.
+            Se assentos aparecem em vermelho/cinza no preview, eles estão <strong>fora do polígono</strong>
+            do setor e não serão criados. Aumente o setor, reduza a grade, mude o alinhamento ou
+            ative <em>Redimensionar forma</em>.
           </Tip>
         </Section>
 
@@ -531,6 +587,181 @@ const ManualPage: React.FC = () => {
             Fonte, tamanho, peso, cor, alinhamento e rotação. Clique duplo no texto no canvas
             para editar inline.
           </p>
+        </Section>
+
+        {/* 8b. Transformações de Setor (Rotação, Curvatura, Espelhamento) */}
+        <Section id="sector-transforms" icon={<RotateCw className="h-6 w-6" />} title="8.1 Rotação, curvatura e espelhamento de setores">
+          <p className="text-sm">
+            Com um setor selecionado, o painel direito exibe três grupos de transformações geométricas
+            que afetam o polígono inteiro (e os assentos contidos nele).
+          </p>
+          <Figure src={propriedadesRotacaoCurvatura} caption="Painel de propriedades: Transformações no topo (centralizar / espelhar H / espelhar V), Espaçamento, Rotação com presets, Curvatura e Opacidade." size="lg" />
+
+          <h3 className="font-semibold text-lg pt-2">Rotação</h3>
+          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+            <li>Slider de 0° a 360°, campo numérico, botões <Kbd>−</Kbd> / <Kbd>+</Kbd> para passos finos.</li>
+            <li>Presets rápidos: <strong>0°</strong>, <strong>45°</strong>, <strong>90°</strong>, <strong>180°</strong>, <strong>270°</strong>.</li>
+            <li>No canvas, a <strong>alça circular acima do setor</strong> permite rotacionar arrastando com o mouse.</li>
+            <li>Atalhos com setor selecionado: <Kbd>R</Kbd> rotaciona 90° horário, <Kbd>Shift</Kbd>+<Kbd>R</Kbd> anti-horário.</li>
+          </ul>
+
+          <h3 className="font-semibold text-lg pt-2">Curvatura</h3>
+          <p className="text-sm text-muted-foreground">
+            Slider de 0% (<em>Reto</em>) a 100% (<em>Curvo</em>). Aplica curvas Bézier nas arestas do
+            polígono, transformando um setor reto em uma forma orgânica. Ideal para arquibancadas
+            curvas ou setores em volta de palcos circulares.
+          </p>
+
+          <h3 className="font-semibold text-lg pt-2">Espelhamento (Inverter)</h3>
+          <p className="text-sm text-muted-foreground">
+            Os botões no topo (<strong>Centralizar Assentos</strong>, <strong>Inverter Horizontal</strong>,
+            <strong> Inverter Vertical</strong>) aplicam transformações sobre o setor mantendo a numeração:
+          </p>
+          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+            <li><strong>Centralizar</strong> — recentraliza assentos dentro do polígono caso desalinhem após edições manuais.</li>
+            <li><strong>Espelhar Horizontal</strong> (<Kbd>F</Kbd>) — inverte da esquerda para a direita. Numeração 1→N vira N→1 visualmente.</li>
+            <li><strong>Espelhar Vertical</strong> (<Kbd>Shift</Kbd>+<Kbd>F</Kbd>) — inverte de cima para baixo. Útil quando o setor foi criado "de costas" para o palco.</li>
+          </ul>
+
+          <h3 className="font-semibold text-lg pt-2">Opacidade do Preenchimento</h3>
+          <p className="text-sm text-muted-foreground">
+            Slider de 0% (<em>Transparente</em>) a 100% (<em>Sólido</em>). Diminuir a opacidade ajuda
+            quando você quer enxergar a imagem de fundo (planta) através do setor enquanto edita.
+          </p>
+
+          <h3 className="font-semibold text-lg pt-2">Espaçamento dos assentos (após geração)</h3>
+          <p className="text-sm text-muted-foreground">
+            Mesmo após gerar os assentos, você pode ajustar <strong>Entre Filas</strong>,{' '}
+            <strong>Entre Assentos</strong> e <strong>Tamanho do Assento</strong> diretamente nos
+            sliders. A forma se ajusta automaticamente para acomodar a nova distribuição.
+          </p>
+        </Section>
+
+        {/* 8c. Propriedades dos assentos e bloqueio */}
+        <Section id="seat-properties" icon={<Ban className="h-6 w-6" />} title="8.2 Propriedades dos assentos e bloqueio">
+          <p className="text-sm">
+            Selecione um ou mais assentos no canvas (clique direto, <Kbd>Shift</Kbd>+clique para
+            adicionar à seleção, ou arraste em caixa) para acessar as propriedades específicas.
+          </p>
+
+          <h3 className="font-semibold text-lg pt-2">Aplicar tipo de assento</h3>
+          <p className="text-sm text-muted-foreground">
+            Com assentos selecionados, clique em qualquer tipo na <strong>sidebar esquerda → Tipos de
+            Assento</strong> para aplicar em massa. Cada tipo tem cor própria que aparece imediatamente
+            no canvas e é exportada no JSON para o sistema de venda.
+          </p>
+          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+            <li><strong>Normal</strong> — verde — assento padrão.</li>
+            <li><strong>VIP</strong> — magenta — categoria premium.</li>
+            <li><strong>PCD</strong> — azul — pessoa com deficiência.</li>
+            <li><strong>Acompanhante</strong> — roxo — par do PCD.</li>
+            <li><strong>Obeso</strong> — amarelo — assento reforçado/largo.</li>
+            <li><strong>Bloqueado</strong> — cinza — não vendável.</li>
+          </ul>
+
+          <h3 className="font-semibold text-lg pt-2">Bloqueio de assentos com motivo</h3>
+          <p className="text-sm text-muted-foreground">
+            Para bloquear formalmente um ou mais assentos (impedir que apareçam para venda no
+            sistema externo), use o botão <strong>Bloquear</strong> no painel direito ou clique no
+            tipo "Bloqueado". Abre o modal:
+          </p>
+          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+            <li>Aviso da quantidade de assentos que serão bloqueados.</li>
+            <li>Checkbox <strong>"Adicionar motivo do bloqueio"</strong> para deixar uma nota textual de até 200 caracteres.</li>
+            <li>Exemplos típicos: <em>"Visão obstruída"</em>, <em>"Manutenção"</em>, <em>"Reserva especial"</em>, <em>"Coluna no caminho"</em>.</li>
+            <li>O motivo é salvo junto com o assento e aparece em tooltips, relatórios e na exportação JSON.</li>
+          </ul>
+
+          <h3 className="font-semibold text-lg pt-2">Edição em massa</h3>
+          <p className="text-sm text-muted-foreground">
+            Toda alteração feita com múltiplos assentos selecionados se aplica a todos. Exemplos:
+            marcar uma fileira inteira como VIP, bloquear toda uma coluna, mudar o tipo de um setor
+            inteiro de uma só vez. Use <Kbd>Ctrl</Kbd>+<Kbd>A</Kbd> para selecionar tudo.
+          </p>
+        </Section>
+
+        {/* 8d. Vértices e edição de polígono */}
+        <Section id="vertices" icon={<Spline className="h-6 w-6" />} title="8.3 Vértices: criação, remoção e curvatura">
+          <p className="text-sm">
+            Cada setor é um <strong>polígono</strong> formado por vértices (pontos) ligados por
+            arestas (linhas/curvas). Você pode remodelá-lo livremente.
+          </p>
+
+          <h3 className="font-semibold text-lg pt-2">Arrastar vértices</h3>
+          <p className="text-sm text-muted-foreground">
+            Com o setor selecionado, os vértices aparecem como <strong>quadradinhos azuis</strong>
+            nos cantos. Arraste qualquer um para mover apenas aquele ponto, deformando a geometria.
+            Os assentos contidos no polígono <strong>não se movem automaticamente</strong> — use{' '}
+            <em>Centralizar Assentos</em> (seção 8.1) caso precise reposicionar.
+          </p>
+
+          <h3 className="font-semibold text-lg pt-2">Adicionar ponto (criar vértice)</h3>
+          <p className="text-sm text-muted-foreground">
+            Clique com o <strong>botão direito sobre uma aresta</strong> (linha entre dois vértices) e
+            escolha <em>"Adicionar ponto"</em>. Um novo vértice é inserido exatamente naquela
+            posição, permitindo formas mais complexas. Repita o processo quantas vezes precisar para
+            criar curvas finas e detalhes.
+          </p>
+
+          <h3 className="font-semibold text-lg pt-2">Remover ponto</h3>
+          <p className="text-sm text-muted-foreground">
+            Clique direito <strong>sobre um vértice</strong> e escolha <em>"Remover ponto"</em>. A
+            opção fica desativada se o setor tiver apenas 3 vértices (mínimo para formar um polígono).
+          </p>
+
+          <h3 className="font-semibold text-lg pt-2">Curvar ponto (Bézier)</h3>
+          <p className="text-sm text-muted-foreground">
+            Clique direito <strong>sobre um vértice</strong> e escolha{' '}
+            <em>"Curvar ponto"</em>. O canto reto vira uma curva Bézier suave naquele ponto, com um
+            ponto de controle que você pode arrastar para ajustar a intensidade da curvatura. Ideal
+            para criar setores arredondados sem precisar de muitos vértices.
+          </p>
+
+          <Tip>
+            Para arredondar o setor inteiro de uma vez, use o slider <strong>Curvatura</strong> no
+            painel direito (seção 8.1) — ele aplica curvas em todas as arestas simultaneamente.
+          </Tip>
+        </Section>
+
+        {/* 8e. Alinhamento e distribuição */}
+        <Section id="alignment" icon={<AlignCenter className="h-6 w-6" />} title="8.4 Alinhamento e distribuição de setores">
+          <p className="text-sm">
+            Quando você seleciona <strong>2 ou mais setores</strong>, uma <strong>barra flutuante de
+            alinhamento</strong> aparece logo abaixo da toolbar superior. Ela permite organizar
+            setores como em ferramentas de design (Figma, Illustrator).
+          </p>
+
+          <h3 className="font-semibold text-lg pt-2">Alinhamento horizontal</h3>
+          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+            <li><strong>Alinhar à esquerda</strong> — todos os setores compartilham a borda esquerda do mais à esquerda.</li>
+            <li><strong>Centralizar horizontalmente</strong> — alinha todos pelo eixo X central.</li>
+            <li><strong>Alinhar à direita</strong> — todos compartilham a borda direita do mais à direita.</li>
+          </ul>
+
+          <h3 className="font-semibold text-lg pt-2">Alinhamento vertical</h3>
+          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+            <li><strong>Alinhar ao topo</strong> — bordas superiores no mesmo Y.</li>
+            <li><strong>Centralizar verticalmente</strong> — eixos Y centrais coincidem.</li>
+            <li><strong>Alinhar à base</strong> — bordas inferiores no mesmo Y.</li>
+          </ul>
+
+          <h3 className="font-semibold text-lg pt-2">Distribuição</h3>
+          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+            <li><strong>Distribuir horizontalmente</strong> — espaçamento igual no eixo X entre os 3+ setores selecionados.</li>
+            <li><strong>Distribuir verticalmente</strong> — espaçamento igual no eixo Y.</li>
+          </ul>
+
+          <h3 className="font-semibold text-lg pt-2">Auto Grid (alinhar tudo e centralizar)</h3>
+          <p className="text-sm text-muted-foreground">
+            Atalho rápido de organização: alinha todos os setores em uma grade ordenada e centraliza
+            o conjunto no canvas. Útil quando você importa muitos setores soltos ou quer "limpar"
+            visualmente um mapa bagunçado.
+          </p>
+
+          <Tip>
+            A barra também mostra a <strong>contagem</strong> de setores selecionados ("3 setores")
+            para confirmar quantos itens serão afetados pela operação.
+          </Tip>
         </Section>
 
         {/* 9. Context menu */}
