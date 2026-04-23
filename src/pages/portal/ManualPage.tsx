@@ -65,6 +65,166 @@ const Figure: React.FC<{ src: string; caption: string; size?: 'sm' | 'md' | 'lg'
   );
 };
 
+/**
+ * Anotação posicionada sobre uma imagem (em % do tamanho da imagem).
+ * - shape: "circle" desenha um círculo; "arrow" desenha uma seta apontando para o ponto.
+ * - x, y: centro do alvo (0-100).
+ * - w, h: tamanho do círculo (0-100, em % da largura/altura). Default 8x14.
+ * - arrowFrom: origem da seta (0-100). Default sai do canto superior esquerdo.
+ * - label: número/letra exibida junto à anotação.
+ */
+type Annotation = {
+  shape: 'circle' | 'arrow';
+  x: number;
+  y: number;
+  w?: number;
+  h?: number;
+  arrowFromX?: number;
+  arrowFromY?: number;
+  label?: string;
+  color?: 'primary' | 'destructive' | 'success' | 'warning';
+};
+
+const ANNOTATION_COLORS: Record<NonNullable<Annotation['color']>, string> = {
+  primary: 'hsl(var(--primary))',
+  destructive: 'hsl(var(--destructive))',
+  success: 'hsl(142 76% 45%)',
+  warning: 'hsl(38 92% 50%)',
+};
+
+const AnnotatedFigure: React.FC<{
+  src: string;
+  caption: string;
+  size?: 'sm' | 'md' | 'lg';
+  annotations: Annotation[];
+  legend?: { label: string; text: string; color?: Annotation['color'] }[];
+}> = ({ src, caption, size = 'lg', annotations, legend }) => {
+  const maxW = size === 'sm' ? 'max-w-md' : size === 'lg' ? 'max-w-full' : 'max-w-2xl';
+  return (
+    <figure className={`my-4 mx-auto rounded-lg overflow-hidden border border-border bg-card ${maxW} print:break-inside-avoid`}>
+      <div className="relative w-full">
+        <img src={src} alt={caption} className="w-full h-auto block" loading="lazy" />
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <defs>
+            {(['primary', 'destructive', 'success', 'warning'] as const).map((c) => (
+              <marker
+                key={c}
+                id={`arrowhead-${c}`}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 0 L 10 5 L 0 10 z" fill={ANNOTATION_COLORS[c]} />
+              </marker>
+            ))}
+          </defs>
+          {annotations.map((a, i) => {
+            const color = ANNOTATION_COLORS[a.color || 'primary'];
+            if (a.shape === 'circle') {
+              const w = a.w ?? 8;
+              const h = a.h ?? 8;
+              return (
+                <g key={i}>
+                  <ellipse
+                    cx={a.x}
+                    cy={a.y}
+                    rx={w / 2}
+                    ry={h / 2}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth={0.6}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  {a.label && (
+                    <g>
+                      <circle
+                        cx={a.x + w / 2 + 1.5}
+                        cy={a.y - h / 2 - 1.5}
+                        r={2}
+                        fill={color}
+                      />
+                      <text
+                        x={a.x + w / 2 + 1.5}
+                        y={a.y - h / 2 - 1.5}
+                        fontSize={2.4}
+                        fill="white"
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        fontWeight="bold"
+                      >
+                        {a.label}
+                      </text>
+                    </g>
+                  )}
+                </g>
+              );
+            }
+            // arrow
+            const fx = a.arrowFromX ?? Math.max(2, a.x - 12);
+            const fy = a.arrowFromY ?? Math.max(2, a.y - 10);
+            return (
+              <g key={i}>
+                <line
+                  x1={fx}
+                  y1={fy}
+                  x2={a.x}
+                  y2={a.y}
+                  stroke={color}
+                  strokeWidth={0.6}
+                  vectorEffect="non-scaling-stroke"
+                  markerEnd={`url(#arrowhead-${a.color || 'primary'})`}
+                />
+                {a.label && (
+                  <g>
+                    <circle cx={fx} cy={fy} r={2.2} fill={color} />
+                    <text
+                      x={fx}
+                      y={fy}
+                      fontSize={2.6}
+                      fill="white"
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fontWeight="bold"
+                    >
+                      {a.label}
+                    </text>
+                  </g>
+                )}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+      <figcaption className="px-4 py-2 text-xs text-muted-foreground border-t border-border bg-muted/30 print:bg-transparent">
+        {caption}
+      </figcaption>
+      {legend && legend.length > 0 && (
+        <ul className="px-4 py-2 text-xs text-foreground/90 bg-muted/20 border-t border-border space-y-1 print:bg-transparent">
+          {legend.map((l, i) => (
+            <li key={i} className="flex items-start gap-2">
+              <span
+                className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white flex-shrink-0 mt-0.5"
+                style={{ background: ANNOTATION_COLORS[l.color || 'primary'] }}
+              >
+                {l.label}
+              </span>
+              <span>{l.text}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </figure>
+  );
+};
+
 const ToolItem: React.FC<{
   icon: React.ReactNode;
   name: string;
@@ -193,7 +353,25 @@ const ManualPage: React.FC = () => {
             <li><strong className="text-foreground">Sidebar direita:</strong> propriedades do item selecionado.</li>
             <li><strong className="text-foreground">Canvas central:</strong> área de desenho, com pan e zoom infinitos.</li>
           </ul>
-          <Figure src={overview} caption="Tela inicial do Map Studio com canvas vazio." size="lg" />
+          <AnnotatedFigure
+            src={overview}
+            caption="Tela inicial do Map Studio com as cinco áreas principais."
+            size="lg"
+            annotations={[
+              { shape: 'circle', x: 50, y: 4, w: 95, h: 6, label: '1', color: 'primary' },
+              { shape: 'circle', x: 50, y: 12, w: 60, h: 7, label: '2', color: 'success' },
+              { shape: 'circle', x: 8, y: 55, w: 14, h: 80, label: '3', color: 'warning' },
+              { shape: 'circle', x: 92, y: 55, w: 14, h: 80, label: '4', color: 'warning' },
+              { shape: 'circle', x: 50, y: 60, w: 50, h: 60, label: '5', color: 'destructive' },
+            ]}
+            legend={[
+              { label: '1', text: 'Topo: nome do mapa, botão Templates e Exportar.', color: 'primary' },
+              { label: '2', text: 'Toolbar central: ferramentas de criação, edição e zoom.', color: 'success' },
+              { label: '3', text: 'Sidebar esquerda: tipos de assento, mobília, elementos, setores e minimapa.', color: 'warning' },
+              { label: '4', text: 'Sidebar direita: propriedades do item selecionado.', color: 'warning' },
+              { label: '5', text: 'Canvas central: área de desenho com pan e zoom infinitos.', color: 'destructive' },
+            ]}
+          />
           <Tip>
             Tudo que você cria é salvo no <strong>histórico</strong> e pode ser desfeito com{' '}
             <Kbd>Ctrl</Kbd>+<Kbd>Z</Kbd>. As laterais podem ser recolhidas pelos botões de flecha
@@ -277,7 +455,21 @@ const ManualPage: React.FC = () => {
             <li><strong className="text-foreground">Forma L / U / T / Z</strong> — cantos e extensões</li>
             <li><strong className="text-foreground">Cruz, Seta, Estrela, Onda</strong> — layouts especiais</li>
           </ul>
-          <Figure src={templatesCompleto} caption="Etapa 1 — Galeria completa com 18 formas geométricas." size="lg" />
+          <AnnotatedFigure
+            src={templatesCompleto}
+            caption="Etapa 1 — Galeria completa com 18 formas geométricas."
+            size="lg"
+            annotations={[
+              { shape: 'arrow', x: 50, y: 8, arrowFromX: 50, arrowFromY: 1, label: '1', color: 'primary' },
+              { shape: 'circle', x: 50, y: 50, w: 90, h: 70, label: '2', color: 'success' },
+              { shape: 'arrow', x: 92, y: 96, arrowFromX: 80, arrowFromY: 88, label: '3', color: 'warning' },
+            ]}
+            legend={[
+              { label: '1', text: 'Indicador de etapa do assistente (1 = Forma, 2 = Configurar, 3 = Preview).', color: 'primary' },
+              { label: '2', text: 'Galeria de formas — clique em uma para selecioná-la.', color: 'success' },
+              { label: '3', text: 'Botão "Próximo" para avançar à etapa de configuração.', color: 'warning' },
+            ]}
+          />
 
           <h3 className="font-semibold text-lg pt-2">Etapa 2 — Configurar geometria e assentos</h3>
           <p className="text-sm text-muted-foreground">
@@ -286,7 +478,21 @@ const ManualPage: React.FC = () => {
             assento</strong>, <strong>curvatura</strong> da forma e <strong>tipo padrão</strong>. O preview
             ao lado mostra a distribuição em tempo real.
           </p>
-          <Figure src={configAssentos} caption="Etapa 2 — Configuração com preview ao vivo dos assentos." size="lg" />
+          <AnnotatedFigure
+            src={configAssentos}
+            caption="Etapa 2 — Configuração com preview ao vivo dos assentos."
+            size="lg"
+            annotations={[
+              { shape: 'circle', x: 25, y: 35, w: 40, h: 50, label: '1', color: 'primary' },
+              { shape: 'circle', x: 75, y: 50, w: 45, h: 70, label: '2', color: 'success' },
+              { shape: 'arrow', x: 25, y: 92, arrowFromX: 12, arrowFromY: 85, label: '3', color: 'warning' },
+            ]}
+            legend={[
+              { label: '1', text: 'Painel de parâmetros: fileiras, assentos por fila, espaçamento, tamanho e curvatura.', color: 'primary' },
+              { label: '2', text: 'Preview ao vivo: visualize a distribuição enquanto altera os valores.', color: 'success' },
+              { label: '3', text: 'Contador no rodapé mostra a capacidade total calculada.', color: 'warning' },
+            ]}
+          />
 
           <h3 className="font-semibold text-lg pt-2">Etapa 3 — Preview e confirmação</h3>
           <p className="text-sm text-muted-foreground">
@@ -301,7 +507,21 @@ const ManualPage: React.FC = () => {
             numeração padrão e cor automática. A lista lateral é atualizada e o status bar mostra
             o total de setores e assentos.
           </p>
-          <Figure src={canvasComSetor} caption="Setor criado: 288 assentos posicionados, lista lateral e contador atualizados." size="lg" />
+          <AnnotatedFigure
+            src={canvasComSetor}
+            caption="Setor criado: assentos posicionados, lista lateral e contador atualizados."
+            size="lg"
+            annotations={[
+              { shape: 'circle', x: 50, y: 50, w: 55, h: 55, label: '1', color: 'primary' },
+              { shape: 'arrow', x: 92, y: 30, arrowFromX: 80, arrowFromY: 20, label: '2', color: 'success' },
+              { shape: 'arrow', x: 50, y: 96, arrowFromX: 35, arrowFromY: 90, label: '3', color: 'warning' },
+            ]}
+            legend={[
+              { label: '1', text: 'Setor recém-criado com todos os assentos posicionados.', color: 'primary' },
+              { label: '2', text: 'Lista lateral de setores atualizada com o novo item.', color: 'success' },
+              { label: '3', text: 'Status bar exibe contagem total de setores e assentos.', color: 'warning' },
+            ]}
+          />
         </Section>
 
         {/* 4. Formas vs Setores */}
@@ -388,14 +608,44 @@ const ManualPage: React.FC = () => {
             ser <strong>Normal</strong>, <strong>VIP</strong>, <strong>PCD</strong> ou <strong>Obeso</strong>
             — define a cor e a categoria comercial dos assentos gerados.
           </p>
-          <Figure src={geradorTipoMobilia} caption="Etapa 1 — Tipo de mobília (Cadeira / Mesa / Bistrô) e tipo de assento (Normal / VIP / PCD / Obeso)." size="lg" />
+          <AnnotatedFigure
+            src={geradorTipoMobilia}
+            caption="Etapa 1 — Tipo de mobília e tipo de assento."
+            size="lg"
+            annotations={[
+              { shape: 'circle', x: 30, y: 35, w: 55, h: 25, label: '1', color: 'primary' },
+              { shape: 'circle', x: 30, y: 65, w: 55, h: 25, label: '2', color: 'success' },
+            ]}
+            legend={[
+              { label: '1', text: 'Tipo de mobília: Cadeira (assentos isolados), Mesa ou Bistrô.', color: 'primary' },
+              { label: '2', text: 'Tipo de assento padrão (define cor e categoria comercial): Normal, VIP, PCD ou Obeso.', color: 'success' },
+            ]}
+          />
 
           <h3 className="font-semibold text-lg pt-2">Etapa 2 — Configuração detalhada</h3>
           <p className="text-sm text-muted-foreground">
             Esta é a etapa mais rica. Cada parâmetro afeta o preview à direita em tempo real, e o
             contador no topo (<em>"X assentos dentro do setor (Y lugares)"</em>) confirma o resultado.
           </p>
-          <Figure src={geradorConfigDetalhada} caption="Etapa 2 — Visão completa: dimensões, espaçamentos, tamanho, tipo de fila, numeração, direção e preview ao vivo." size="lg" />
+          <AnnotatedFigure
+            src={geradorConfigDetalhada}
+            caption="Etapa 2 — Visão completa do gerador com todos os parâmetros."
+            size="lg"
+            annotations={[
+              { shape: 'circle', x: 22, y: 18, w: 35, h: 12, label: '1', color: 'primary' },
+              { shape: 'circle', x: 22, y: 32, w: 35, h: 14, label: '2', color: 'success' },
+              { shape: 'circle', x: 22, y: 50, w: 35, h: 16, label: '3', color: 'warning' },
+              { shape: 'circle', x: 22, y: 70, w: 35, h: 16, label: '4', color: 'destructive' },
+              { shape: 'circle', x: 75, y: 50, w: 45, h: 70, label: '5', color: 'primary' },
+            ]}
+            legend={[
+              { label: '1', text: 'Dimensões: filas (linhas) e assentos por fila.', color: 'primary' },
+              { label: '2', text: 'Espaçamento entre filas/assentos e tamanho do assento.', color: 'success' },
+              { label: '3', text: 'Tipo de fila (Letras/Números/Romano), início e posição do nome.', color: 'warning' },
+              { label: '4', text: 'Numeração dos assentos (sequencial, ímpares/pares, customizada) e direção.', color: 'destructive' },
+              { label: '5', text: 'Preview ao vivo: contador no topo informa "X assentos dentro do setor (Y lugares)".', color: 'primary' },
+            ]}
+          />
 
           <h4 className="font-semibold text-base pt-2">Dimensões da grade</h4>
           <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
@@ -450,7 +700,23 @@ const ManualPage: React.FC = () => {
             <li><strong>Rotação</strong> — gira toda a grade em graus (0° a 360°, passos de 5°). O preview mostra a rotação aplicada.</li>
             <li><strong>Prefixo</strong> — texto opcional antes do número de cada assento (ex.: <code>VIP-</code> gera <em>VIP-1, VIP-2, VIP-3…</em>; <code>SETOR1-</code> gera <em>SETOR1-A1, SETOR1-A2…</em>).</li>
           </ul>
-          <Figure src={geradorCustomizacao} caption="Customização: rotação, prefixo, assentos por fileira variáveis e alinhamento." size="lg" />
+          <AnnotatedFigure
+            src={geradorCustomizacao}
+            caption="Customização avançada: rotação, prefixo, assentos variáveis e alinhamento."
+            size="lg"
+            annotations={[
+              { shape: 'circle', x: 22, y: 25, w: 35, h: 12, label: '1', color: 'primary' },
+              { shape: 'circle', x: 22, y: 45, w: 35, h: 12, label: '2', color: 'success' },
+              { shape: 'circle', x: 22, y: 65, w: 35, h: 18, label: '3', color: 'warning' },
+              { shape: 'circle', x: 22, y: 85, w: 35, h: 10, label: '4', color: 'destructive' },
+            ]}
+            legend={[
+              { label: '1', text: 'Rotação: gira toda a grade em graus (0° a 360°).', color: 'primary' },
+              { label: '2', text: 'Prefixo: texto antes do número (ex.: "VIP-" gera VIP-1, VIP-2…).', color: 'success' },
+              { label: '3', text: 'Quantidade de assentos por fileira (customizada): defina valores diferentes por fila para arquibancadas trapezoidais.', color: 'warning' },
+              { label: '4', text: 'Alinhamento (Esquerda/Centro/Direita): posicionamento das filas variáveis dentro da forma.', color: 'destructive' },
+            ]}
+          />
 
           <h4 className="font-semibold text-base pt-2">Redimensionar forma</h4>
           <p className="text-sm text-muted-foreground">
@@ -523,7 +789,23 @@ const ManualPage: React.FC = () => {
             arrastando-as no preview.
           </p>
 
-          <Figure src={mobiliaMesaConfig} caption="Painel Mobília: tipo (Cadeira/Mesa/Bistrô), formato (Redonda/Quadrada/Retangular), número de cadeiras, dimensões e direção." size="lg" />
+          <AnnotatedFigure
+            src={mobiliaMesaConfig}
+            caption="Painel Mobília: configuração da mesa antes de inserir."
+            size="lg"
+            annotations={[
+              { shape: 'circle', x: 50, y: 12, w: 80, h: 10, label: '1', color: 'primary' },
+              { shape: 'circle', x: 50, y: 28, w: 80, h: 10, label: '2', color: 'success' },
+              { shape: 'circle', x: 50, y: 45, w: 80, h: 12, label: '3', color: 'warning' },
+              { shape: 'circle', x: 50, y: 65, w: 80, h: 18, label: '4', color: 'destructive' },
+            ]}
+            legend={[
+              { label: '1', text: 'Tipo: Cadeira / Mesa / Bistrô.', color: 'primary' },
+              { label: '2', text: 'Formato da mesa: Redonda / Quadrada / Retangular.', color: 'success' },
+              { label: '3', text: 'Número de cadeiras (2 a 12).', color: 'warning' },
+              { label: '4', text: 'Dimensões e direção da mesa.', color: 'destructive' },
+            ]}
+          />
 
           <h3 className="font-semibold text-lg pt-2">Preview interativo de cadeiras</h3>
           <p className="text-sm text-muted-foreground">
@@ -533,7 +815,20 @@ const ManualPage: React.FC = () => {
             de frente para o palco. As posições customizadas são salvas e aplicadas em todas as
             mesas inseridas a partir desse momento.
           </p>
-          <Figure src={mesaPreviewInterativo} caption="Preview interativo: arraste as cadeiras numeradas para criar layouts customizados." />
+          <AnnotatedFigure
+            src={mesaPreviewInterativo}
+            caption="Preview interativo: arraste cada cadeira para criar layouts customizados."
+            annotations={[
+              { shape: 'circle', x: 50, y: 50, w: 30, h: 30, label: '1', color: 'primary' },
+              { shape: 'arrow', x: 25, y: 50, arrowFromX: 8, arrowFromY: 30, label: '2', color: 'success' },
+              { shape: 'arrow', x: 75, y: 50, arrowFromX: 92, arrowFromY: 30, label: '3', color: 'success' },
+            ]}
+            legend={[
+              { label: '1', text: 'Mesa central — não é arrastável.', color: 'primary' },
+              { label: '2', text: 'Cadeiras numeradas — clique e arraste para reposicionar (ex.: 2 de um lado, 4 do outro).', color: 'success' },
+              { label: '3', text: 'O layout customizado é salvo e aplicado a todas as próximas mesas inseridas.', color: 'success' },
+            ]}
+          />
 
           <h3 className="font-semibold text-lg pt-2">Modo de Venda</h3>
           <p className="text-sm text-muted-foreground">
@@ -556,7 +851,25 @@ const ManualPage: React.FC = () => {
             exibe a mensagem <em>"Nenhuma seleção"</em>.
           </p>
 
-          <Figure src={setorPropriedades} caption="Setor selecionado: nome, paleta de cores, texto interno, posição e botão de gerar assentos." size="lg" />
+          <AnnotatedFigure
+            src={setorPropriedades}
+            caption="Painel de propriedades de um setor selecionado."
+            size="lg"
+            annotations={[
+              { shape: 'circle', x: 50, y: 8, w: 90, h: 6, label: '1', color: 'primary' },
+              { shape: 'circle', x: 50, y: 22, w: 90, h: 12, label: '2', color: 'success' },
+              { shape: 'circle', x: 50, y: 40, w: 90, h: 10, label: '3', color: 'warning' },
+              { shape: 'circle', x: 50, y: 58, w: 90, h: 14, label: '4', color: 'destructive' },
+              { shape: 'circle', x: 50, y: 92, w: 90, h: 10, label: '5', color: 'primary' },
+            ]}
+            legend={[
+              { label: '1', text: 'Nome do setor (aparece em todas as listagens e exportações).', color: 'primary' },
+              { label: '2', text: 'Paleta de cores predefinidas + cor personalizada (color picker).', color: 'success' },
+              { label: '3', text: 'Texto interno exibido sobre o setor (ex.: "Pista", "VIP").', color: 'warning' },
+              { label: '4', text: 'Posição (X, Y) e rotação em graus.', color: 'destructive' },
+              { label: '5', text: 'Botão "Gerar Assentos neste Setor" — abre o gerador respeitando a forma.', color: 'primary' },
+            ]}
+          />
 
           <h3 className="font-semibold text-lg pt-2">Setor selecionado</h3>
           <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
@@ -595,7 +908,25 @@ const ManualPage: React.FC = () => {
             Com um setor selecionado, o painel direito exibe três grupos de transformações geométricas
             que afetam o polígono inteiro (e os assentos contidos nele).
           </p>
-          <Figure src={propriedadesRotacaoCurvatura} caption="Painel de propriedades: Transformações no topo (centralizar / espelhar H / espelhar V), Espaçamento, Rotação com presets, Curvatura e Opacidade." size="lg" />
+          <AnnotatedFigure
+            src={propriedadesRotacaoCurvatura}
+            caption="Painel de propriedades — transformações geométricas do setor."
+            size="lg"
+            annotations={[
+              { shape: 'circle', x: 50, y: 10, w: 90, h: 8, label: '1', color: 'primary' },
+              { shape: 'circle', x: 50, y: 30, w: 90, h: 12, label: '2', color: 'success' },
+              { shape: 'circle', x: 50, y: 50, w: 90, h: 16, label: '3', color: 'warning' },
+              { shape: 'circle', x: 50, y: 72, w: 90, h: 14, label: '4', color: 'destructive' },
+              { shape: 'circle', x: 50, y: 92, w: 90, h: 10, label: '5', color: 'primary' },
+            ]}
+            legend={[
+              { label: '1', text: 'Transformações: centralizar, espelhar Horizontal e espelhar Vertical.', color: 'primary' },
+              { label: '2', text: 'Espaçamento entre assentos do setor.', color: 'success' },
+              { label: '3', text: 'Rotação: slider 0°-360° + presets rápidos (0/45/90/180/270).', color: 'warning' },
+              { label: '4', text: 'Curvatura: 0% (Reto) a 100% (Curvo) — aplica curvas Bézier nas arestas.', color: 'destructive' },
+              { label: '5', text: 'Opacidade do setor (útil para sobrepor ao fundo).', color: 'primary' },
+            ]}
+          />
 
           <h3 className="font-semibold text-lg pt-2">Rotação</h3>
           <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
