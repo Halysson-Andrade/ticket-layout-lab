@@ -25,6 +25,12 @@ export interface AIPlanSector {
   rotation?: number;
   rows: number;
   cols: number;
+  seatSize?: number;
+  rowSpacing?: number;
+  colSpacing?: number;
+  rowAlignment?: 'left' | 'center' | 'right';
+  seatsPerRow?: number[];
+  centerSeats?: boolean;
   rowLabelType?: RowLabelType;
   labelPrefix?: string;
 }
@@ -46,6 +52,7 @@ export interface AIMapPlan {
 
 const SUPPORTED_SHAPES: SectorShape[] = [
   'rectangle',
+  'parallelogram',
   'circle',
   'trapezoid',
   'pentagon',
@@ -55,8 +62,13 @@ const SUPPORTED_SHAPES: SectorShape[] = [
   'l-shape',
   'u-shape',
   't-shape',
+  'z-shape',
+  'cross',
   'diamond',
   'octagon',
+  'arrow',
+  'star',
+  'wave',
 ];
 
 const SUPPORTED_ELEMENTS: ElementType[] = [
@@ -89,6 +101,14 @@ export function buildSectorsAndElementsFromPlan(
     const curvature = Math.max(0, Math.min(100, Math.round(s.curvature ?? 0)));
     const vertices = generateVerticesWithCurvature(shape, bounds, curvature);
     const sectorId = generateId();
+    const seatSize = Math.max(6, Math.min(24, Math.round(s.seatSize ?? 10)));
+    const colSpacing = Math.max(0, Math.min(24, Math.round(s.colSpacing ?? 8)));
+    const rowSpacing = Math.max(0, Math.min(24, Math.round(s.rowSpacing ?? colSpacing)));
+    const seatsPerRow = Array.isArray(s.seatsPerRow)
+      ? s.seatsPerRow
+          .map((value) => Math.max(0, Math.round(value ?? 0)))
+          .slice(0, Math.max(0, Math.round(s.rows ?? 0)))
+      : undefined;
 
     let seats: ReturnType<typeof generateSeatsInsidePolygon> = [];
     const rows = Math.max(0, Math.round(s.rows ?? 0));
@@ -98,8 +118,8 @@ export function buildSectorsAndElementsFromPlan(
         seats = generateSeatsInsidePolygon(
           vertices,
           sectorId,
-          10, // seatSize default
-          8, // colSpacing default
+          seatSize,
+          colSpacing,
           s.rowLabelType || 'alpha',
           'numeric',
           s.labelPrefix || '',
@@ -108,7 +128,13 @@ export function buildSectorsAndElementsFromPlan(
           shape === 'arc',
           curvature,
           rows,
-          cols
+          cols,
+          undefined,
+          undefined,
+          s.rotation ?? 0,
+          seatsPerRow,
+          rowSpacing,
+          s.rowAlignment,
         );
       } catch (e) {
         console.error('Erro gerando assentos para setor IA', s.name, e);
@@ -136,6 +162,12 @@ export function buildSectorsAndElementsFromPlan(
       locked: false,
       gridRows: rows,
       gridCols: cols,
+      seatSize,
+      rowSpacing,
+      colSpacing,
+      rowAlignment: s.rowAlignment,
+      seatsPerRow,
+      centerSeats: s.centerSeats ?? true,
       rowLabelType: s.rowLabelType || 'alpha',
       seatLabelType: 'numeric',
       rowLabelStart: 'A',
@@ -166,7 +198,11 @@ export function buildSectorsAndElementsFromPlan(
 export function summarizePlan(plan: AIMapPlan): string {
   const sectorCount = plan.sectors?.length ?? 0;
   const totalSeats = (plan.sectors || []).reduce(
-    (acc, s) => acc + (s.rows || 0) * (s.cols || 0),
+    (acc, s) =>
+      acc +
+      (Array.isArray(s.seatsPerRow) && s.seatsPerRow.length > 0
+        ? s.seatsPerRow.reduce((sum, value) => sum + (Number(value) || 0), 0)
+        : (s.rows || 0) * (s.cols || 0)),
     0
   );
   const elementCount = plan.elements?.length ?? 0;
