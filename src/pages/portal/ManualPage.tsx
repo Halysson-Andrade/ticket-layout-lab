@@ -353,7 +353,25 @@ const ManualPage: React.FC = () => {
             <li><strong className="text-foreground">Sidebar direita:</strong> propriedades do item selecionado.</li>
             <li><strong className="text-foreground">Canvas central:</strong> área de desenho, com pan e zoom infinitos.</li>
           </ul>
-          <Figure src={overview} caption="Tela inicial do Map Studio com canvas vazio." size="lg" />
+          <AnnotatedFigure
+            src={overview}
+            caption="Tela inicial do Map Studio com as cinco áreas principais."
+            size="lg"
+            annotations={[
+              { shape: 'circle', x: 50, y: 4, w: 95, h: 6, label: '1', color: 'primary' },
+              { shape: 'circle', x: 50, y: 12, w: 60, h: 7, label: '2', color: 'success' },
+              { shape: 'circle', x: 8, y: 55, w: 14, h: 80, label: '3', color: 'warning' },
+              { shape: 'circle', x: 92, y: 55, w: 14, h: 80, label: '4', color: 'warning' },
+              { shape: 'circle', x: 50, y: 60, w: 50, h: 60, label: '5', color: 'destructive' },
+            ]}
+            legend={[
+              { label: '1', text: 'Topo: nome do mapa, botão Templates e Exportar.', color: 'primary' },
+              { label: '2', text: 'Toolbar central: ferramentas de criação, edição e zoom.', color: 'success' },
+              { label: '3', text: 'Sidebar esquerda: tipos de assento, mobília, elementos, setores e minimapa.', color: 'warning' },
+              { label: '4', text: 'Sidebar direita: propriedades do item selecionado.', color: 'warning' },
+              { label: '5', text: 'Canvas central: área de desenho com pan e zoom infinitos.', color: 'destructive' },
+            ]}
+          />
           <Tip>
             Tudo que você cria é salvo no <strong>histórico</strong> e pode ser desfeito com{' '}
             <Kbd>Ctrl</Kbd>+<Kbd>Z</Kbd>. As laterais podem ser recolhidas pelos botões de flecha
