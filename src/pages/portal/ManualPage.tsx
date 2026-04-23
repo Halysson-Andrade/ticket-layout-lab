@@ -789,7 +789,23 @@ const ManualPage: React.FC = () => {
             arrastando-as no preview.
           </p>
 
-          <Figure src={mobiliaMesaConfig} caption="Painel Mobília: tipo (Cadeira/Mesa/Bistrô), formato (Redonda/Quadrada/Retangular), número de cadeiras, dimensões e direção." size="lg" />
+          <AnnotatedFigure
+            src={mobiliaMesaConfig}
+            caption="Painel Mobília: configuração da mesa antes de inserir."
+            size="lg"
+            annotations={[
+              { shape: 'circle', x: 50, y: 12, w: 80, h: 10, label: '1', color: 'primary' },
+              { shape: 'circle', x: 50, y: 28, w: 80, h: 10, label: '2', color: 'success' },
+              { shape: 'circle', x: 50, y: 45, w: 80, h: 12, label: '3', color: 'warning' },
+              { shape: 'circle', x: 50, y: 65, w: 80, h: 18, label: '4', color: 'destructive' },
+            ]}
+            legend={[
+              { label: '1', text: 'Tipo: Cadeira / Mesa / Bistrô.', color: 'primary' },
+              { label: '2', text: 'Formato da mesa: Redonda / Quadrada / Retangular.', color: 'success' },
+              { label: '3', text: 'Número de cadeiras (2 a 12).', color: 'warning' },
+              { label: '4', text: 'Dimensões e direção da mesa.', color: 'destructive' },
+            ]}
+          />
 
           <h3 className="font-semibold text-lg pt-2">Preview interativo de cadeiras</h3>
           <p className="text-sm text-muted-foreground">
