@@ -161,10 +161,14 @@ const ManualPage: React.FC = () => {
               <li><a href="#toolbar" className="hover:text-foreground">Barra de ferramentas</a></li>
               <li><a href="#templates" className="hover:text-foreground">Criação de setores (Templates)</a></li>
               <li><a href="#shapes-vs-sectors" className="hover:text-foreground">Formas vs Setores</a></li>
-              <li><a href="#seat-generator" className="hover:text-foreground">Gerador de assentos</a></li>
+              <li><a href="#seat-generator" className="hover:text-foreground">Gerador de assentos (detalhado)</a></li>
               <li><a href="#left-sidebar" className="hover:text-foreground">Sidebar esquerda</a></li>
               <li><a href="#furniture" className="hover:text-foreground">Mobília (Mesa / Bistrô)</a></li>
-              <li><a href="#right-sidebar" className="hover:text-foreground">Sidebar direita (propriedades)</a></li>
+              <li><a href="#right-sidebar" className="hover:text-foreground">Propriedades de Setor</a></li>
+              <li><a href="#sector-transforms" className="hover:text-foreground">Rotação, curvatura e espelhamento</a></li>
+              <li><a href="#seat-properties" className="hover:text-foreground">Propriedades dos assentos e bloqueio</a></li>
+              <li><a href="#vertices" className="hover:text-foreground">Vértices: criação, remoção e curvatura</a></li>
+              <li><a href="#alignment" className="hover:text-foreground">Alinhamento e distribuição de setores</a></li>
               <li><a href="#context-menu" className="hover:text-foreground">Menu de contexto (botão direito)</a></li>
               <li><a href="#background" className="hover:text-foreground">Imagem de fundo</a></li>
               <li><a href="#maps-portal" className="hover:text-foreground">Mapas no portal</a></li>
