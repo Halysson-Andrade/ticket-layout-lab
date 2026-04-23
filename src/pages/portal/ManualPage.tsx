@@ -27,6 +27,11 @@ import geradorPasso2 from '@/assets/manual/13-gerador-passo2.png';
 import mobiliaMesaConfig from '@/assets/manual/14-mobilia-mesa-config.png';
 import mesaPreviewInterativo from '@/assets/manual/15-mesa-preview-interativo.png';
 import exportJson from '@/assets/manual/16-export-json.png';
+import setorSelecionadoCompleto from '@/assets/manual/17-setor-selecionado-completo.png';
+import propriedadesRotacaoCurvatura from '@/assets/manual/18-propriedades-rotacao-curvatura.png';
+import geradorTipoMobilia from '@/assets/manual/19-gerador-tipo-mobilia.png';
+import geradorConfigDetalhada from '@/assets/manual/20-gerador-config-detalhada.png';
+import geradorCustomizacao from '@/assets/manual/21-gerador-customizacao.png';
 
 const Kbd: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <kbd className="px-2 py-0.5 text-xs font-mono bg-muted border border-border rounded shadow-sm print:bg-transparent print:border-foreground/40">
