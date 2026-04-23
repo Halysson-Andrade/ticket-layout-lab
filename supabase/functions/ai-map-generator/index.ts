@@ -117,6 +117,17 @@ ${MAP_STUDIO_CONTEXT}
 ## Sua tarefa
 Reproduzir FIELMENTE no canvas o layout descrito no relatório, usando a função 'generate_map_plan'.
 
+## Nível de detalhe OBRIGATÓRIO
+- Não basta aproximar por bloco. Você deve reconstruir a DENSIDADE VISUAL do setor.
+- Para cada setor, estime também a malha de assentos com precisão: 
+  - rows = número real de fileiras visíveis
+  - cols = capacidade da fileira de referência mais longa
+  - seatsPerRow = contagem de assentos por fileira, uma entrada por fileira, quando houver afunilamento/chanfro/diagonal
+  - rowSpacing, colSpacing e seatSize devem ser coerentes com a imagem para evitar setor “vazio” ou “folgado” demais
+- Se o setor é trapezoidal, diagonal, chanfrado ou afunilado, use seatsPerRow para reduzir/aumentar fileiras progressivamente.
+- Se dois setores têm a mesma bbox mas densidades diferentes, reflita isso em seatSize/spacing/seatsPerRow.
+- Priorize fidelidade visual do preenchimento interno, não apenas da borda externa.
+
 ## Conversão CRÍTICA (percentual → pixel canvas)
 Para cada setor/elemento descrito com (x_pct, y_pct, w_pct, h_pct), você receberá os valores pré-calculados:
 - IMAGE_WIDTH, IMAGE_HEIGHT (pixels da imagem original)
@@ -142,6 +153,8 @@ RETORNE x, y, width, height JÁ NESTE SISTEMA DE PIXELS DO CANVAS.
 2. Cada quadrante (Q1..Q9) coberto no relatório deve ter pelo menos um setor no plano cuja bbox cai naquele quadrante do canvas.
 3. Para arcos/leques, use shape="arc" + curvature 30-80.
 4. Modo conservador: todos assentos type "normal", status "available". NUNCA infira VIP/PCD.
+5. Se houver fileiras irregulares visíveis, seatsPerRow é obrigatório.
+6. Evite subcontagem: o total de assentos gerado deve ficar o mais próximo possível da imagem de referência.
 
 ## Refinamentos
 Em mensagens posteriores, ajuste o plano conforme pedido (aumentar setor X, mover Y, etc.) mantendo fidelidade do restante.
@@ -214,6 +227,31 @@ const TOOL_SCHEMA = {
                   rotation: { type: "number", description: "graus" },
                   rows: { type: "number" },
                   cols: { type: "number" },
+                  seatSize: {
+                    type: "number",
+                    description: "Tamanho do assento em px no canvas. Use para refletir densidade real.",
+                  },
+                  rowSpacing: {
+                    type: "number",
+                    description: "Espaço vertical entre fileiras em px.",
+                  },
+                  colSpacing: {
+                    type: "number",
+                    description: "Espaço horizontal entre assentos em px.",
+                  },
+                  rowAlignment: {
+                    type: "string",
+                    enum: ["left", "center", "right"],
+                  },
+                  seatsPerRow: {
+                    type: "array",
+                    description: "Quantidade de assentos por fileira para setores irregulares. Deve ter comprimento igual a rows quando usado.",
+                    items: { type: "number" },
+                  },
+                  centerSeats: {
+                    type: "boolean",
+                    description: "Use true quando o bloco estiver visualmente centralizado dentro do setor.",
+                  },
                   rowLabelType: {
                     type: "string",
                     enum: ["alpha", "numeric", "roman"],
@@ -389,6 +427,7 @@ serve(async (req) => {
       const analysisResp = await callGateway(
         {
           model: "google/gemini-2.5-pro",
+          max_completion_tokens: 8192,
           messages: [
             { role: "system", content: ANALYSIS_PROMPT },
             { role: "user", content: analysisUserContent },
@@ -497,6 +536,7 @@ TODOS os setores devem cair DENTRO desta área (não invente coordenadas fora).`
     const genResp = await callGateway(
       {
         model: "google/gemini-2.5-pro",
+        max_completion_tokens: 8192,
         messages: aiMessages,
         tools: [TOOL_SCHEMA],
         tool_choice: {
@@ -513,6 +553,19 @@ TODOS os setores devem cair DENTRO desta área (não invente coordenadas fora).`
     }
 
     const data = await genResp.json();
+    const finishReason = data?.choices?.[0]?.finish_reason;
+    if (finishReason === "length") {
+      console.error("[ai-map-generator] Resposta truncada por limite de tokens");
+      return new Response(
+        JSON.stringify({
+          error: "A IA excedeu o limite de resposta ao montar o plano. Tente novamente com um refinamento mais específico.",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
     const toolCall = data?.choices?.[0]?.message?.tool_calls?.[0];
 
     if (!toolCall?.function?.arguments) {
@@ -528,7 +581,14 @@ TODOS os setores devem cair DENTRO desta área (não invente coordenadas fora).`
       );
     }
 
-    const parsed = JSON.parse(toolCall.function.arguments);
+    const rawArguments = String(toolCall.function.arguments || "").trim();
+    const sanitizedArguments = rawArguments
+      .replace(/^```json\s*/im, "")
+      .replace(/^```\s*/im, "")
+      .replace(/```\s*$/im, "")
+      .trim();
+
+    const parsed = JSON.parse(sanitizedArguments);
 
     console.log(
       "[ai-map-generator] FASE 2 OK. Setores:",
