@@ -2530,6 +2530,16 @@ export const MapStudio: React.FC = () => {
           onImportImage={handleImportImage}
         />
 
+        {/* AI Map Assistant Drawer */}
+        <AIMapAssistant
+          open={aiAssistantOpen}
+          onClose={() => setAiAssistantOpen(false)}
+          imageBase64={bgConfig?.url || null}
+          canvasWidth={CANVAS_WIDTH}
+          canvasHeight={CANVAS_HEIGHT}
+          onApplyPlan={handleApplyAIPlan}
+        />
+
         {/* Seat Placement Popup */}
         {seatPlacementPopup && (
           <SeatPlacementPopup
