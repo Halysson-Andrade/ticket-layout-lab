@@ -897,11 +897,16 @@ const ManualPage: React.FC = () => {
             caption="Painel de propriedades — transformações geométricas do setor."
             size="lg"
             annotations={[
-              { x: 50, y: 10, label: '1', color: 'primary' },
-              { x: 50, y: 30, label: '2', color: 'success' },
-              { x: 50, y: 50, label: '3', color: 'warning' },
-              { x: 50, y: 72, label: '4', color: 'destructive' },
-              { x: 50, y: 92, label: '5', color: 'primary' },
+              // 1. Botões de Transformação (centralizar / espelhar H / espelhar V) — topo
+              { x: 88, y: 25, badgeX: 73, badgeY: 25, label: '1', color: 'primary' },
+              // 2. Espaçamento (filas/assentos/tamanho)
+              { x: 88, y: 42, badgeX: 73, badgeY: 42, label: '2', color: 'success' },
+              // 3. Rotação (slider + presets)
+              { x: 88, y: 60, badgeX: 73, badgeY: 60, label: '3', color: 'warning' },
+              // 4. Curvatura (slider Reto/Curvo)
+              { x: 88, y: 76, badgeX: 73, badgeY: 76, label: '4', color: 'destructive' },
+              // 5. Opacidade do Preenchimento
+              { x: 88, y: 87, badgeX: 73, badgeY: 87, label: '5', color: 'primary' },
             ]}
             legend={[
               { label: '1', text: 'Transformações: centralizar, espelhar Horizontal e espelhar Vertical.', color: 'primary' },
