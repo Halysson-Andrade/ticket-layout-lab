@@ -815,7 +815,20 @@ const ManualPage: React.FC = () => {
             de frente para o palco. As posições customizadas são salvas e aplicadas em todas as
             mesas inseridas a partir desse momento.
           </p>
-          <Figure src={mesaPreviewInterativo} caption="Preview interativo: arraste as cadeiras numeradas para criar layouts customizados." />
+          <AnnotatedFigure
+            src={mesaPreviewInterativo}
+            caption="Preview interativo: arraste cada cadeira para criar layouts customizados."
+            annotations={[
+              { shape: 'circle', x: 50, y: 50, w: 30, h: 30, label: '1', color: 'primary' },
+              { shape: 'arrow', x: 25, y: 50, arrowFromX: 8, arrowFromY: 30, label: '2', color: 'success' },
+              { shape: 'arrow', x: 75, y: 50, arrowFromX: 92, arrowFromY: 30, label: '3', color: 'success' },
+            ]}
+            legend={[
+              { label: '1', text: 'Mesa central — não é arrastável.', color: 'primary' },
+              { label: '2', text: 'Cadeiras numeradas — clique e arraste para reposicionar (ex.: 2 de um lado, 4 do outro).', color: 'success' },
+              { label: '3', text: 'O layout customizado é salvo e aplicado a todas as próximas mesas inseridas.', color: 'success' },
+            ]}
+          />
 
           <h3 className="font-semibold text-lg pt-2">Modo de Venda</h3>
           <p className="text-sm text-muted-foreground">
