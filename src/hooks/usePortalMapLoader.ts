@@ -107,6 +107,7 @@ export function usePortalMapLoader(): PortalMapResult {
 
       if (mapJson?.sectors) setSectors(mapJson.sectors);
       if (mapJson?.elements) setElements(mapJson.elements);
+      if (setBackground) setBackground(mapJson?.backgroundImage || null);
       setMapData(prev => ({
         ...prev,
         name: map.name,
