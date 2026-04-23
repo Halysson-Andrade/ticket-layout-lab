@@ -507,7 +507,21 @@ const ManualPage: React.FC = () => {
             numeração padrão e cor automática. A lista lateral é atualizada e o status bar mostra
             o total de setores e assentos.
           </p>
-          <Figure src={canvasComSetor} caption="Setor criado: 288 assentos posicionados, lista lateral e contador atualizados." size="lg" />
+          <AnnotatedFigure
+            src={canvasComSetor}
+            caption="Setor criado: assentos posicionados, lista lateral e contador atualizados."
+            size="lg"
+            annotations={[
+              { shape: 'circle', x: 50, y: 50, w: 55, h: 55, label: '1', color: 'primary' },
+              { shape: 'arrow', x: 92, y: 30, arrowFromX: 80, arrowFromY: 20, label: '2', color: 'success' },
+              { shape: 'arrow', x: 50, y: 96, arrowFromX: 35, arrowFromY: 90, label: '3', color: 'warning' },
+            ]}
+            legend={[
+              { label: '1', text: 'Setor recém-criado com todos os assentos posicionados.', color: 'primary' },
+              { label: '2', text: 'Lista lateral de setores atualizada com o novo item.', color: 'success' },
+              { label: '3', text: 'Status bar exibe contagem total de setores e assentos.', color: 'warning' },
+            ]}
+          />
         </Section>
 
         {/* 4. Formas vs Setores */}
