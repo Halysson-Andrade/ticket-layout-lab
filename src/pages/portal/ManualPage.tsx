@@ -589,6 +589,181 @@ const ManualPage: React.FC = () => {
           </p>
         </Section>
 
+        {/* 8b. Transformações de Setor (Rotação, Curvatura, Espelhamento) */}
+        <Section id="sector-transforms" icon={<RotateCw className="h-6 w-6" />} title="8.1 Rotação, curvatura e espelhamento de setores">
+          <p className="text-sm">
+            Com um setor selecionado, o painel direito exibe três grupos de transformações geométricas
+            que afetam o polígono inteiro (e os assentos contidos nele).
+          </p>
+          <Figure src={propriedadesRotacaoCurvatura} caption="Painel de propriedades: Transformações no topo (centralizar / espelhar H / espelhar V), Espaçamento, Rotação com presets, Curvatura e Opacidade." size="lg" />
+
+          <h3 className="font-semibold text-lg pt-2">Rotação</h3>
+          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+            <li>Slider de 0° a 360°, campo numérico, botões <Kbd>−</Kbd> / <Kbd>+</Kbd> para passos finos.</li>
+            <li>Presets rápidos: <strong>0°</strong>, <strong>45°</strong>, <strong>90°</strong>, <strong>180°</strong>, <strong>270°</strong>.</li>
+            <li>No canvas, a <strong>alça circular acima do setor</strong> permite rotacionar arrastando com o mouse.</li>
+            <li>Atalhos com setor selecionado: <Kbd>R</Kbd> rotaciona 90° horário, <Kbd>Shift</Kbd>+<Kbd>R</Kbd> anti-horário.</li>
+          </ul>
+
+          <h3 className="font-semibold text-lg pt-2">Curvatura</h3>
+          <p className="text-sm text-muted-foreground">
+            Slider de 0% (<em>Reto</em>) a 100% (<em>Curvo</em>). Aplica curvas Bézier nas arestas do
+            polígono, transformando um setor reto em uma forma orgânica. Ideal para arquibancadas
+            curvas ou setores em volta de palcos circulares.
+          </p>
+
+          <h3 className="font-semibold text-lg pt-2">Espelhamento (Inverter)</h3>
+          <p className="text-sm text-muted-foreground">
+            Os botões no topo (<strong>Centralizar Assentos</strong>, <strong>Inverter Horizontal</strong>,
+            <strong> Inverter Vertical</strong>) aplicam transformações sobre o setor mantendo a numeração:
+          </p>
+          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+            <li><strong>Centralizar</strong> — recentraliza assentos dentro do polígono caso desalinhem após edições manuais.</li>
+            <li><strong>Espelhar Horizontal</strong> (<Kbd>F</Kbd>) — inverte da esquerda para a direita. Numeração 1→N vira N→1 visualmente.</li>
+            <li><strong>Espelhar Vertical</strong> (<Kbd>Shift</Kbd>+<Kbd>F</Kbd>) — inverte de cima para baixo. Útil quando o setor foi criado "de costas" para o palco.</li>
+          </ul>
+
+          <h3 className="font-semibold text-lg pt-2">Opacidade do Preenchimento</h3>
+          <p className="text-sm text-muted-foreground">
+            Slider de 0% (<em>Transparente</em>) a 100% (<em>Sólido</em>). Diminuir a opacidade ajuda
+            quando você quer enxergar a imagem de fundo (planta) através do setor enquanto edita.
+          </p>
+
+          <h3 className="font-semibold text-lg pt-2">Espaçamento dos assentos (após geração)</h3>
+          <p className="text-sm text-muted-foreground">
+            Mesmo após gerar os assentos, você pode ajustar <strong>Entre Filas</strong>,{' '}
+            <strong>Entre Assentos</strong> e <strong>Tamanho do Assento</strong> diretamente nos
+            sliders. A forma se ajusta automaticamente para acomodar a nova distribuição.
+          </p>
+        </Section>
+
+        {/* 8c. Propriedades dos assentos e bloqueio */}
+        <Section id="seat-properties" icon={<Ban className="h-6 w-6" />} title="8.2 Propriedades dos assentos e bloqueio">
+          <p className="text-sm">
+            Selecione um ou mais assentos no canvas (clique direto, <Kbd>Shift</Kbd>+clique para
+            adicionar à seleção, ou arraste em caixa) para acessar as propriedades específicas.
+          </p>
+
+          <h3 className="font-semibold text-lg pt-2">Aplicar tipo de assento</h3>
+          <p className="text-sm text-muted-foreground">
+            Com assentos selecionados, clique em qualquer tipo na <strong>sidebar esquerda → Tipos de
+            Assento</strong> para aplicar em massa. Cada tipo tem cor própria que aparece imediatamente
+            no canvas e é exportada no JSON para o sistema de venda.
+          </p>
+          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+            <li><strong>Normal</strong> — verde — assento padrão.</li>
+            <li><strong>VIP</strong> — magenta — categoria premium.</li>
+            <li><strong>PCD</strong> — azul — pessoa com deficiência.</li>
+            <li><strong>Acompanhante</strong> — roxo — par do PCD.</li>
+            <li><strong>Obeso</strong> — amarelo — assento reforçado/largo.</li>
+            <li><strong>Bloqueado</strong> — cinza — não vendável.</li>
+          </ul>
+
+          <h3 className="font-semibold text-lg pt-2">Bloqueio de assentos com motivo</h3>
+          <p className="text-sm text-muted-foreground">
+            Para bloquear formalmente um ou mais assentos (impedir que apareçam para venda no
+            sistema externo), use o botão <strong>Bloquear</strong> no painel direito ou clique no
+            tipo "Bloqueado". Abre o modal:
+          </p>
+          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+            <li>Aviso da quantidade de assentos que serão bloqueados.</li>
+            <li>Checkbox <strong>"Adicionar motivo do bloqueio"</strong> para deixar uma nota textual de até 200 caracteres.</li>
+            <li>Exemplos típicos: <em>"Visão obstruída"</em>, <em>"Manutenção"</em>, <em>"Reserva especial"</em>, <em>"Coluna no caminho"</em>.</li>
+            <li>O motivo é salvo junto com o assento e aparece em tooltips, relatórios e na exportação JSON.</li>
+          </ul>
+
+          <h3 className="font-semibold text-lg pt-2">Edição em massa</h3>
+          <p className="text-sm text-muted-foreground">
+            Toda alteração feita com múltiplos assentos selecionados se aplica a todos. Exemplos:
+            marcar uma fileira inteira como VIP, bloquear toda uma coluna, mudar o tipo de um setor
+            inteiro de uma só vez. Use <Kbd>Ctrl</Kbd>+<Kbd>A</Kbd> para selecionar tudo.
+          </p>
+        </Section>
+
+        {/* 8d. Vértices e edição de polígono */}
+        <Section id="vertices" icon={<Spline className="h-6 w-6" />} title="8.3 Vértices: criação, remoção e curvatura">
+          <p className="text-sm">
+            Cada setor é um <strong>polígono</strong> formado por vértices (pontos) ligados por
+            arestas (linhas/curvas). Você pode remodelá-lo livremente.
+          </p>
+
+          <h3 className="font-semibold text-lg pt-2">Arrastar vértices</h3>
+          <p className="text-sm text-muted-foreground">
+            Com o setor selecionado, os vértices aparecem como <strong>quadradinhos azuis</strong>
+            nos cantos. Arraste qualquer um para mover apenas aquele ponto, deformando a geometria.
+            Os assentos contidos no polígono <strong>não se movem automaticamente</strong> — use{' '}
+            <em>Centralizar Assentos</em> (seção 8.1) caso precise reposicionar.
+          </p>
+
+          <h3 className="font-semibold text-lg pt-2">Adicionar ponto (criar vértice)</h3>
+          <p className="text-sm text-muted-foreground">
+            Clique com o <strong>botão direito sobre uma aresta</strong> (linha entre dois vértices) e
+            escolha <em>"Adicionar ponto"</em>. Um novo vértice é inserido exatamente naquela
+            posição, permitindo formas mais complexas. Repita o processo quantas vezes precisar para
+            criar curvas finas e detalhes.
+          </p>
+
+          <h3 className="font-semibold text-lg pt-2">Remover ponto</h3>
+          <p className="text-sm text-muted-foreground">
+            Clique direito <strong>sobre um vértice</strong> e escolha <em>"Remover ponto"</em>. A
+            opção fica desativada se o setor tiver apenas 3 vértices (mínimo para formar um polígono).
+          </p>
+
+          <h3 className="font-semibold text-lg pt-2">Curvar ponto (Bézier)</h3>
+          <p className="text-sm text-muted-foreground">
+            Clique direito <strong>sobre um vértice</strong> e escolha{' '}
+            <em>"Curvar ponto"</em>. O canto reto vira uma curva Bézier suave naquele ponto, com um
+            ponto de controle que você pode arrastar para ajustar a intensidade da curvatura. Ideal
+            para criar setores arredondados sem precisar de muitos vértices.
+          </p>
+
+          <Tip>
+            Para arredondar o setor inteiro de uma vez, use o slider <strong>Curvatura</strong> no
+            painel direito (seção 8.1) — ele aplica curvas em todas as arestas simultaneamente.
+          </Tip>
+        </Section>
+
+        {/* 8e. Alinhamento e distribuição */}
+        <Section id="alignment" icon={<AlignCenter className="h-6 w-6" />} title="8.4 Alinhamento e distribuição de setores">
+          <p className="text-sm">
+            Quando você seleciona <strong>2 ou mais setores</strong>, uma <strong>barra flutuante de
+            alinhamento</strong> aparece logo abaixo da toolbar superior. Ela permite organizar
+            setores como em ferramentas de design (Figma, Illustrator).
+          </p>
+
+          <h3 className="font-semibold text-lg pt-2">Alinhamento horizontal</h3>
+          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+            <li><strong>Alinhar à esquerda</strong> — todos os setores compartilham a borda esquerda do mais à esquerda.</li>
+            <li><strong>Centralizar horizontalmente</strong> — alinha todos pelo eixo X central.</li>
+            <li><strong>Alinhar à direita</strong> — todos compartilham a borda direita do mais à direita.</li>
+          </ul>
+
+          <h3 className="font-semibold text-lg pt-2">Alinhamento vertical</h3>
+          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+            <li><strong>Alinhar ao topo</strong> — bordas superiores no mesmo Y.</li>
+            <li><strong>Centralizar verticalmente</strong> — eixos Y centrais coincidem.</li>
+            <li><strong>Alinhar à base</strong> — bordas inferiores no mesmo Y.</li>
+          </ul>
+
+          <h3 className="font-semibold text-lg pt-2">Distribuição</h3>
+          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+            <li><strong>Distribuir horizontalmente</strong> — espaçamento igual no eixo X entre os 3+ setores selecionados.</li>
+            <li><strong>Distribuir verticalmente</strong> — espaçamento igual no eixo Y.</li>
+          </ul>
+
+          <h3 className="font-semibold text-lg pt-2">Auto Grid (alinhar tudo e centralizar)</h3>
+          <p className="text-sm text-muted-foreground">
+            Atalho rápido de organização: alinha todos os setores em uma grade ordenada e centraliza
+            o conjunto no canvas. Útil quando você importa muitos setores soltos ou quer "limpar"
+            visualmente um mapa bagunçado.
+          </p>
+
+          <Tip>
+            A barra também mostra a <strong>contagem</strong> de setores selecionados ("3 setores")
+            para confirmar quantos itens serão afetados pela operação.
+          </Tip>
+        </Section>
+
         {/* 9. Context menu */}
         <Section id="context-menu" icon={<MousePointerClick className="h-6 w-6" />} title="9. Menu de contexto (botão direito)">
           <p className="text-sm">
