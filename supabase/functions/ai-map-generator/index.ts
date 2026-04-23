@@ -1,8 +1,7 @@
 // Edge function: ai-map-generator
 // Pipeline em 2 fases:
-//   Fase 1 — Análise visual: descreve a imagem em texto estruturado (setores, cores, contagens reais)
-//   Fase 2 — Geração: usa a análise + imagem para produzir um plano JSON via tool calling
-// Esta abordagem aumenta drasticamente a fidelidade visual da reconstrução.
+//   Fase 1 — Análise visual com GRADE DE VALIDAÇÃO (3x3) e bounding boxes em PERCENTUAIS
+//   Fase 2 — Geração estruturada via tool calling, com mapeamento de coordenadas pré-calculado
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -12,87 +11,140 @@ const corsHeaders = {
 };
 
 // =====================================================================
-// FASE 1 — Análise visual exaustiva
+// CONTEXTO COMPLETO DO MAP STUDIO (passado para ambas as fases)
 // =====================================================================
-const ANALYSIS_PROMPT = `Você é um analista visual especializado em PLANTAS DE VENUES (estádios, teatros, casas de show, cinemas).
-Sua tarefa é EXAMINAR exaustivamente a imagem fornecida e produzir um relatório técnico DETALHADO em texto.
+const MAP_STUDIO_CONTEXT = `
+## SISTEMA: Map Studio (construtor 2D de mapas de venue)
 
-## NÃO gere JSON nem código. Produza um relatório descritivo em markdown.
+### Formas de SETOR disponíveis (escolha SEMPRE a que melhor se aproxima do contorno visual)
+- **rectangle**: retângulo simples (camarotes, áreas regulares)
+- **trapezoid**: trapézio (lados não paralelos, base maior — comum em arquibancadas frontais)
+- **parallelogram**: paralelogramo (lados oblíquos)
+- **triangle**: triângulo (cantos)
+- **pentagon / hexagon / octagon**: polígonos regulares
+- **diamond**: losango (rotação de 45°)
+- **circle**: círculo (raros — pista central, ringue)
+- **arc**: ARCO/MEIA-LUA — USE para arquibancadas curvas, anfiteatros, plateias em forma de leque (com curvature 30-80)
+- **l-shape / u-shape / t-shape / z-shape / cross**: para setores com recortes
+- **arrow / star / wave**: especiais (raros)
 
-## O relatório deve conter, OBRIGATORIAMENTE:
+### Curvatura
+- 0 = forma reta
+- 30-50 = leve curvatura (arquibancada quase reta)
+- 60-80 = curvatura média (leque)
+- 80-100 = arco completo (180°)
 
-### 1. Visão geral
-- Tipo de venue (arena, teatro, anfiteatro, etc.)
-- Orientação geral (palco em cima/baixo/esquerda/direita)
-- Dimensões aproximadas em pixels da imagem original (você receberá IMAGE_WIDTH x IMAGE_HEIGHT)
+### Cores (HSL — varie matiz, mantenha S~60-70%, L~45-55%)
+Cores típicas observadas em plantas: azul \`hsl(210, 65%, 50%)\`, verde \`hsl(142, 65%, 45%)\`, amarelo \`hsl(48, 90%, 55%)\`, vermelho \`hsl(0, 70%, 50%)\`, roxo \`hsl(280, 60%, 55%)\`, laranja \`hsl(24, 90%, 55%)\`, cinza \`hsl(0, 0%, 60%)\`.
 
-### 2. Inventário de SETORES (um a um, sem pular nenhum)
-Para CADA setor visível na imagem, liste:
-- **Nome / Identificação**: rótulo visível ou descrição (ex: "Setor azul superior", "Plateia verde central", "Camarote PCD direito")
-- **Cor predominante**: nome em português + estimativa HSL (ex: "azul forte ~ hsl(210, 65%, 50%)")
-- **Posição na imagem (em pixels)**: bounding box (x_topo_esquerdo, y_topo_esquerdo, largura, altura) — USE coordenadas REAIS da imagem original
-- **Forma geométrica visual**: rectangle, trapezoid (qual lado é maior), arc/curva (qual o grau de curvatura aparente: leve / moderada / acentuada), pentagon, hexagon, l-shape, u-shape, t-shape, triangle, diamond, octagon, circle
-- **Inclinação/rotação aparente** em graus (0 se reto)
-- **Fileiras visíveis**: CONTE olhando a imagem (use zoom mental nas linhas A, B, C…). Indique quantas linhas distintas aparecem.
-- **Assentos por fileira**: CONTE a fileira mais larga e a mais estreita; se variar, dê uma média
-- **Tipo de label das fileiras** (alpha A,B,C / numeric 1,2,3 / roman I,II,III) se visível
-- **Observações** (ocupações, áreas vazias, etc.)
+### Assentos (gerados em GRADE rows × cols dentro de cada setor)
+- Cada setor pode ter rows (fileiras) e cols (assentos por fileira).
+- rowLabelType: 'alpha' (A,B,C…), 'numeric' (1,2,3…), 'roman' (I,II,III…)
+- IMPORTANTE: rows/cols devem refletir a CONTAGEM REAL visível na imagem.
 
-### 3. Elementos contextuais
-Liste palco (stage), bares (bar), banheiros (bathroom), entradas (entrance), saídas (exit), DJ, telão (screen), área VIP rotulada, food, etc., COM posições em pixels da imagem original.
+### Elementos contextuais (não são setores)
+stage (palco), bar, bathroom, entrance, exit, speaker, dj, screen, vip-area, food.
 
-### 4. Notas de fidelidade
-Aponte:
-- Quais setores são pequenos e fáceis de esquecer
-- Setores com formas atípicas
-- Diferenças de densidade de assentos
-- Qualquer rótulo legível na imagem (ex: "PCD", "VIP", "Camarote")
-
-## Diretrizes
-- Seja METICULOSO. É melhor enumerar 12 setores do que agrupar em 4.
-- Use coordenadas em PIXELS DA IMAGEM ORIGINAL (você receberá as dimensões).
-- NÃO invente: se algo não está claro, diga "não claramente visível".
-- Seu relatório será usado por outra IA para reconstruir o mapa pixel a pixel — a precisão dos números é CRÍTICA.`;
+### Regras CRÍTICAS de cobertura
+- A planta INTEIRA deve ser coberta. Se há setores no canto superior, no centro E no canto inferior, TODOS devem aparecer.
+- NUNCA agrupe múltiplos setores visuais em um só. Se vê 12 blocos coloridos distintos, retorne 12 setores.
+- NUNCA omita setores periféricos (laterais, fundo, balcões superiores).
+`;
 
 // =====================================================================
-// FASE 2 — Geração estruturada via tool calling
+// FASE 1 — Análise visual exaustiva com GRADE 3x3 e PERCENTUAIS
 // =====================================================================
-const GENERATION_PROMPT = `Você é um VETORIZADOR de plantas de venues. Recebe:
-1) Uma IMAGEM da planta original
-2) Um RELATÓRIO TÉCNICO já produzido por um analista visual (descreve setores, cores, contagens, posições)
-3) Dimensões da imagem e do canvas
+const ANALYSIS_PROMPT = `Você é um analista visual de PLANTAS DE VENUES.
+Sua tarefa: produzir um RELATÓRIO TÉCNICO em markdown descrevendo a imagem com PRECISÃO MILIMÉTRICA.
 
-Sua tarefa: REPRODUZIR FIELMENTE no canvas o layout descrito, usando a função 'generate_map_plan'.
+${MAP_STUDIO_CONTEXT}
 
-## Regra de ouro: FIDELIDADE TOTAL ao relatório E à imagem
+## METODOLOGIA OBRIGATÓRIA
 
-- Inclua TODOS os setores listados no relatório, sem omitir.
-- Se o relatório lista 12 setores, o plano deve ter 12.
-- Use as posições/tamanhos EM PIXELS DA IMAGEM e aplique o MAPEAMENTO DE ESCALA fornecido.
-- Use as contagens de fileiras e assentos exatamente como descritas — não simplifique.
-- Use as cores HSL sugeridas (ou aproxime ao máximo).
-- Use a forma geométrica indicada; para curvas/arcos use shape "arc" com curvature 30-80.
+### Passo 1 — Divida MENTALMENTE a imagem em GRADE 3x3
+Identifique 9 quadrantes:
+- Q1 (superior-esquerdo) | Q2 (superior-centro) | Q3 (superior-direito)
+- Q4 (centro-esquerdo)   | Q5 (centro)          | Q6 (centro-direito)
+- Q7 (inferior-esquerdo) | Q8 (inferior-centro) | Q9 (inferior-direito)
 
-## Mapeamento de coordenadas (CRÍTICO)
+Liste, antes de tudo, em qual(is) quadrante(s) está cada setor visível e o palco/elementos. Isso garante que você NÃO esqueça nenhuma região.
 
-Você receberá scale, offsetX, offsetY pré-calculados. Para cada setor/elemento descrito no relatório em (img_x, img_y, img_w, img_h):
-  canvas_x = offsetX + img_x * scale
-  canvas_y = offsetY + img_y * scale
-  canvas_w = img_w * scale
-  canvas_h = img_h * scale
+### Passo 2 — Inventário EXAUSTIVO de SETORES
+Para CADA setor visível (sem agrupar, sem omitir):
 
-RETORNE x, y, width, height JÁ COM ESSE CÁLCULO APLICADO.
+\`\`\`
+#### Setor N — <Nome/identificação>
+- **Quadrante(s)**: Q5, Q6 (etc)
+- **Cor predominante**: <nome> ≈ hsl(H, S%, L%)
+- **Bounding box em PERCENTUAIS da imagem original** (mais robusto que pixels):
+  - x_pct: <0-100> (canto esquerdo da bbox em % da largura da imagem)
+  - y_pct: <0-100> (canto superior em % da altura)
+  - w_pct: <0-100> (largura em % da largura da imagem)
+  - h_pct: <0-100> (altura em % da altura)
+- **Forma escolhida** (do catálogo): rectangle | trapezoid | arc | …  
+  Justifique brevemente (ex: "trapezoid pois a base superior é menor")
+- **Curvatura sugerida**: 0-100
+- **Rotação aparente**: graus
+- **Fileiras visíveis**: <conte olhando atentamente. Use zoom mental se preciso>
+- **Assentos por fileira**: <conte a fileira mais larga>
+- **Tipo de label**: alpha | numeric | roman (se visível)
+- **Rótulo legível na imagem**: ex: "PCD", "VIP", capacidade impressa, etc.
+\`\`\`
 
-## Conhecimento do construtor (Map Studio)
+### Passo 3 — Elementos contextuais
+Liste palco e demais elementos com bounding box em percentuais.
 
-- Setores: shape ∈ [rectangle, circle, trapezoid, pentagon, hexagon, triangle, arc, l-shape, u-shape, t-shape, diamond, octagon]
-- Curvatura 0-100 (use 30-80 para arquibancadas curvas)
-- rowLabelType: alpha | numeric | roman
-- Modo conservador: todos assentos type "normal", status "available". NÃO infira VIP/PCD a menos que explicitamente rotulado.
-- Elementos contextuais disponíveis: stage, bar, bathroom, entrance, exit, speaker, dj, screen, vip-area, food.
+### Passo 4 — Validação final
+Termine com:
+- "Total de setores listados: N"
+- "Quadrantes cobertos: Q1, Q2, Q3, ..."
+- "Quadrantes SEM setor (apenas se realmente vazios): ..."
+
+## REGRAS RÍGIDAS
+- Use PERCENTUAIS (0-100), NÃO pixels absolutos.
+- Setores na periferia (laterais, fundo, balcões) são frequentemente esquecidos — preste ATENÇÃO EXTRA neles.
+- Se houver dúvida entre 2 formas, escolha a que cobre melhor a área visual sem invadir setores vizinhos.
+- NÃO produza JSON. Produza texto markdown estruturado.`;
+
+// =====================================================================
+// FASE 2 — Geração estruturada do plano
+// =====================================================================
+const GENERATION_PROMPT = `Você é o VETORIZADOR do Map Studio.
+Recebe: (1) a IMAGEM original, (2) um RELATÓRIO TÉCNICO já produzido com bounding boxes em PERCENTUAIS, (3) dimensões da imagem e do canvas, (4) o mapeamento de escala pré-calculado.
+
+${MAP_STUDIO_CONTEXT}
+
+## Sua tarefa
+Reproduzir FIELMENTE no canvas o layout descrito no relatório, usando a função 'generate_map_plan'.
+
+## Conversão CRÍTICA (percentual → pixel canvas)
+Para cada setor/elemento descrito com (x_pct, y_pct, w_pct, h_pct), você receberá os valores pré-calculados:
+- IMAGE_WIDTH, IMAGE_HEIGHT (pixels da imagem original)
+- scale, offsetX, offsetY (mapeamento uniforme imagem → canvas)
+
+Calcule:
+\`\`\`
+img_x = (x_pct / 100) * IMAGE_WIDTH
+img_y = (y_pct / 100) * IMAGE_HEIGHT
+img_w = (w_pct / 100) * IMAGE_WIDTH
+img_h = (h_pct / 100) * IMAGE_HEIGHT
+
+canvas_x = offsetX + img_x * scale
+canvas_y = offsetY + img_y * scale
+canvas_w = img_w * scale
+canvas_h = img_h * scale
+\`\`\`
+
+RETORNE x, y, width, height JÁ NESTE SISTEMA DE PIXELS DO CANVAS.
+
+## Validação obrigatória ANTES de retornar
+1. O número de setores no plano deve ser IGUAL ao "Total de setores listados" do relatório.
+2. Cada quadrante (Q1..Q9) coberto no relatório deve ter pelo menos um setor no plano cuja bbox cai naquele quadrante do canvas.
+3. Para arcos/leques, use shape="arc" + curvature 30-80.
+4. Modo conservador: todos assentos type "normal", status "available". NUNCA infira VIP/PCD.
 
 ## Refinamentos
-Se o usuário pedir ajustes ("aumente VIP", "remova X"), retorne o plano AJUSTADO mantendo fidelidade do restante.
+Em mensagens posteriores, ajuste o plano conforme pedido (aumentar setor X, mover Y, etc.) mantendo fidelidade do restante.
 
 Sempre responda usando 'generate_map_plan'.`;
 
@@ -101,14 +153,14 @@ const TOOL_SCHEMA = {
   function: {
     name: "generate_map_plan",
     description:
-      "Gera um plano estruturado de mapa de venue REPRODUZINDO fielmente o layout descrito no relatório de análise.",
+      "Gera um plano estruturado de mapa de venue REPRODUZINDO fielmente o layout descrito no relatório.",
     parameters: {
       type: "object",
       properties: {
         message: {
           type: "string",
           description:
-            "Mensagem ao usuário em markdown (máx 4 parágrafos): resuma o que reconstruiu, quantos setores/assentos, e sugestões de refinamento.",
+            "Mensagem ao usuário em markdown (máx 4 parágrafos). Resuma o que reconstruiu e sugestões de refinamento.",
         },
         plan: {
           type: "object",
@@ -121,55 +173,47 @@ const TOOL_SCHEMA = {
                   name: { type: "string" },
                   color: {
                     type: "string",
-                    description: "Cor HSL no formato 'hsl(H, S%, L%)'",
+                    description: "HSL: 'hsl(H, S%, L%)'",
                   },
                   shape: {
                     type: "string",
                     enum: [
                       "rectangle",
-                      "circle",
+                      "parallelogram",
                       "trapezoid",
                       "pentagon",
                       "hexagon",
                       "triangle",
+                      "circle",
                       "arc",
                       "l-shape",
                       "u-shape",
                       "t-shape",
+                      "z-shape",
+                      "cross",
                       "diamond",
                       "octagon",
+                      "arrow",
+                      "star",
+                      "wave",
                     ],
                   },
                   x: {
                     type: "number",
                     description:
-                      "X em pixels do CANVAS, JÁ com mapeamento de escala aplicado.",
+                      "X em pixels DO CANVAS (com mapeamento aplicado).",
                   },
                   y: {
                     type: "number",
                     description:
-                      "Y em pixels do CANVAS, JÁ com mapeamento de escala aplicado.",
+                      "Y em pixels DO CANVAS (com mapeamento aplicado).",
                   },
                   width: { type: "number" },
                   height: { type: "number" },
-                  curvature: {
-                    type: "number",
-                    description: "0-100. 30-80 para arquibancadas em arco.",
-                  },
-                  rotation: {
-                    type: "number",
-                    description: "Graus, refletindo inclinação visual.",
-                  },
-                  rows: {
-                    type: "number",
-                    description:
-                      "Quantidade EXATA de fileiras conforme relatório.",
-                  },
-                  cols: {
-                    type: "number",
-                    description:
-                      "Quantidade EXATA de assentos por fileira conforme relatório.",
-                  },
+                  curvature: { type: "number", description: "0-100" },
+                  rotation: { type: "number", description: "graus" },
+                  rows: { type: "number" },
+                  cols: { type: "number" },
                   rowLabelType: {
                     type: "string",
                     enum: ["alpha", "numeric", "roman"],
@@ -239,14 +283,13 @@ interface RequestBody {
   canvasHeight: number;
   imageWidth?: number | null;
   imageHeight?: number | null;
-  // Quando fornecido, pula a fase de análise e usa este texto como relatório
   cachedAnalysis?: string | null;
 }
 
 const GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 async function callGateway(payload: any, apiKey: string) {
-  const resp = await fetch(GATEWAY_URL, {
+  return await fetch(GATEWAY_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -254,7 +297,6 @@ async function callGateway(payload: any, apiKey: string) {
     },
     body: JSON.stringify(payload),
   });
-  return resp;
 }
 
 function gatewayErrorResponse(status: number, errText: string) {
@@ -328,23 +370,20 @@ serve(async (req) => {
     }
 
     // ============================================================
-    // FASE 1 — Análise visual (apenas na primeira mensagem do usuário)
+    // FASE 1 — Análise visual (apenas no primeiro turno)
     // ============================================================
     let analysisReport = cachedAnalysis ?? "";
     const isFirstTurn = messages.filter((m) => m.role === "user").length === 1;
 
     if (isFirstTurn && imageBase64 && !cachedAnalysis) {
-      console.log("[ai-map-generator] Iniciando FASE 1 (análise visual)");
+      console.log("[ai-map-generator] FASE 1: análise visual iniciada");
 
       const analysisUserContent: any[] = [
         {
           type: "text",
-          text: `IMAGE_WIDTH=${imageWidth ?? "desconhecido"}\nIMAGE_HEIGHT=${imageHeight ?? "desconhecido"}\n\nProduza o relatório técnico exaustivo desta imagem conforme as instruções.`,
+          text: `IMAGE_WIDTH=${imageWidth ?? "?"}\nIMAGE_HEIGHT=${imageHeight ?? "?"}\n\nProduza o relatório técnico exaustivo desta imagem usando GRADE 3x3 e PERCENTUAIS, conforme as instruções.`,
         },
-        {
-          type: "image_url",
-          image_url: { url: imageBase64 },
-        },
+        { type: "image_url", image_url: { url: imageBase64 } },
       ];
 
       const analysisResp = await callGateway(
@@ -364,12 +403,11 @@ serve(async (req) => {
       }
 
       const analysisData = await analysisResp.json();
-      analysisReport =
-        analysisData?.choices?.[0]?.message?.content ?? "";
+      analysisReport = analysisData?.choices?.[0]?.message?.content ?? "";
 
       if (!analysisReport) {
         console.error(
-          "[ai-map-generator] FASE 1 retornou vazio:",
+          "[ai-map-generator] FASE 1 vazia:",
           JSON.stringify(analysisData)
         );
         return new Response(
@@ -385,13 +423,13 @@ serve(async (req) => {
       }
 
       console.log(
-        "[ai-map-generator] FASE 1 concluída. Tamanho do relatório:",
+        "[ai-map-generator] FASE 1 OK. Tamanho:",
         analysisReport.length
       );
     }
 
     // ============================================================
-    // FASE 2 — Geração estruturada do plano
+    // FASE 2 — Geração estruturada
     // ============================================================
     let mappingHint = "";
     if (imageWidth && imageHeight) {
@@ -401,7 +439,9 @@ serve(async (req) => {
       );
       const offsetX = (canvasWidth - imageWidth * scale) / 2;
       const offsetY = (canvasHeight - imageHeight * scale) / 2;
-      mappingHint = `\n\n## MAPEAMENTO PRÉ-CALCULADO (use exatamente)
+      mappingHint = `
+
+## MAPEAMENTO PRÉ-CALCULADO (use exatamente)
 IMAGE_WIDTH=${imageWidth}
 IMAGE_HEIGHT=${imageHeight}
 CANVAS_WIDTH=${canvasWidth}
@@ -410,22 +450,30 @@ scale=${scale.toFixed(6)}
 offsetX=${offsetX.toFixed(2)}
 offsetY=${offsetY.toFixed(2)}
 
-Para cada (img_x, img_y, img_w, img_h) do relatório:
+Para cada setor com (x_pct, y_pct, w_pct, h_pct) do relatório:
+  img_x = (x_pct/100) * ${imageWidth}
+  img_y = (y_pct/100) * ${imageHeight}
+  img_w = (w_pct/100) * ${imageWidth}
+  img_h = (h_pct/100) * ${imageHeight}
   canvas_x = ${offsetX.toFixed(2)} + img_x * ${scale.toFixed(6)}
   canvas_y = ${offsetY.toFixed(2)} + img_y * ${scale.toFixed(6)}
   canvas_w = img_w * ${scale.toFixed(6)}
-  canvas_h = img_h * ${scale.toFixed(6)}`;
+  canvas_h = img_h * ${scale.toFixed(6)}
+
+ÁREA ÚTIL DO CANVAS COBERTA PELA IMAGEM:
+  left=${offsetX.toFixed(0)}, top=${offsetY.toFixed(0)}
+  right=${(offsetX + imageWidth * scale).toFixed(0)}, bottom=${(offsetY + imageHeight * scale).toFixed(0)}
+TODOS os setores devem cair DENTRO desta área (não invente coordenadas fora).`;
     } else {
-      mappingHint = `\n\nCANVAS_WIDTH=${canvasWidth}\nCANVAS_HEIGHT=${canvasHeight}\n(Dimensões da imagem desconhecidas — estime proporcionalmente.)`;
+      mappingHint = `\n\nCANVAS_WIDTH=${canvasWidth}\nCANVAS_HEIGHT=${canvasHeight}`;
     }
 
     const analysisBlock = analysisReport
-      ? `\n\n## RELATÓRIO TÉCNICO DA ANÁLISE VISUAL (use como fonte de verdade)\n\n${analysisReport}`
+      ? `\n\n## RELATÓRIO TÉCNICO (fonte de verdade)\n\n${analysisReport}`
       : "";
 
     const generationSystem = `${GENERATION_PROMPT}${mappingHint}${analysisBlock}`;
 
-    // Monta histórico para fase 2 (anexa imagem na primeira user message)
     const aiMessages: any[] = [
       { role: "system", content: generationSystem },
     ];
@@ -444,7 +492,7 @@ Para cada (img_x, img_y, img_w, img_h) do relatório:
       }
     });
 
-    console.log("[ai-map-generator] Iniciando FASE 2 (geração estruturada)");
+    console.log("[ai-map-generator] FASE 2: geração iniciada");
 
     const genResp = await callGateway(
       {
@@ -483,7 +531,7 @@ Para cada (img_x, img_y, img_w, img_h) do relatório:
     const parsed = JSON.parse(toolCall.function.arguments);
 
     console.log(
-      "[ai-map-generator] FASE 2 concluída. Setores:",
+      "[ai-map-generator] FASE 2 OK. Setores:",
       parsed?.plan?.sectors?.length,
       "Elementos:",
       parsed?.plan?.elements?.length
@@ -493,7 +541,6 @@ Para cada (img_x, img_y, img_w, img_h) do relatório:
       JSON.stringify({
         message: parsed.message,
         plan: parsed.plan,
-        // Devolve a análise para o cliente cachear e reutilizar em refinamentos
         analysis: analysisReport || null,
       }),
       {
