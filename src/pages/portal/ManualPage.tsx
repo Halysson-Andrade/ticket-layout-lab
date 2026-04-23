@@ -332,11 +332,16 @@ const ManualPage: React.FC = () => {
             caption="Tela inicial do Map Studio com as cinco áreas principais."
             size="lg"
             annotations={[
-              { x: 50, y: 4, label: '1', color: 'primary' },
-              { x: 50, y: 12, label: '2', color: 'success' },
-              { x: 8, y: 55, label: '3', color: 'warning' },
-              { x: 92, y: 55, label: '4', color: 'warning' },
-              { x: 50, y: 60, label: '5', color: 'destructive' },
+              // 1. Topo: nome/Templates/Exportar — badge logo abaixo da barra apontando para cima
+              { x: 95, y: 3, badgeX: 88, badgeY: 11, label: '1', color: 'primary' },
+              // 2. Toolbar central
+              { x: 50, y: 12, badgeX: 50, badgeY: 22, label: '2', color: 'success' },
+              // 3. Sidebar esquerda — badge no canvas, seta apontando para a sidebar
+              { x: 12, y: 27, badgeX: 26, badgeY: 27, label: '3', color: 'warning' },
+              // 4. Sidebar direita
+              { x: 88, y: 27, badgeX: 73, badgeY: 27, label: '4', color: 'warning' },
+              // 5. Canvas central
+              { x: 50, y: 55, badgeX: 50, badgeY: 70, label: '5', color: 'destructive' },
             ]}
             legend={[
               { label: '1', text: 'Topo: nome do mapa, botão Templates e Exportar.', color: 'primary' },
