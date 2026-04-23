@@ -65,6 +65,166 @@ const Figure: React.FC<{ src: string; caption: string; size?: 'sm' | 'md' | 'lg'
   );
 };
 
+/**
+ * Anotação posicionada sobre uma imagem (em % do tamanho da imagem).
+ * - shape: "circle" desenha um círculo; "arrow" desenha uma seta apontando para o ponto.
+ * - x, y: centro do alvo (0-100).
+ * - w, h: tamanho do círculo (0-100, em % da largura/altura). Default 8x14.
+ * - arrowFrom: origem da seta (0-100). Default sai do canto superior esquerdo.
+ * - label: número/letra exibida junto à anotação.
+ */
+type Annotation = {
+  shape: 'circle' | 'arrow';
+  x: number;
+  y: number;
+  w?: number;
+  h?: number;
+  arrowFromX?: number;
+  arrowFromY?: number;
+  label?: string;
+  color?: 'primary' | 'destructive' | 'success' | 'warning';
+};
+
+const ANNOTATION_COLORS: Record<NonNullable<Annotation['color']>, string> = {
+  primary: 'hsl(var(--primary))',
+  destructive: 'hsl(var(--destructive))',
+  success: 'hsl(142 76% 45%)',
+  warning: 'hsl(38 92% 50%)',
+};
+
+const AnnotatedFigure: React.FC<{
+  src: string;
+  caption: string;
+  size?: 'sm' | 'md' | 'lg';
+  annotations: Annotation[];
+  legend?: { label: string; text: string; color?: Annotation['color'] }[];
+}> = ({ src, caption, size = 'lg', annotations, legend }) => {
+  const maxW = size === 'sm' ? 'max-w-md' : size === 'lg' ? 'max-w-full' : 'max-w-2xl';
+  return (
+    <figure className={`my-4 mx-auto rounded-lg overflow-hidden border border-border bg-card ${maxW} print:break-inside-avoid`}>
+      <div className="relative w-full">
+        <img src={src} alt={caption} className="w-full h-auto block" loading="lazy" />
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <defs>
+            {(['primary', 'destructive', 'success', 'warning'] as const).map((c) => (
+              <marker
+                key={c}
+                id={`arrowhead-${c}`}
+                viewBox="0 0 10 10"
+                refX="8"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 0 L 10 5 L 0 10 z" fill={ANNOTATION_COLORS[c]} />
+              </marker>
+            ))}
+          </defs>
+          {annotations.map((a, i) => {
+            const color = ANNOTATION_COLORS[a.color || 'primary'];
+            if (a.shape === 'circle') {
+              const w = a.w ?? 8;
+              const h = a.h ?? 8;
+              return (
+                <g key={i}>
+                  <ellipse
+                    cx={a.x}
+                    cy={a.y}
+                    rx={w / 2}
+                    ry={h / 2}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth={0.6}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  {a.label && (
+                    <g>
+                      <circle
+                        cx={a.x + w / 2 + 1.5}
+                        cy={a.y - h / 2 - 1.5}
+                        r={2}
+                        fill={color}
+                      />
+                      <text
+                        x={a.x + w / 2 + 1.5}
+                        y={a.y - h / 2 - 1.5}
+                        fontSize={2.4}
+                        fill="white"
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        fontWeight="bold"
+                      >
+                        {a.label}
+                      </text>
+                    </g>
+                  )}
+                </g>
+              );
+            }
+            // arrow
+            const fx = a.arrowFromX ?? Math.max(2, a.x - 12);
+            const fy = a.arrowFromY ?? Math.max(2, a.y - 10);
+            return (
+              <g key={i}>
+                <line
+                  x1={fx}
+                  y1={fy}
+                  x2={a.x}
+                  y2={a.y}
+                  stroke={color}
+                  strokeWidth={0.6}
+                  vectorEffect="non-scaling-stroke"
+                  markerEnd={`url(#arrowhead-${a.color || 'primary'})`}
+                />
+                {a.label && (
+                  <g>
+                    <circle cx={fx} cy={fy} r={2.2} fill={color} />
+                    <text
+                      x={fx}
+                      y={fy}
+                      fontSize={2.6}
+                      fill="white"
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fontWeight="bold"
+                    >
+                      {a.label}
+                    </text>
+                  </g>
+                )}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+      <figcaption className="px-4 py-2 text-xs text-muted-foreground border-t border-border bg-muted/30 print:bg-transparent">
+        {caption}
+      </figcaption>
+      {legend && legend.length > 0 && (
+        <ul className="px-4 py-2 text-xs text-foreground/90 bg-muted/20 border-t border-border space-y-1 print:bg-transparent">
+          {legend.map((l, i) => (
+            <li key={i} className="flex items-start gap-2">
+              <span
+                className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white flex-shrink-0 mt-0.5"
+                style={{ background: ANNOTATION_COLORS[l.color || 'primary'] }}
+              >
+                {l.label}
+              </span>
+              <span>{l.text}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </figure>
+  );
+};
+
 const ToolItem: React.FC<{
   icon: React.ReactNode;
   name: string;
