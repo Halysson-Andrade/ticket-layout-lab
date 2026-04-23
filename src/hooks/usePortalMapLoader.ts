@@ -47,6 +47,7 @@ export function usePortalMapLoader(): PortalMapResult {
     setSectors: (s: Sector[]) => void,
     setElements: (e: VenueElement[]) => void,
     setMapData: (fn: (prev: VenueMap) => VenueMap) => void,
+    setBackground?: (bg: { url: string; opacity: number; scale: number; x: number; y: number } | null) => void,
   ) => {
     if (!isPortalMode || !mapId) return;
 
