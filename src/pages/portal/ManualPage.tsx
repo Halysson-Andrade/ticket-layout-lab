@@ -254,11 +254,27 @@ const ManualPage: React.FC = () => {
   const handlePrint = () => window.print();
 
   return (
-    <div className="bg-background min-h-screen print:bg-white">
+    <div className="bg-background min-h-screen print:bg-white print-root">
       <style>{`
         @media print {
           @page { size: A4; margin: 14mm; }
-          body { background: white !important; }
+          html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
+
+          /* Esconde tudo por padrão na impressão */
+          body * { visibility: hidden !important; }
+
+          /* Mostra apenas a árvore do manual */
+          .print-root, .print-root * { visibility: visible !important; }
+
+          /* Posiciona o manual no topo da página, ignorando a sidebar do portal */
+          .print-root {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            min-height: 0 !important;
+          }
+
           .no-print { display: none !important; }
           h1, h2, h3, h4 { color: black !important; page-break-after: avoid; }
           section { page-break-inside: auto; }
