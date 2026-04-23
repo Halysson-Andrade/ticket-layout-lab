@@ -700,7 +700,23 @@ const ManualPage: React.FC = () => {
             <li><strong>Rotação</strong> — gira toda a grade em graus (0° a 360°, passos de 5°). O preview mostra a rotação aplicada.</li>
             <li><strong>Prefixo</strong> — texto opcional antes do número de cada assento (ex.: <code>VIP-</code> gera <em>VIP-1, VIP-2, VIP-3…</em>; <code>SETOR1-</code> gera <em>SETOR1-A1, SETOR1-A2…</em>).</li>
           </ul>
-          <Figure src={geradorCustomizacao} caption="Customização: rotação, prefixo, assentos por fileira variáveis e alinhamento." size="lg" />
+          <AnnotatedFigure
+            src={geradorCustomizacao}
+            caption="Customização avançada: rotação, prefixo, assentos variáveis e alinhamento."
+            size="lg"
+            annotations={[
+              { shape: 'circle', x: 22, y: 25, w: 35, h: 12, label: '1', color: 'primary' },
+              { shape: 'circle', x: 22, y: 45, w: 35, h: 12, label: '2', color: 'success' },
+              { shape: 'circle', x: 22, y: 65, w: 35, h: 18, label: '3', color: 'warning' },
+              { shape: 'circle', x: 22, y: 85, w: 35, h: 10, label: '4', color: 'destructive' },
+            ]}
+            legend={[
+              { label: '1', text: 'Rotação: gira toda a grade em graus (0° a 360°).', color: 'primary' },
+              { label: '2', text: 'Prefixo: texto antes do número (ex.: "VIP-" gera VIP-1, VIP-2…).', color: 'success' },
+              { label: '3', text: 'Quantidade de assentos por fileira (customizada): defina valores diferentes por fila para arquibancadas trapezoidais.', color: 'warning' },
+              { label: '4', text: 'Alinhamento (Esquerda/Centro/Direita): posicionamento das filas variáveis dentro da forma.', color: 'destructive' },
+            ]}
+          />
 
           <h4 className="font-semibold text-base pt-2">Redimensionar forma</h4>
           <p className="text-sm text-muted-foreground">
