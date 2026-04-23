@@ -439,14 +439,17 @@ const ManualPage: React.FC = () => {
             caption="Etapa 1 — Galeria completa com 18 formas geométricas."
             size="lg"
             annotations={[
-              { x: 50, y: 8, badgeX: 50, badgeY: 1, label: '1', color: 'primary' },
-              { x: 50, y: 50, label: '2', color: 'success' },
-              { x: 92, y: 96, badgeX: 80, badgeY: 88, label: '3', color: 'warning' },
+              // 1. Stepper "Forma" no topo do modal
+              { x: 22, y: 14, badgeX: 11, badgeY: 14, label: '1', color: 'primary' },
+              // 2. Galeria de formas (centro)
+              { x: 50, y: 45, badgeX: 86, badgeY: 25, label: '2', color: 'success' },
+              // 3. Botão Cancelar / próximo (rodapé)
+              { x: 22, y: 91, badgeX: 11, badgeY: 91, label: '3', color: 'warning' },
             ]}
             legend={[
-              { label: '1', text: 'Indicador de etapa do assistente (1 = Forma, 2 = Configurar, 3 = Preview).', color: 'primary' },
-              { label: '2', text: 'Galeria de formas — clique em uma para selecioná-la.', color: 'success' },
-              { label: '3', text: 'Botão "Próximo" para avançar à etapa de configuração.', color: 'warning' },
+              { label: '1', text: 'Indicador de etapas do assistente: Forma → Configurar → Preview.', color: 'primary' },
+              { label: '2', text: 'Galeria de 18 formas — clique em uma para selecioná-la.', color: 'success' },
+              { label: '3', text: 'Rodapé: Cancelar (à esquerda) e Próximo (à direita, aparece após escolher a forma).', color: 'warning' },
             ]}
           />
 
@@ -462,14 +465,17 @@ const ManualPage: React.FC = () => {
             caption="Etapa 2 — Configuração com preview ao vivo dos assentos."
             size="lg"
             annotations={[
-              { x: 25, y: 35, label: '1', color: 'primary' },
-              { x: 75, y: 50, label: '2', color: 'success' },
-              { x: 25, y: 92, badgeX: 12, badgeY: 85, label: '3', color: 'warning' },
+              // 1. Painel de parâmetros à esquerda
+              { x: 30, y: 50, badgeX: 18, badgeY: 18, label: '1', color: 'primary' },
+              // 2. Preview ao vivo (retângulo verde à direita)
+              { x: 66, y: 75, badgeX: 86, badgeY: 50, label: '2', color: 'success' },
+              // 3. Botão Continuar no rodapé
+              { x: 78, y: 91, badgeX: 65, badgeY: 91, label: '3', color: 'warning' },
             ]}
             legend={[
-              { label: '1', text: 'Painel de parâmetros: fileiras, assentos por fila, espaçamento, tamanho e curvatura.', color: 'primary' },
+              { label: '1', text: 'Painel de parâmetros: número de setores, fileiras, assentos por fileira, espaçamento, tamanho e curvatura.', color: 'primary' },
               { label: '2', text: 'Preview ao vivo: visualize a distribuição enquanto altera os valores.', color: 'success' },
-              { label: '3', text: 'Contador no rodapé mostra a capacidade total calculada.', color: 'warning' },
+              { label: '3', text: 'Botão "Continuar" para avançar ao Preview final.', color: 'warning' },
             ]}
           />
 
@@ -491,14 +497,17 @@ const ManualPage: React.FC = () => {
             caption="Setor criado: assentos posicionados, lista lateral e contador atualizados."
             size="lg"
             annotations={[
-              { x: 50, y: 50, label: '1', color: 'primary' },
-              { x: 92, y: 30, badgeX: 80, badgeY: 20, label: '2', color: 'success' },
-              { x: 50, y: 96, badgeX: 35, badgeY: 90, label: '3', color: 'warning' },
+              // 1. Setor (retângulo rosa) no canvas
+              { x: 30, y: 45, badgeX: 45, badgeY: 18, label: '1', color: 'primary' },
+              // 2. Lista lateral "Setor 1"
+              { x: 10, y: 53, badgeX: 22, badgeY: 53, label: '2', color: 'success' },
+              // 3. Status bar inferior "1 setores · 288 assentos · Zoom 80%"
+              { x: 12, y: 96, badgeX: 24, badgeY: 92, label: '3', color: 'warning' },
             ]}
             legend={[
               { label: '1', text: 'Setor recém-criado com todos os assentos posicionados.', color: 'primary' },
-              { label: '2', text: 'Lista lateral de setores atualizada com o novo item.', color: 'success' },
-              { label: '3', text: 'Status bar exibe contagem total de setores e assentos.', color: 'warning' },
+              { label: '2', text: 'Lista lateral de setores atualizada com o novo item e contagem de assentos.', color: 'success' },
+              { label: '3', text: 'Status bar exibe contagem total de setores, assentos e zoom atual.', color: 'warning' },
             ]}
           />
         </Section>
@@ -592,8 +601,10 @@ const ManualPage: React.FC = () => {
             caption="Etapa 1 — Tipo de mobília e tipo de assento."
             size="lg"
             annotations={[
-              { x: 30, y: 35, label: '1', color: 'primary' },
-              { x: 30, y: 65, label: '2', color: 'success' },
+              // 1. Cards "Cadeira / Mesa / Bistrô"
+              { x: 50, y: 50, badgeX: 28, badgeY: 50, label: '1', color: 'primary' },
+              // 2. Pills "Normal / VIP / PCD / Obeso"
+              { x: 50, y: 66, badgeX: 28, badgeY: 66, label: '2', color: 'success' },
             ]}
             legend={[
               { label: '1', text: 'Tipo de mobília: Cadeira (assentos isolados), Mesa ou Bistrô.', color: 'primary' },
@@ -611,18 +622,23 @@ const ManualPage: React.FC = () => {
             caption="Etapa 2 — Visão completa do gerador com todos os parâmetros."
             size="lg"
             annotations={[
-              { x: 22, y: 18, label: '1', color: 'primary' },
-              { x: 22, y: 32, label: '2', color: 'success' },
-              { x: 22, y: 50, label: '3', color: 'warning' },
-              { x: 22, y: 70, label: '4', color: 'destructive' },
-              { x: 75, y: 50, label: '5', color: 'primary' },
+              // 1. Filas/Assentos por Fila (topo do form)
+              { x: 38, y: 30, badgeX: 22, badgeY: 30, label: '1', color: 'primary' },
+              // 2. Espaçamentos e tamanho (sliders)
+              { x: 38, y: 47, badgeX: 22, badgeY: 47, label: '2', color: 'success' },
+              // 3. Tipo de fila / Início / Posição
+              { x: 38, y: 62, badgeX: 22, badgeY: 62, label: '3', color: 'warning' },
+              // 4. Numeração / Inicial / Direção
+              { x: 38, y: 75, badgeX: 22, badgeY: 75, label: '4', color: 'destructive' },
+              // 5. Preview ao vivo + contador
+              { x: 67, y: 47, badgeX: 87, badgeY: 47, label: '5', color: 'primary' },
             ]}
             legend={[
               { label: '1', text: 'Dimensões: filas (linhas) e assentos por fila.', color: 'primary' },
-              { label: '2', text: 'Espaçamento entre filas/assentos e tamanho do assento.', color: 'success' },
+              { label: '2', text: 'Espaçamento entre filas/assentos e tamanho do assento (sliders).', color: 'success' },
               { label: '3', text: 'Tipo de fila (Letras/Números/Romano), início e posição do nome.', color: 'warning' },
               { label: '4', text: 'Numeração dos assentos (sequencial, ímpares/pares, customizada) e direção.', color: 'destructive' },
-              { label: '5', text: 'Preview ao vivo: contador no topo informa "X assentos dentro do setor (Y lugares)".', color: 'primary' },
+              { label: '5', text: 'Preview ao vivo. Topo do modal informa "X assentos dentro do setor (Y lugares)".', color: 'primary' },
             ]}
           />
 
@@ -684,16 +700,20 @@ const ManualPage: React.FC = () => {
             caption="Customização avançada: rotação, prefixo, assentos variáveis e alinhamento."
             size="lg"
             annotations={[
-              { x: 22, y: 25, label: '1', color: 'primary' },
-              { x: 22, y: 45, label: '2', color: 'success' },
-              { x: 22, y: 65, label: '3', color: 'warning' },
-              { x: 22, y: 85, label: '4', color: 'destructive' },
+              // 1. Rotação (slider à esquerda, ~30% × 78%)
+              { x: 30, y: 78, badgeX: 18, badgeY: 78, label: '1', color: 'primary' },
+              // 2. Prefixo (input à direita, ~46% × 81%)
+              { x: 46, y: 82, badgeX: 60, badgeY: 82, label: '2', color: 'success' },
+              // 3. Checkbox "Quantidade de assentos por fileira (customizada)"
+              { x: 35, y: 73, badgeX: 18, badgeY: 73, label: '3', color: 'warning' },
+              // 4. Quando ativada, surge seletor de Alinhamento (E/C/D) abaixo
+              { x: 35, y: 90, badgeX: 18, badgeY: 90, label: '4', color: 'destructive' },
             ]}
             legend={[
-              { label: '1', text: 'Rotação: gira toda a grade em graus (0° a 360°).', color: 'primary' },
-              { label: '2', text: 'Prefixo: texto antes do número (ex.: "VIP-" gera VIP-1, VIP-2…).', color: 'success' },
-              { label: '3', text: 'Quantidade de assentos por fileira (customizada): defina valores diferentes por fila para arquibancadas trapezoidais.', color: 'warning' },
-              { label: '4', text: 'Alinhamento (Esquerda/Centro/Direita): posicionamento das filas variáveis dentro da forma.', color: 'destructive' },
+              { label: '1', text: 'Rotação: gira toda a grade em graus (slider 0° a 360°).', color: 'primary' },
+              { label: '2', text: 'Prefixo opcional: texto antes do número (ex.: "VIP-" gera VIP-1, VIP-2…).', color: 'success' },
+              { label: '3', text: 'Checkbox "Quantidade de assentos por fileira (customizada)" — ative para arquibancadas trapezoidais.', color: 'warning' },
+              { label: '4', text: 'Alinhamento (Esquerda/Centro/Direita) — aparece quando o modo customizado está ativo.', color: 'destructive' },
             ]}
           />
 
@@ -773,16 +793,20 @@ const ManualPage: React.FC = () => {
             caption="Painel Mobília: configuração da mesa antes de inserir."
             size="lg"
             annotations={[
-              { x: 50, y: 12, label: '1', color: 'primary' },
-              { x: 50, y: 28, label: '2', color: 'success' },
-              { x: 50, y: 45, label: '3', color: 'warning' },
-              { x: 50, y: 65, label: '4', color: 'destructive' },
+              // 1. Tipo de Mobília (Cadeira/Mesa/Bistrô) — botões na sidebar esquerda
+              { x: 11, y: 50, badgeX: 24, badgeY: 50, label: '1', color: 'primary' },
+              // 2. Formato da Mesa (Redonda/Quadrada/Retangular)
+              { x: 11, y: 62, badgeX: 24, badgeY: 62, label: '2', color: 'success' },
+              // 3. Cadeiras por Mesa (slider)
+              { x: 11, y: 70, badgeX: 24, badgeY: 70, label: '3', color: 'warning' },
+              // 4. Largura/Altura
+              { x: 11, y: 76, badgeX: 24, badgeY: 76, label: '4', color: 'destructive' },
             ]}
             legend={[
               { label: '1', text: 'Tipo: Cadeira / Mesa / Bistrô.', color: 'primary' },
               { label: '2', text: 'Formato da mesa: Redonda / Quadrada / Retangular.', color: 'success' },
-              { label: '3', text: 'Número de cadeiras (2 a 12).', color: 'warning' },
-              { label: '4', text: 'Dimensões e direção da mesa.', color: 'destructive' },
+              { label: '3', text: 'Cadeiras por Mesa: slider de 2 a 12.', color: 'warning' },
+              { label: '4', text: 'Largura, Altura e Direção das cadeiras.', color: 'destructive' },
             ]}
           />
 
@@ -798,14 +822,17 @@ const ManualPage: React.FC = () => {
             src={mesaPreviewInterativo}
             caption="Preview interativo: arraste cada cadeira para criar layouts customizados."
             annotations={[
-              { x: 50, y: 50, label: '1', color: 'primary' },
-              { x: 25, y: 50, badgeX: 8, badgeY: 30, label: '2', color: 'success' },
-              { x: 75, y: 50, badgeX: 92, badgeY: 30, label: '3', color: 'success' },
+              // 1. Mesa central (no preview ~11% × 78%)
+              { x: 11, y: 78, badgeX: 24, badgeY: 78, label: '1', color: 'primary' },
+              // 2. Cadeiras numeradas ao redor
+              { x: 8, y: 76, badgeX: 24, badgeY: 70, label: '2', color: 'success' },
+              // 3. Texto "Preview (arraste as cadeiras)" — título
+              { x: 11, y: 71, badgeX: 24, badgeY: 64, label: '3', color: 'warning' },
             ]}
             legend={[
               { label: '1', text: 'Mesa central — não é arrastável.', color: 'primary' },
-              { label: '2', text: 'Cadeiras numeradas — clique e arraste para reposicionar (ex.: 2 de um lado, 4 do outro).', color: 'success' },
-              { label: '3', text: 'O layout customizado é salvo e aplicado a todas as próximas mesas inseridas.', color: 'success' },
+              { label: '2', text: 'Cadeiras numeradas — arraste cada uma para reposicionar (ex.: 2 de um lado, 4 do outro).', color: 'success' },
+              { label: '3', text: 'O layout customizado é salvo e aplicado em todas as próximas mesas inseridas.', color: 'warning' },
             ]}
           />
 
