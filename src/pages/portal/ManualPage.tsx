@@ -908,7 +908,25 @@ const ManualPage: React.FC = () => {
             Com um setor selecionado, o painel direito exibe três grupos de transformações geométricas
             que afetam o polígono inteiro (e os assentos contidos nele).
           </p>
-          <Figure src={propriedadesRotacaoCurvatura} caption="Painel de propriedades: Transformações no topo (centralizar / espelhar H / espelhar V), Espaçamento, Rotação com presets, Curvatura e Opacidade." size="lg" />
+          <AnnotatedFigure
+            src={propriedadesRotacaoCurvatura}
+            caption="Painel de propriedades — transformações geométricas do setor."
+            size="lg"
+            annotations={[
+              { shape: 'circle', x: 50, y: 10, w: 90, h: 8, label: '1', color: 'primary' },
+              { shape: 'circle', x: 50, y: 30, w: 90, h: 12, label: '2', color: 'success' },
+              { shape: 'circle', x: 50, y: 50, w: 90, h: 16, label: '3', color: 'warning' },
+              { shape: 'circle', x: 50, y: 72, w: 90, h: 14, label: '4', color: 'destructive' },
+              { shape: 'circle', x: 50, y: 92, w: 90, h: 10, label: '5', color: 'primary' },
+            ]}
+            legend={[
+              { label: '1', text: 'Transformações: centralizar, espelhar Horizontal e espelhar Vertical.', color: 'primary' },
+              { label: '2', text: 'Espaçamento entre assentos do setor.', color: 'success' },
+              { label: '3', text: 'Rotação: slider 0°-360° + presets rápidos (0/45/90/180/270).', color: 'warning' },
+              { label: '4', text: 'Curvatura: 0% (Reto) a 100% (Curvo) — aplica curvas Bézier nas arestas.', color: 'destructive' },
+              { label: '5', text: 'Opacidade do setor (útil para sobrepor ao fundo).', color: 'primary' },
+            ]}
+          />
 
           <h3 className="font-semibold text-lg pt-2">Rotação</h3>
           <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
