@@ -332,11 +332,11 @@ const ManualPage: React.FC = () => {
             caption="Tela inicial do Map Studio com as cinco áreas principais."
             size="lg"
             annotations={[
-              { shape: 'circle', x: 50, y: 4, w: 95, h: 6, label: '1', color: 'primary' },
-              { shape: 'circle', x: 50, y: 12, w: 60, h: 7, label: '2', color: 'success' },
-              { shape: 'circle', x: 8, y: 55, w: 14, h: 80, label: '3', color: 'warning' },
-              { shape: 'circle', x: 92, y: 55, w: 14, h: 80, label: '4', color: 'warning' },
-              { shape: 'circle', x: 50, y: 60, w: 50, h: 60, label: '5', color: 'destructive' },
+              { x: 50, y: 4, label: '1', color: 'primary' },
+              { x: 50, y: 12, label: '2', color: 'success' },
+              { x: 8, y: 55, label: '3', color: 'warning' },
+              { x: 92, y: 55, label: '4', color: 'warning' },
+              { x: 50, y: 60, label: '5', color: 'destructive' },
             ]}
             legend={[
               { label: '1', text: 'Topo: nome do mapa, botão Templates e Exportar.', color: 'primary' },
@@ -434,9 +434,9 @@ const ManualPage: React.FC = () => {
             caption="Etapa 1 — Galeria completa com 18 formas geométricas."
             size="lg"
             annotations={[
-              { shape: 'arrow', x: 50, y: 8, arrowFromX: 50, arrowFromY: 1, label: '1', color: 'primary' },
-              { shape: 'circle', x: 50, y: 50, w: 90, h: 70, label: '2', color: 'success' },
-              { shape: 'arrow', x: 92, y: 96, arrowFromX: 80, arrowFromY: 88, label: '3', color: 'warning' },
+              { x: 50, y: 8, badgeX: 50, badgeY: 1, label: '1', color: 'primary' },
+              { x: 50, y: 50, label: '2', color: 'success' },
+              { x: 92, y: 96, badgeX: 80, badgeY: 88, label: '3', color: 'warning' },
             ]}
             legend={[
               { label: '1', text: 'Indicador de etapa do assistente (1 = Forma, 2 = Configurar, 3 = Preview).', color: 'primary' },
@@ -457,9 +457,9 @@ const ManualPage: React.FC = () => {
             caption="Etapa 2 — Configuração com preview ao vivo dos assentos."
             size="lg"
             annotations={[
-              { shape: 'circle', x: 25, y: 35, w: 40, h: 50, label: '1', color: 'primary' },
-              { shape: 'circle', x: 75, y: 50, w: 45, h: 70, label: '2', color: 'success' },
-              { shape: 'arrow', x: 25, y: 92, arrowFromX: 12, arrowFromY: 85, label: '3', color: 'warning' },
+              { x: 25, y: 35, label: '1', color: 'primary' },
+              { x: 75, y: 50, label: '2', color: 'success' },
+              { x: 25, y: 92, badgeX: 12, badgeY: 85, label: '3', color: 'warning' },
             ]}
             legend={[
               { label: '1', text: 'Painel de parâmetros: fileiras, assentos por fila, espaçamento, tamanho e curvatura.', color: 'primary' },
@@ -486,9 +486,9 @@ const ManualPage: React.FC = () => {
             caption="Setor criado: assentos posicionados, lista lateral e contador atualizados."
             size="lg"
             annotations={[
-              { shape: 'circle', x: 50, y: 50, w: 55, h: 55, label: '1', color: 'primary' },
-              { shape: 'arrow', x: 92, y: 30, arrowFromX: 80, arrowFromY: 20, label: '2', color: 'success' },
-              { shape: 'arrow', x: 50, y: 96, arrowFromX: 35, arrowFromY: 90, label: '3', color: 'warning' },
+              { x: 50, y: 50, label: '1', color: 'primary' },
+              { x: 92, y: 30, badgeX: 80, badgeY: 20, label: '2', color: 'success' },
+              { x: 50, y: 96, badgeX: 35, badgeY: 90, label: '3', color: 'warning' },
             ]}
             legend={[
               { label: '1', text: 'Setor recém-criado com todos os assentos posicionados.', color: 'primary' },
@@ -587,8 +587,8 @@ const ManualPage: React.FC = () => {
             caption="Etapa 1 — Tipo de mobília e tipo de assento."
             size="lg"
             annotations={[
-              { shape: 'circle', x: 30, y: 35, w: 55, h: 25, label: '1', color: 'primary' },
-              { shape: 'circle', x: 30, y: 65, w: 55, h: 25, label: '2', color: 'success' },
+              { x: 30, y: 35, label: '1', color: 'primary' },
+              { x: 30, y: 65, label: '2', color: 'success' },
             ]}
             legend={[
               { label: '1', text: 'Tipo de mobília: Cadeira (assentos isolados), Mesa ou Bistrô.', color: 'primary' },
@@ -606,11 +606,11 @@ const ManualPage: React.FC = () => {
             caption="Etapa 2 — Visão completa do gerador com todos os parâmetros."
             size="lg"
             annotations={[
-              { shape: 'circle', x: 22, y: 18, w: 35, h: 12, label: '1', color: 'primary' },
-              { shape: 'circle', x: 22, y: 32, w: 35, h: 14, label: '2', color: 'success' },
-              { shape: 'circle', x: 22, y: 50, w: 35, h: 16, label: '3', color: 'warning' },
-              { shape: 'circle', x: 22, y: 70, w: 35, h: 16, label: '4', color: 'destructive' },
-              { shape: 'circle', x: 75, y: 50, w: 45, h: 70, label: '5', color: 'primary' },
+              { x: 22, y: 18, label: '1', color: 'primary' },
+              { x: 22, y: 32, label: '2', color: 'success' },
+              { x: 22, y: 50, label: '3', color: 'warning' },
+              { x: 22, y: 70, label: '4', color: 'destructive' },
+              { x: 75, y: 50, label: '5', color: 'primary' },
             ]}
             legend={[
               { label: '1', text: 'Dimensões: filas (linhas) e assentos por fila.', color: 'primary' },
@@ -679,10 +679,10 @@ const ManualPage: React.FC = () => {
             caption="Customização avançada: rotação, prefixo, assentos variáveis e alinhamento."
             size="lg"
             annotations={[
-              { shape: 'circle', x: 22, y: 25, w: 35, h: 12, label: '1', color: 'primary' },
-              { shape: 'circle', x: 22, y: 45, w: 35, h: 12, label: '2', color: 'success' },
-              { shape: 'circle', x: 22, y: 65, w: 35, h: 18, label: '3', color: 'warning' },
-              { shape: 'circle', x: 22, y: 85, w: 35, h: 10, label: '4', color: 'destructive' },
+              { x: 22, y: 25, label: '1', color: 'primary' },
+              { x: 22, y: 45, label: '2', color: 'success' },
+              { x: 22, y: 65, label: '3', color: 'warning' },
+              { x: 22, y: 85, label: '4', color: 'destructive' },
             ]}
             legend={[
               { label: '1', text: 'Rotação: gira toda a grade em graus (0° a 360°).', color: 'primary' },
@@ -768,10 +768,10 @@ const ManualPage: React.FC = () => {
             caption="Painel Mobília: configuração da mesa antes de inserir."
             size="lg"
             annotations={[
-              { shape: 'circle', x: 50, y: 12, w: 80, h: 10, label: '1', color: 'primary' },
-              { shape: 'circle', x: 50, y: 28, w: 80, h: 10, label: '2', color: 'success' },
-              { shape: 'circle', x: 50, y: 45, w: 80, h: 12, label: '3', color: 'warning' },
-              { shape: 'circle', x: 50, y: 65, w: 80, h: 18, label: '4', color: 'destructive' },
+              { x: 50, y: 12, label: '1', color: 'primary' },
+              { x: 50, y: 28, label: '2', color: 'success' },
+              { x: 50, y: 45, label: '3', color: 'warning' },
+              { x: 50, y: 65, label: '4', color: 'destructive' },
             ]}
             legend={[
               { label: '1', text: 'Tipo: Cadeira / Mesa / Bistrô.', color: 'primary' },
@@ -793,9 +793,9 @@ const ManualPage: React.FC = () => {
             src={mesaPreviewInterativo}
             caption="Preview interativo: arraste cada cadeira para criar layouts customizados."
             annotations={[
-              { shape: 'circle', x: 50, y: 50, w: 30, h: 30, label: '1', color: 'primary' },
-              { shape: 'arrow', x: 25, y: 50, arrowFromX: 8, arrowFromY: 30, label: '2', color: 'success' },
-              { shape: 'arrow', x: 75, y: 50, arrowFromX: 92, arrowFromY: 30, label: '3', color: 'success' },
+              { x: 50, y: 50, label: '1', color: 'primary' },
+              { x: 25, y: 50, badgeX: 8, badgeY: 30, label: '2', color: 'success' },
+              { x: 75, y: 50, badgeX: 92, badgeY: 30, label: '3', color: 'success' },
             ]}
             legend={[
               { label: '1', text: 'Mesa central — não é arrastável.', color: 'primary' },
@@ -830,11 +830,11 @@ const ManualPage: React.FC = () => {
             caption="Painel de propriedades de um setor selecionado."
             size="lg"
             annotations={[
-              { shape: 'circle', x: 50, y: 8, w: 90, h: 6, label: '1', color: 'primary' },
-              { shape: 'circle', x: 50, y: 22, w: 90, h: 12, label: '2', color: 'success' },
-              { shape: 'circle', x: 50, y: 40, w: 90, h: 10, label: '3', color: 'warning' },
-              { shape: 'circle', x: 50, y: 58, w: 90, h: 14, label: '4', color: 'destructive' },
-              { shape: 'circle', x: 50, y: 92, w: 90, h: 10, label: '5', color: 'primary' },
+              { x: 50, y: 8, label: '1', color: 'primary' },
+              { x: 50, y: 22, label: '2', color: 'success' },
+              { x: 50, y: 40, label: '3', color: 'warning' },
+              { x: 50, y: 58, label: '4', color: 'destructive' },
+              { x: 50, y: 92, label: '5', color: 'primary' },
             ]}
             legend={[
               { label: '1', text: 'Nome do setor (aparece em todas as listagens e exportações).', color: 'primary' },
@@ -887,11 +887,11 @@ const ManualPage: React.FC = () => {
             caption="Painel de propriedades — transformações geométricas do setor."
             size="lg"
             annotations={[
-              { shape: 'circle', x: 50, y: 10, w: 90, h: 8, label: '1', color: 'primary' },
-              { shape: 'circle', x: 50, y: 30, w: 90, h: 12, label: '2', color: 'success' },
-              { shape: 'circle', x: 50, y: 50, w: 90, h: 16, label: '3', color: 'warning' },
-              { shape: 'circle', x: 50, y: 72, w: 90, h: 14, label: '4', color: 'destructive' },
-              { shape: 'circle', x: 50, y: 92, w: 90, h: 10, label: '5', color: 'primary' },
+              { x: 50, y: 10, label: '1', color: 'primary' },
+              { x: 50, y: 30, label: '2', color: 'success' },
+              { x: 50, y: 50, label: '3', color: 'warning' },
+              { x: 50, y: 72, label: '4', color: 'destructive' },
+              { x: 50, y: 92, label: '5', color: 'primary' },
             ]}
             legend={[
               { label: '1', text: 'Transformações: centralizar, espelhar Horizontal e espelhar Vertical.', color: 'primary' },
