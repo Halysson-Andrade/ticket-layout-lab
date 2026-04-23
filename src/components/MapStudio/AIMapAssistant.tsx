@@ -36,13 +36,20 @@ export const AIMapAssistant: React.FC<AIMapAssistantProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [imageDims, setImageDims] = useState<{ width: number; height: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Reset ao abrir com nova imagem
+  // Reset ao abrir com nova imagem + extrai dimensões reais da imagem
   useEffect(() => {
     if (open && imageBase64) {
       setMessages([]);
       setInput('');
+      const img = new Image();
+      img.onload = () => {
+        setImageDims({ width: img.naturalWidth, height: img.naturalHeight });
+      };
+      img.onerror = () => setImageDims(null);
+      img.src = imageBase64;
     }
   }, [open, imageBase64]);
 
