@@ -16,6 +16,9 @@ interface ChatMessage {
   plan?: AIMapPlan;
 }
 
+// Cache do relatório de análise visual produzido na FASE 1.
+// Reutilizamos em refinamentos para evitar reanalisar a imagem (mais rápido + mais barato + mais consistente).
+
 interface AIMapAssistantProps {
   open: boolean;
   onClose: () => void;
@@ -36,7 +39,9 @@ export const AIMapAssistant: React.FC<AIMapAssistantProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState<string>('');
   const [imageDims, setImageDims] = useState<{ width: number; height: number } | null>(null);
+  const [cachedAnalysis, setCachedAnalysis] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Reset ao abrir com nova imagem + extrai dimensões reais da imagem
@@ -44,6 +49,7 @@ export const AIMapAssistant: React.FC<AIMapAssistantProps> = ({
     if (open && imageBase64) {
       setMessages([]);
       setInput('');
+      setCachedAnalysis(null);
       const img = new Image();
       img.onload = () => {
         setImageDims({ width: img.naturalWidth, height: img.naturalHeight });
@@ -72,6 +78,12 @@ export const AIMapAssistant: React.FC<AIMapAssistantProps> = ({
     setMessages(newMessages);
     setInput('');
     setLoading(true);
+    // Primeira chamada => fase 1 (análise) + fase 2 (geração). Demais => apenas geração.
+    setLoadingStage(
+      cachedAnalysis
+        ? 'Refinando plano...'
+        : 'Analisando imagem em detalhe (fase 1/2)...'
+    );
 
     try {
       const { data, error } = await supabase.functions.invoke(
@@ -87,6 +99,7 @@ export const AIMapAssistant: React.FC<AIMapAssistantProps> = ({
             canvasHeight,
             imageWidth: imageDims?.width ?? null,
             imageHeight: imageDims?.height ?? null,
+            cachedAnalysis,
           },
         }
       );
@@ -110,6 +123,11 @@ export const AIMapAssistant: React.FC<AIMapAssistantProps> = ({
         return;
       }
 
+      // Cacheia o relatório de análise para reutilizar em refinamentos
+      if (data.analysis && !cachedAnalysis) {
+        setCachedAnalysis(data.analysis);
+      }
+
       const assistantMsg: ChatMessage = {
         role: 'assistant',
         content: data.message || 'Aqui está o plano gerado.',
@@ -122,12 +140,13 @@ export const AIMapAssistant: React.FC<AIMapAssistantProps> = ({
       setMessages(messages);
     } finally {
       setLoading(false);
+      setLoadingStage('');
     }
   };
 
   const handleStartAnalysis = () => {
     sendMessage(
-      'Analise esta imagem e RECRIE fielmente o layout no canvas — como uma cópia visual. Identifique cada setor visível com sua posição, tamanho, formato e inclinação reais, mantendo as proporções. Estime a quantidade de fileiras e assentos por setor olhando atentamente a densidade na imagem (faça zoom mental se preciso). Inclua palco e demais elementos contextuais nas posições corretas.'
+      'Analise esta imagem em DETALHE e RECRIE fielmente o layout no canvas — como uma cópia visual exata. Inclua TODOS os setores visíveis (não agrupe nem simplifique), mantendo posições, tamanhos, cores, formas, rotações e contagens reais de fileiras/assentos. Inclua palco e elementos contextuais.'
     );
   };
 
@@ -139,6 +158,7 @@ export const AIMapAssistant: React.FC<AIMapAssistantProps> = ({
   const handleReset = () => {
     setMessages([]);
     setInput('');
+    setCachedAnalysis(null);
   };
 
   if (!open) return null;
@@ -276,9 +296,9 @@ export const AIMapAssistant: React.FC<AIMapAssistantProps> = ({
               ))}
 
               {loading && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  IA analisando...
+                <div className="flex items-center gap-2 text-xs text-muted-foreground rounded-md border border-border/60 bg-muted/40 p-2">
+                  <Loader2 className="h-3 w-3 animate-spin shrink-0" />
+                  <span>{loadingStage || 'IA processando...'}</span>
                 </div>
               )}
             </div>
