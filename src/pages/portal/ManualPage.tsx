@@ -835,11 +835,16 @@ const ManualPage: React.FC = () => {
             caption="Painel de propriedades de um setor selecionado."
             size="lg"
             annotations={[
-              { x: 50, y: 8, label: '1', color: 'primary' },
-              { x: 50, y: 22, label: '2', color: 'success' },
-              { x: 50, y: 40, label: '3', color: 'warning' },
-              { x: 50, y: 58, label: '4', color: 'destructive' },
-              { x: 50, y: 92, label: '5', color: 'primary' },
+              // 1. Nome "Setor 1" no topo do painel
+              { x: 88, y: 18, badgeX: 73, badgeY: 18, label: '1', color: 'primary' },
+              // 2. Paleta "Cor do Setor"
+              { x: 88, y: 42, badgeX: 73, badgeY: 42, label: '2', color: 'success' },
+              // 3. Texto no Setor (input)
+              { x: 88, y: 80, badgeX: 73, badgeY: 80, label: '3', color: 'warning' },
+              // 4. Posição X/Y
+              { x: 88, y: 95, badgeX: 73, badgeY: 95, label: '4', color: 'destructive' },
+              // 5. Botão "Gerar Assentos neste Setor" (centro inferior)
+              { x: 50, y: 89, badgeX: 50, badgeY: 78, label: '5', color: 'primary' },
             ]}
             legend={[
               { label: '1', text: 'Nome do setor (aparece em todas as listagens e exportações).', color: 'primary' },
