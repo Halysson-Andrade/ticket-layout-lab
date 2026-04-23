@@ -52,6 +52,7 @@ export interface AIMapPlan {
 
 const SUPPORTED_SHAPES: SectorShape[] = [
   'rectangle',
+  'parallelogram',
   'circle',
   'trapezoid',
   'pentagon',
@@ -61,8 +62,13 @@ const SUPPORTED_SHAPES: SectorShape[] = [
   'l-shape',
   'u-shape',
   't-shape',
+  'z-shape',
+  'cross',
   'diamond',
   'octagon',
+  'arrow',
+  'star',
+  'wave',
 ];
 
 const SUPPORTED_ELEMENTS: ElementType[] = [
@@ -192,7 +198,11 @@ export function buildSectorsAndElementsFromPlan(
 export function summarizePlan(plan: AIMapPlan): string {
   const sectorCount = plan.sectors?.length ?? 0;
   const totalSeats = (plan.sectors || []).reduce(
-    (acc, s) => acc + (s.rows || 0) * (s.cols || 0),
+    (acc, s) =>
+      acc +
+      (Array.isArray(s.seatsPerRow) && s.seatsPerRow.length > 0
+        ? s.seatsPerRow.reduce((sum, value) => sum + (Number(value) || 0), 0)
+        : (s.rows || 0) * (s.cols || 0)),
     0
   );
   const elementCount = plan.elements?.length ?? 0;
