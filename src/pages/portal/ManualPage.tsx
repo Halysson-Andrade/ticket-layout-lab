@@ -124,59 +124,46 @@ const AnnotatedFigure: React.FC<{
           </defs>
           {annotations.map((a, i) => {
             const color = ANNOTATION_COLORS[a.color || 'primary'];
-            // Pequeno marcador numerado discreto sobre o local indicado.
-            // Tipo "arrow" desenha uma linha curta opcional para apontar de fora.
-            if (a.shape === 'arrow') {
-              const fx = a.arrowFromX ?? Math.max(2, a.x - 6);
-              const fy = a.arrowFromY ?? Math.max(2, a.y - 5);
-              return (
-                <g key={i}>
+            // Posição do badge: pode ser explícita ou um offset padrão acima do alvo.
+            const bx = a.badgeX ?? Math.max(3, Math.min(97, a.x - 6));
+            const by = a.badgeY ?? Math.max(3, Math.min(97, a.y - 6));
+            // Calcula o ponto de saída da seta na borda do badge (raio ~2).
+            const dx = a.x - bx;
+            const dy = a.y - by;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            const startX = bx + (dx / dist) * 2.2;
+            const startY = by + (dy / dist) * 2.2;
+            // Só desenha a seta se o alvo estiver razoavelmente longe do badge.
+            const drawArrow = dist > 3;
+            return (
+              <g key={i}>
+                {drawArrow && (
                   <line
-                    x1={fx}
-                    y1={fy}
+                    x1={startX}
+                    y1={startY}
                     x2={a.x}
                     y2={a.y}
                     stroke={color}
-                    strokeWidth={0.4}
+                    strokeWidth={0.5}
                     vectorEffect="non-scaling-stroke"
                     markerEnd={`url(#arrowhead-${a.color || 'primary'})`}
                   />
-                  {a.label && (
-                    <g>
-                      <circle cx={fx} cy={fy} r={1.8} fill={color} stroke="white" strokeWidth={0.3} vectorEffect="non-scaling-stroke" />
-                      <text
-                        x={fx}
-                        y={fy}
-                        fontSize={2.2}
-                        fill="white"
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                        fontWeight="bold"
-                      >
-                        {a.label}
-                      </text>
-                    </g>
-                  )}
-                </g>
-              );
-            }
-            // shape === 'circle' → marcador numerado discreto no ponto exato
-            return (
-              <g key={i}>
+                )}
+                {/* Badge numerado */}
                 <circle
-                  cx={a.x}
-                  cy={a.y}
-                  r={1.8}
+                  cx={bx}
+                  cy={by}
+                  r={2.2}
                   fill={color}
                   stroke="white"
-                  strokeWidth={0.3}
+                  strokeWidth={0.5}
                   vectorEffect="non-scaling-stroke"
                 />
                 {a.label && (
                   <text
-                    x={a.x}
-                    y={a.y}
-                    fontSize={2.2}
+                    x={bx}
+                    y={by}
+                    fontSize={2.6}
                     fill="white"
                     textAnchor="middle"
                     dominantBaseline="central"
