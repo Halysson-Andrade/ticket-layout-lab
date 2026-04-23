@@ -17,6 +17,7 @@ const UsuariosPage = lazy(() => import("./pages/portal/UsuariosPage"));
 const EmpresasPage = lazy(() => import("./pages/portal/EmpresasPage"));
 const MapasPage = lazy(() => import("./pages/portal/MapasPage"));
 const SimulacaoPage = lazy(() => import("./pages/portal/SimulacaoPage"));
+const ManualPage = lazy(() => import("./pages/portal/ManualPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -62,6 +63,7 @@ const App = () => (
                   </ProtectedRoute>
                 } />
                 <Route path="mapas" element={<MapasPage />} />
+                <Route path="manual" element={<ManualPage />} />
                 <Route path="simulacao" element={
                   <ProtectedRoute requiredRole="admin">
                     <SimulacaoPage />
