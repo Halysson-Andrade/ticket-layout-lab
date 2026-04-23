@@ -85,6 +85,8 @@ export const AIMapAssistant: React.FC<AIMapAssistantProps> = ({
             })),
             canvasWidth,
             canvasHeight,
+            imageWidth: imageDims?.width ?? null,
+            imageHeight: imageDims?.height ?? null,
           },
         }
       );
