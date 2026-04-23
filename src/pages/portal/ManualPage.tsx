@@ -608,7 +608,19 @@ const ManualPage: React.FC = () => {
             ser <strong>Normal</strong>, <strong>VIP</strong>, <strong>PCD</strong> ou <strong>Obeso</strong>
             — define a cor e a categoria comercial dos assentos gerados.
           </p>
-          <Figure src={geradorTipoMobilia} caption="Etapa 1 — Tipo de mobília (Cadeira / Mesa / Bistrô) e tipo de assento (Normal / VIP / PCD / Obeso)." size="lg" />
+          <AnnotatedFigure
+            src={geradorTipoMobilia}
+            caption="Etapa 1 — Tipo de mobília e tipo de assento."
+            size="lg"
+            annotations={[
+              { shape: 'circle', x: 30, y: 35, w: 55, h: 25, label: '1', color: 'primary' },
+              { shape: 'circle', x: 30, y: 65, w: 55, h: 25, label: '2', color: 'success' },
+            ]}
+            legend={[
+              { label: '1', text: 'Tipo de mobília: Cadeira (assentos isolados), Mesa ou Bistrô.', color: 'primary' },
+              { label: '2', text: 'Tipo de assento padrão (define cor e categoria comercial): Normal, VIP, PCD ou Obeso.', color: 'success' },
+            ]}
+          />
 
           <h3 className="font-semibold text-lg pt-2">Etapa 2 — Configuração detalhada</h3>
           <p className="text-sm text-muted-foreground">
