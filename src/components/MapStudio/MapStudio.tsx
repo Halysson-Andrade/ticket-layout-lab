@@ -2110,6 +2110,14 @@ export const MapStudio: React.FC = () => {
       rotation: e.rotation,
       color: e.color,
     })),
+    // Imagem de fundo (persistida com o mapa)
+    backgroundImage: bgConfig ? {
+      url: bgConfig.url,
+      opacity: bgConfig.opacity,
+      scale: bgConfig.scale,
+      x: bgConfig.x,
+      y: bgConfig.y,
+    } : null,
     // Metadados de exportação
     exportedAt: new Date().toISOString(),
     totalSeats: sectors.reduce((acc, s) => acc + s.seats.length, 0),
