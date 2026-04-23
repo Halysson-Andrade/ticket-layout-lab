@@ -478,7 +478,21 @@ const ManualPage: React.FC = () => {
             assento</strong>, <strong>curvatura</strong> da forma e <strong>tipo padrão</strong>. O preview
             ao lado mostra a distribuição em tempo real.
           </p>
-          <Figure src={configAssentos} caption="Etapa 2 — Configuração com preview ao vivo dos assentos." size="lg" />
+          <AnnotatedFigure
+            src={configAssentos}
+            caption="Etapa 2 — Configuração com preview ao vivo dos assentos."
+            size="lg"
+            annotations={[
+              { shape: 'circle', x: 25, y: 35, w: 40, h: 50, label: '1', color: 'primary' },
+              { shape: 'circle', x: 75, y: 50, w: 45, h: 70, label: '2', color: 'success' },
+              { shape: 'arrow', x: 25, y: 92, arrowFromX: 12, arrowFromY: 85, label: '3', color: 'warning' },
+            ]}
+            legend={[
+              { label: '1', text: 'Painel de parâmetros: fileiras, assentos por fila, espaçamento, tamanho e curvatura.', color: 'primary' },
+              { label: '2', text: 'Preview ao vivo: visualize a distribuição enquanto altera os valores.', color: 'success' },
+              { label: '3', text: 'Contador no rodapé mostra a capacidade total calculada.', color: 'warning' },
+            ]}
+          />
 
           <h3 className="font-semibold text-lg pt-2">Etapa 3 — Preview e confirmação</h3>
           <p className="text-sm text-muted-foreground">
