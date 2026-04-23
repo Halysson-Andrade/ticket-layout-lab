@@ -2416,6 +2416,7 @@ export const MapStudio: React.FC = () => {
             hasSelection={selectedSectorIds.length > 0 || selectedSeatIds.length > 0}
             hasBgImage={!!bgConfig}
             zoom={zoom}
+            onOpenAIAssistant={() => setAiAssistantOpen(true)}
           />
         ) : null}
 
