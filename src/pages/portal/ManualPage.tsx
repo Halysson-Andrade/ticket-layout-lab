@@ -66,21 +66,17 @@ const Figure: React.FC<{ src: string; caption: string; size?: 'sm' | 'md' | 'lg'
 };
 
 /**
- * Anotação posicionada sobre uma imagem (em % do tamanho da imagem).
- * - shape: "circle" desenha um círculo; "arrow" desenha uma seta apontando para o ponto.
- * - x, y: centro do alvo (0-100).
- * - w, h: tamanho do círculo (0-100, em % da largura/altura). Default 8x14.
- * - arrowFrom: origem da seta (0-100). Default sai do canto superior esquerdo.
- * - label: número/letra exibida junto à anotação.
+ * Anotação posicionada sobre uma imagem (coords em % 0-100).
+ * - x, y: ponto exato sendo indicado (alvo da seta).
+ * - badgeX, badgeY: posição do badge numerado (origem da seta). Se omitido,
+ *   usa um offset padrão acima/à esquerda do alvo.
+ * - label: número/letra exibido no badge.
  */
 type Annotation = {
-  shape: 'circle' | 'arrow';
   x: number;
   y: number;
-  w?: number;
-  h?: number;
-  arrowFromX?: number;
-  arrowFromY?: number;
+  badgeX?: number;
+  badgeY?: number;
   label?: string;
   color?: 'primary' | 'destructive' | 'success' | 'warning';
 };
@@ -128,59 +124,46 @@ const AnnotatedFigure: React.FC<{
           </defs>
           {annotations.map((a, i) => {
             const color = ANNOTATION_COLORS[a.color || 'primary'];
-            // Pequeno marcador numerado discreto sobre o local indicado.
-            // Tipo "arrow" desenha uma linha curta opcional para apontar de fora.
-            if (a.shape === 'arrow') {
-              const fx = a.arrowFromX ?? Math.max(2, a.x - 6);
-              const fy = a.arrowFromY ?? Math.max(2, a.y - 5);
-              return (
-                <g key={i}>
+            // Posição do badge: pode ser explícita ou um offset padrão acima do alvo.
+            const bx = a.badgeX ?? Math.max(3, Math.min(97, a.x - 6));
+            const by = a.badgeY ?? Math.max(3, Math.min(97, a.y - 6));
+            // Calcula o ponto de saída da seta na borda do badge (raio ~2).
+            const dx = a.x - bx;
+            const dy = a.y - by;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            const startX = bx + (dx / dist) * 2.2;
+            const startY = by + (dy / dist) * 2.2;
+            // Só desenha a seta se o alvo estiver razoavelmente longe do badge.
+            const drawArrow = dist > 3;
+            return (
+              <g key={i}>
+                {drawArrow && (
                   <line
-                    x1={fx}
-                    y1={fy}
+                    x1={startX}
+                    y1={startY}
                     x2={a.x}
                     y2={a.y}
                     stroke={color}
-                    strokeWidth={0.4}
+                    strokeWidth={0.5}
                     vectorEffect="non-scaling-stroke"
                     markerEnd={`url(#arrowhead-${a.color || 'primary'})`}
                   />
-                  {a.label && (
-                    <g>
-                      <circle cx={fx} cy={fy} r={1.8} fill={color} stroke="white" strokeWidth={0.3} vectorEffect="non-scaling-stroke" />
-                      <text
-                        x={fx}
-                        y={fy}
-                        fontSize={2.2}
-                        fill="white"
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                        fontWeight="bold"
-                      >
-                        {a.label}
-                      </text>
-                    </g>
-                  )}
-                </g>
-              );
-            }
-            // shape === 'circle' → marcador numerado discreto no ponto exato
-            return (
-              <g key={i}>
+                )}
+                {/* Badge numerado */}
                 <circle
-                  cx={a.x}
-                  cy={a.y}
-                  r={1.8}
+                  cx={bx}
+                  cy={by}
+                  r={2.2}
                   fill={color}
                   stroke="white"
-                  strokeWidth={0.3}
+                  strokeWidth={0.5}
                   vectorEffect="non-scaling-stroke"
                 />
                 {a.label && (
                   <text
-                    x={a.x}
-                    y={a.y}
-                    fontSize={2.2}
+                    x={bx}
+                    y={by}
+                    fontSize={2.6}
                     fill="white"
                     textAnchor="middle"
                     dominantBaseline="central"
@@ -349,11 +332,16 @@ const ManualPage: React.FC = () => {
             caption="Tela inicial do Map Studio com as cinco áreas principais."
             size="lg"
             annotations={[
-              { shape: 'circle', x: 50, y: 4, w: 95, h: 6, label: '1', color: 'primary' },
-              { shape: 'circle', x: 50, y: 12, w: 60, h: 7, label: '2', color: 'success' },
-              { shape: 'circle', x: 8, y: 55, w: 14, h: 80, label: '3', color: 'warning' },
-              { shape: 'circle', x: 92, y: 55, w: 14, h: 80, label: '4', color: 'warning' },
-              { shape: 'circle', x: 50, y: 60, w: 50, h: 60, label: '5', color: 'destructive' },
+              // 1. Topo: nome/Templates/Exportar — badge logo abaixo da barra apontando para cima
+              { x: 95, y: 3, badgeX: 88, badgeY: 11, label: '1', color: 'primary' },
+              // 2. Toolbar central
+              { x: 50, y: 12, badgeX: 50, badgeY: 22, label: '2', color: 'success' },
+              // 3. Sidebar esquerda — badge no canvas, seta apontando para a sidebar
+              { x: 12, y: 27, badgeX: 26, badgeY: 27, label: '3', color: 'warning' },
+              // 4. Sidebar direita
+              { x: 88, y: 27, badgeX: 73, badgeY: 27, label: '4', color: 'warning' },
+              // 5. Canvas central
+              { x: 50, y: 55, badgeX: 50, badgeY: 70, label: '5', color: 'destructive' },
             ]}
             legend={[
               { label: '1', text: 'Topo: nome do mapa, botão Templates e Exportar.', color: 'primary' },
@@ -451,14 +439,17 @@ const ManualPage: React.FC = () => {
             caption="Etapa 1 — Galeria completa com 18 formas geométricas."
             size="lg"
             annotations={[
-              { shape: 'arrow', x: 50, y: 8, arrowFromX: 50, arrowFromY: 1, label: '1', color: 'primary' },
-              { shape: 'circle', x: 50, y: 50, w: 90, h: 70, label: '2', color: 'success' },
-              { shape: 'arrow', x: 92, y: 96, arrowFromX: 80, arrowFromY: 88, label: '3', color: 'warning' },
+              // 1. Stepper "Forma" no topo do modal
+              { x: 22, y: 14, badgeX: 11, badgeY: 14, label: '1', color: 'primary' },
+              // 2. Galeria de formas (centro)
+              { x: 50, y: 45, badgeX: 86, badgeY: 25, label: '2', color: 'success' },
+              // 3. Botão Cancelar / próximo (rodapé)
+              { x: 22, y: 91, badgeX: 11, badgeY: 91, label: '3', color: 'warning' },
             ]}
             legend={[
-              { label: '1', text: 'Indicador de etapa do assistente (1 = Forma, 2 = Configurar, 3 = Preview).', color: 'primary' },
-              { label: '2', text: 'Galeria de formas — clique em uma para selecioná-la.', color: 'success' },
-              { label: '3', text: 'Botão "Próximo" para avançar à etapa de configuração.', color: 'warning' },
+              { label: '1', text: 'Indicador de etapas do assistente: Forma → Configurar → Preview.', color: 'primary' },
+              { label: '2', text: 'Galeria de 18 formas — clique em uma para selecioná-la.', color: 'success' },
+              { label: '3', text: 'Rodapé: Cancelar (à esquerda) e Próximo (à direita, aparece após escolher a forma).', color: 'warning' },
             ]}
           />
 
@@ -474,14 +465,17 @@ const ManualPage: React.FC = () => {
             caption="Etapa 2 — Configuração com preview ao vivo dos assentos."
             size="lg"
             annotations={[
-              { shape: 'circle', x: 25, y: 35, w: 40, h: 50, label: '1', color: 'primary' },
-              { shape: 'circle', x: 75, y: 50, w: 45, h: 70, label: '2', color: 'success' },
-              { shape: 'arrow', x: 25, y: 92, arrowFromX: 12, arrowFromY: 85, label: '3', color: 'warning' },
+              // 1. Painel de parâmetros à esquerda
+              { x: 30, y: 50, badgeX: 18, badgeY: 18, label: '1', color: 'primary' },
+              // 2. Preview ao vivo (retângulo verde à direita)
+              { x: 66, y: 75, badgeX: 86, badgeY: 50, label: '2', color: 'success' },
+              // 3. Botão Continuar no rodapé
+              { x: 78, y: 91, badgeX: 65, badgeY: 91, label: '3', color: 'warning' },
             ]}
             legend={[
-              { label: '1', text: 'Painel de parâmetros: fileiras, assentos por fila, espaçamento, tamanho e curvatura.', color: 'primary' },
+              { label: '1', text: 'Painel de parâmetros: número de setores, fileiras, assentos por fileira, espaçamento, tamanho e curvatura.', color: 'primary' },
               { label: '2', text: 'Preview ao vivo: visualize a distribuição enquanto altera os valores.', color: 'success' },
-              { label: '3', text: 'Contador no rodapé mostra a capacidade total calculada.', color: 'warning' },
+              { label: '3', text: 'Botão "Continuar" para avançar ao Preview final.', color: 'warning' },
             ]}
           />
 
@@ -503,14 +497,17 @@ const ManualPage: React.FC = () => {
             caption="Setor criado: assentos posicionados, lista lateral e contador atualizados."
             size="lg"
             annotations={[
-              { shape: 'circle', x: 50, y: 50, w: 55, h: 55, label: '1', color: 'primary' },
-              { shape: 'arrow', x: 92, y: 30, arrowFromX: 80, arrowFromY: 20, label: '2', color: 'success' },
-              { shape: 'arrow', x: 50, y: 96, arrowFromX: 35, arrowFromY: 90, label: '3', color: 'warning' },
+              // 1. Setor (retângulo rosa) no canvas
+              { x: 30, y: 45, badgeX: 45, badgeY: 18, label: '1', color: 'primary' },
+              // 2. Lista lateral "Setor 1"
+              { x: 10, y: 53, badgeX: 22, badgeY: 53, label: '2', color: 'success' },
+              // 3. Status bar inferior "1 setores · 288 assentos · Zoom 80%"
+              { x: 12, y: 96, badgeX: 24, badgeY: 92, label: '3', color: 'warning' },
             ]}
             legend={[
               { label: '1', text: 'Setor recém-criado com todos os assentos posicionados.', color: 'primary' },
-              { label: '2', text: 'Lista lateral de setores atualizada com o novo item.', color: 'success' },
-              { label: '3', text: 'Status bar exibe contagem total de setores e assentos.', color: 'warning' },
+              { label: '2', text: 'Lista lateral de setores atualizada com o novo item e contagem de assentos.', color: 'success' },
+              { label: '3', text: 'Status bar exibe contagem total de setores, assentos e zoom atual.', color: 'warning' },
             ]}
           />
         </Section>
@@ -604,8 +601,10 @@ const ManualPage: React.FC = () => {
             caption="Etapa 1 — Tipo de mobília e tipo de assento."
             size="lg"
             annotations={[
-              { shape: 'circle', x: 30, y: 35, w: 55, h: 25, label: '1', color: 'primary' },
-              { shape: 'circle', x: 30, y: 65, w: 55, h: 25, label: '2', color: 'success' },
+              // 1. Cards "Cadeira / Mesa / Bistrô"
+              { x: 50, y: 50, badgeX: 28, badgeY: 50, label: '1', color: 'primary' },
+              // 2. Pills "Normal / VIP / PCD / Obeso"
+              { x: 50, y: 66, badgeX: 28, badgeY: 66, label: '2', color: 'success' },
             ]}
             legend={[
               { label: '1', text: 'Tipo de mobília: Cadeira (assentos isolados), Mesa ou Bistrô.', color: 'primary' },
@@ -623,18 +622,23 @@ const ManualPage: React.FC = () => {
             caption="Etapa 2 — Visão completa do gerador com todos os parâmetros."
             size="lg"
             annotations={[
-              { shape: 'circle', x: 22, y: 18, w: 35, h: 12, label: '1', color: 'primary' },
-              { shape: 'circle', x: 22, y: 32, w: 35, h: 14, label: '2', color: 'success' },
-              { shape: 'circle', x: 22, y: 50, w: 35, h: 16, label: '3', color: 'warning' },
-              { shape: 'circle', x: 22, y: 70, w: 35, h: 16, label: '4', color: 'destructive' },
-              { shape: 'circle', x: 75, y: 50, w: 45, h: 70, label: '5', color: 'primary' },
+              // 1. Filas/Assentos por Fila (topo do form)
+              { x: 38, y: 30, badgeX: 22, badgeY: 30, label: '1', color: 'primary' },
+              // 2. Espaçamentos e tamanho (sliders)
+              { x: 38, y: 47, badgeX: 22, badgeY: 47, label: '2', color: 'success' },
+              // 3. Tipo de fila / Início / Posição
+              { x: 38, y: 62, badgeX: 22, badgeY: 62, label: '3', color: 'warning' },
+              // 4. Numeração / Inicial / Direção
+              { x: 38, y: 75, badgeX: 22, badgeY: 75, label: '4', color: 'destructive' },
+              // 5. Preview ao vivo + contador
+              { x: 67, y: 47, badgeX: 87, badgeY: 47, label: '5', color: 'primary' },
             ]}
             legend={[
               { label: '1', text: 'Dimensões: filas (linhas) e assentos por fila.', color: 'primary' },
-              { label: '2', text: 'Espaçamento entre filas/assentos e tamanho do assento.', color: 'success' },
+              { label: '2', text: 'Espaçamento entre filas/assentos e tamanho do assento (sliders).', color: 'success' },
               { label: '3', text: 'Tipo de fila (Letras/Números/Romano), início e posição do nome.', color: 'warning' },
               { label: '4', text: 'Numeração dos assentos (sequencial, ímpares/pares, customizada) e direção.', color: 'destructive' },
-              { label: '5', text: 'Preview ao vivo: contador no topo informa "X assentos dentro do setor (Y lugares)".', color: 'primary' },
+              { label: '5', text: 'Preview ao vivo. Topo do modal informa "X assentos dentro do setor (Y lugares)".', color: 'primary' },
             ]}
           />
 
@@ -696,16 +700,20 @@ const ManualPage: React.FC = () => {
             caption="Customização avançada: rotação, prefixo, assentos variáveis e alinhamento."
             size="lg"
             annotations={[
-              { shape: 'circle', x: 22, y: 25, w: 35, h: 12, label: '1', color: 'primary' },
-              { shape: 'circle', x: 22, y: 45, w: 35, h: 12, label: '2', color: 'success' },
-              { shape: 'circle', x: 22, y: 65, w: 35, h: 18, label: '3', color: 'warning' },
-              { shape: 'circle', x: 22, y: 85, w: 35, h: 10, label: '4', color: 'destructive' },
+              // 1. Rotação (slider à esquerda, ~30% × 78%)
+              { x: 30, y: 78, badgeX: 18, badgeY: 78, label: '1', color: 'primary' },
+              // 2. Prefixo (input à direita, ~46% × 81%)
+              { x: 46, y: 82, badgeX: 60, badgeY: 82, label: '2', color: 'success' },
+              // 3. Checkbox "Quantidade de assentos por fileira (customizada)"
+              { x: 35, y: 73, badgeX: 18, badgeY: 73, label: '3', color: 'warning' },
+              // 4. Quando ativada, surge seletor de Alinhamento (E/C/D) abaixo
+              { x: 35, y: 90, badgeX: 18, badgeY: 90, label: '4', color: 'destructive' },
             ]}
             legend={[
-              { label: '1', text: 'Rotação: gira toda a grade em graus (0° a 360°).', color: 'primary' },
-              { label: '2', text: 'Prefixo: texto antes do número (ex.: "VIP-" gera VIP-1, VIP-2…).', color: 'success' },
-              { label: '3', text: 'Quantidade de assentos por fileira (customizada): defina valores diferentes por fila para arquibancadas trapezoidais.', color: 'warning' },
-              { label: '4', text: 'Alinhamento (Esquerda/Centro/Direita): posicionamento das filas variáveis dentro da forma.', color: 'destructive' },
+              { label: '1', text: 'Rotação: gira toda a grade em graus (slider 0° a 360°).', color: 'primary' },
+              { label: '2', text: 'Prefixo opcional: texto antes do número (ex.: "VIP-" gera VIP-1, VIP-2…).', color: 'success' },
+              { label: '3', text: 'Checkbox "Quantidade de assentos por fileira (customizada)" — ative para arquibancadas trapezoidais.', color: 'warning' },
+              { label: '4', text: 'Alinhamento (Esquerda/Centro/Direita) — aparece quando o modo customizado está ativo.', color: 'destructive' },
             ]}
           />
 
@@ -785,16 +793,20 @@ const ManualPage: React.FC = () => {
             caption="Painel Mobília: configuração da mesa antes de inserir."
             size="lg"
             annotations={[
-              { shape: 'circle', x: 50, y: 12, w: 80, h: 10, label: '1', color: 'primary' },
-              { shape: 'circle', x: 50, y: 28, w: 80, h: 10, label: '2', color: 'success' },
-              { shape: 'circle', x: 50, y: 45, w: 80, h: 12, label: '3', color: 'warning' },
-              { shape: 'circle', x: 50, y: 65, w: 80, h: 18, label: '4', color: 'destructive' },
+              // 1. Tipo de Mobília (Cadeira/Mesa/Bistrô) — botões na sidebar esquerda
+              { x: 11, y: 50, badgeX: 24, badgeY: 50, label: '1', color: 'primary' },
+              // 2. Formato da Mesa (Redonda/Quadrada/Retangular)
+              { x: 11, y: 62, badgeX: 24, badgeY: 62, label: '2', color: 'success' },
+              // 3. Cadeiras por Mesa (slider)
+              { x: 11, y: 70, badgeX: 24, badgeY: 70, label: '3', color: 'warning' },
+              // 4. Largura/Altura
+              { x: 11, y: 76, badgeX: 24, badgeY: 76, label: '4', color: 'destructive' },
             ]}
             legend={[
               { label: '1', text: 'Tipo: Cadeira / Mesa / Bistrô.', color: 'primary' },
               { label: '2', text: 'Formato da mesa: Redonda / Quadrada / Retangular.', color: 'success' },
-              { label: '3', text: 'Número de cadeiras (2 a 12).', color: 'warning' },
-              { label: '4', text: 'Dimensões e direção da mesa.', color: 'destructive' },
+              { label: '3', text: 'Cadeiras por Mesa: slider de 2 a 12.', color: 'warning' },
+              { label: '4', text: 'Largura, Altura e Direção das cadeiras.', color: 'destructive' },
             ]}
           />
 
@@ -810,14 +822,17 @@ const ManualPage: React.FC = () => {
             src={mesaPreviewInterativo}
             caption="Preview interativo: arraste cada cadeira para criar layouts customizados."
             annotations={[
-              { shape: 'circle', x: 50, y: 50, w: 30, h: 30, label: '1', color: 'primary' },
-              { shape: 'arrow', x: 25, y: 50, arrowFromX: 8, arrowFromY: 30, label: '2', color: 'success' },
-              { shape: 'arrow', x: 75, y: 50, arrowFromX: 92, arrowFromY: 30, label: '3', color: 'success' },
+              // 1. Mesa central (no preview ~11% × 78%)
+              { x: 11, y: 78, badgeX: 24, badgeY: 78, label: '1', color: 'primary' },
+              // 2. Cadeiras numeradas ao redor
+              { x: 8, y: 76, badgeX: 24, badgeY: 70, label: '2', color: 'success' },
+              // 3. Texto "Preview (arraste as cadeiras)" — título
+              { x: 11, y: 71, badgeX: 24, badgeY: 64, label: '3', color: 'warning' },
             ]}
             legend={[
               { label: '1', text: 'Mesa central — não é arrastável.', color: 'primary' },
-              { label: '2', text: 'Cadeiras numeradas — clique e arraste para reposicionar (ex.: 2 de um lado, 4 do outro).', color: 'success' },
-              { label: '3', text: 'O layout customizado é salvo e aplicado a todas as próximas mesas inseridas.', color: 'success' },
+              { label: '2', text: 'Cadeiras numeradas — arraste cada uma para reposicionar (ex.: 2 de um lado, 4 do outro).', color: 'success' },
+              { label: '3', text: 'O layout customizado é salvo e aplicado em todas as próximas mesas inseridas.', color: 'warning' },
             ]}
           />
 
@@ -847,11 +862,16 @@ const ManualPage: React.FC = () => {
             caption="Painel de propriedades de um setor selecionado."
             size="lg"
             annotations={[
-              { shape: 'circle', x: 50, y: 8, w: 90, h: 6, label: '1', color: 'primary' },
-              { shape: 'circle', x: 50, y: 22, w: 90, h: 12, label: '2', color: 'success' },
-              { shape: 'circle', x: 50, y: 40, w: 90, h: 10, label: '3', color: 'warning' },
-              { shape: 'circle', x: 50, y: 58, w: 90, h: 14, label: '4', color: 'destructive' },
-              { shape: 'circle', x: 50, y: 92, w: 90, h: 10, label: '5', color: 'primary' },
+              // 1. Nome "Setor 1" no topo do painel
+              { x: 88, y: 18, badgeX: 73, badgeY: 18, label: '1', color: 'primary' },
+              // 2. Paleta "Cor do Setor"
+              { x: 88, y: 42, badgeX: 73, badgeY: 42, label: '2', color: 'success' },
+              // 3. Texto no Setor (input)
+              { x: 88, y: 80, badgeX: 73, badgeY: 80, label: '3', color: 'warning' },
+              // 4. Posição X/Y
+              { x: 88, y: 95, badgeX: 73, badgeY: 95, label: '4', color: 'destructive' },
+              // 5. Botão "Gerar Assentos neste Setor" (centro inferior)
+              { x: 50, y: 89, badgeX: 50, badgeY: 78, label: '5', color: 'primary' },
             ]}
             legend={[
               { label: '1', text: 'Nome do setor (aparece em todas as listagens e exportações).', color: 'primary' },
@@ -904,11 +924,16 @@ const ManualPage: React.FC = () => {
             caption="Painel de propriedades — transformações geométricas do setor."
             size="lg"
             annotations={[
-              { shape: 'circle', x: 50, y: 10, w: 90, h: 8, label: '1', color: 'primary' },
-              { shape: 'circle', x: 50, y: 30, w: 90, h: 12, label: '2', color: 'success' },
-              { shape: 'circle', x: 50, y: 50, w: 90, h: 16, label: '3', color: 'warning' },
-              { shape: 'circle', x: 50, y: 72, w: 90, h: 14, label: '4', color: 'destructive' },
-              { shape: 'circle', x: 50, y: 92, w: 90, h: 10, label: '5', color: 'primary' },
+              // 1. Botões de Transformação (centralizar / espelhar H / espelhar V) — topo
+              { x: 88, y: 25, badgeX: 73, badgeY: 25, label: '1', color: 'primary' },
+              // 2. Espaçamento (filas/assentos/tamanho)
+              { x: 88, y: 42, badgeX: 73, badgeY: 42, label: '2', color: 'success' },
+              // 3. Rotação (slider + presets)
+              { x: 88, y: 60, badgeX: 73, badgeY: 60, label: '3', color: 'warning' },
+              // 4. Curvatura (slider Reto/Curvo)
+              { x: 88, y: 76, badgeX: 73, badgeY: 76, label: '4', color: 'destructive' },
+              // 5. Opacidade do Preenchimento
+              { x: 88, y: 87, badgeX: 73, badgeY: 87, label: '5', color: 'primary' },
             ]}
             legend={[
               { label: '1', text: 'Transformações: centralizar, espelhar Horizontal e espelhar Vertical.', color: 'primary' },
