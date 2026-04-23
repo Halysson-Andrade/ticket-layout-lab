@@ -627,7 +627,25 @@ const ManualPage: React.FC = () => {
             Esta é a etapa mais rica. Cada parâmetro afeta o preview à direita em tempo real, e o
             contador no topo (<em>"X assentos dentro do setor (Y lugares)"</em>) confirma o resultado.
           </p>
-          <Figure src={geradorConfigDetalhada} caption="Etapa 2 — Visão completa: dimensões, espaçamentos, tamanho, tipo de fila, numeração, direção e preview ao vivo." size="lg" />
+          <AnnotatedFigure
+            src={geradorConfigDetalhada}
+            caption="Etapa 2 — Visão completa do gerador com todos os parâmetros."
+            size="lg"
+            annotations={[
+              { shape: 'circle', x: 22, y: 18, w: 35, h: 12, label: '1', color: 'primary' },
+              { shape: 'circle', x: 22, y: 32, w: 35, h: 14, label: '2', color: 'success' },
+              { shape: 'circle', x: 22, y: 50, w: 35, h: 16, label: '3', color: 'warning' },
+              { shape: 'circle', x: 22, y: 70, w: 35, h: 16, label: '4', color: 'destructive' },
+              { shape: 'circle', x: 75, y: 50, w: 45, h: 70, label: '5', color: 'primary' },
+            ]}
+            legend={[
+              { label: '1', text: 'Dimensões: filas (linhas) e assentos por fila.', color: 'primary' },
+              { label: '2', text: 'Espaçamento entre filas/assentos e tamanho do assento.', color: 'success' },
+              { label: '3', text: 'Tipo de fila (Letras/Números/Romano), início e posição do nome.', color: 'warning' },
+              { label: '4', text: 'Numeração dos assentos (sequencial, ímpares/pares, customizada) e direção.', color: 'destructive' },
+              { label: '5', text: 'Preview ao vivo: contador no topo informa "X assentos dentro do setor (Y lugares)".', color: 'primary' },
+            ]}
+          />
 
           <h4 className="font-semibold text-base pt-2">Dimensões da grade</h4>
           <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
