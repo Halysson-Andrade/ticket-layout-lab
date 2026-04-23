@@ -36,13 +36,20 @@ export const AIMapAssistant: React.FC<AIMapAssistantProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [imageDims, setImageDims] = useState<{ width: number; height: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Reset ao abrir com nova imagem
+  // Reset ao abrir com nova imagem + extrai dimensões reais da imagem
   useEffect(() => {
     if (open && imageBase64) {
       setMessages([]);
       setInput('');
+      const img = new Image();
+      img.onload = () => {
+        setImageDims({ width: img.naturalWidth, height: img.naturalHeight });
+      };
+      img.onerror = () => setImageDims(null);
+      img.src = imageBase64;
     }
   }, [open, imageBase64]);
 
@@ -78,6 +85,8 @@ export const AIMapAssistant: React.FC<AIMapAssistantProps> = ({
             })),
             canvasWidth,
             canvasHeight,
+            imageWidth: imageDims?.width ?? null,
+            imageHeight: imageDims?.height ?? null,
           },
         }
       );
@@ -118,7 +127,7 @@ export const AIMapAssistant: React.FC<AIMapAssistantProps> = ({
 
   const handleStartAnalysis = () => {
     sendMessage(
-      'Analise esta imagem e gere um plano completo de mapa de assentos, identificando setores, formato e elementos contextuais visíveis.'
+      'Analise esta imagem e RECRIE fielmente o layout no canvas — como uma cópia visual. Identifique cada setor visível com sua posição, tamanho, formato e inclinação reais, mantendo as proporções. Estime a quantidade de fileiras e assentos por setor olhando atentamente a densidade na imagem (faça zoom mental se preciso). Inclua palco e demais elementos contextuais nas posições corretas.'
     );
   };
 
