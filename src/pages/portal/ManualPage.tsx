@@ -355,10 +355,9 @@ const ManualPage: React.FC = () => {
         </Section>
 
         {/* 5. Gerador de assentos */}
-        <Section id="seat-generator" icon={<Grid3X3 className="h-6 w-6" />} title="5. Gerador de assentos">
+        <Section id="seat-generator" icon={<Grid3X3 className="h-6 w-6" />} title="5. Gerador de assentos — guia completo">
           <p className="text-sm">
-            Existem <strong>duas formas</strong> de gerar assentos no Map Studio. Ambas usam o mesmo
-            modal, mas com escopos diferentes:
+            Existem <strong>duas formas</strong> de gerar assentos. Ambas usam o mesmo modal:
           </p>
 
           <div className="grid sm:grid-cols-2 gap-4">
@@ -367,8 +366,7 @@ const ManualPage: React.FC = () => {
                 <Grid3X3 className="h-4 w-4 text-primary" /> Grade livre <Kbd>G</Kbd>
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Cria a grade <strong>solta no canvas</strong>, em qualquer área vazia, sem precisar de
-                setor. Ideal para layouts simples ou para "esboçar" antes de organizar em setores.
+                Cria a grade <strong>solta no canvas</strong>, sem precisar de setor. Útil para esboços rápidos.
               </p>
             </div>
             <div className="rounded-md border border-primary/40 bg-primary/5 p-3 print:bg-transparent">
@@ -376,46 +374,95 @@ const ManualPage: React.FC = () => {
                 <Layers className="h-4 w-4 text-primary" /> Dentro de um setor
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Selecione um setor → clique em <em>"Gerar Assentos neste Setor"</em> no painel direito
-                ou na barra flutuante do canvas. Os assentos respeitam o <strong>polígono</strong> do setor
-                (descarta os que ficam fora) e ficam vinculados a ele.
+                Selecione o setor → <em>"Gerar Assentos neste Setor"</em>. Os assentos respeitam o
+                polígono (descarta os que ficam fora) e ficam vinculados ao setor.
               </p>
             </div>
           </div>
 
           <h3 className="font-semibold text-lg pt-3">Etapa 1 — Tipo de mobília e tipo de assento</h3>
           <p className="text-sm text-muted-foreground">
-            Escolha entre <strong>Cadeira</strong> (assentos numerados convencionais),
-            <strong> Mesa</strong> (mesas com cadeiras configuráveis) ou <strong>Bistrô</strong>
-            (mesa alta com banquetas). Defina também o tipo de assento padrão (Normal, VIP, PCD, Obeso).
+            Escolha entre <strong>Cadeira</strong>, <strong>Mesa</strong> ou <strong>Bistrô</strong>.
+            Para Mesa/Bistrô, você ainda define <strong>Forma da Mesa</strong> (Redonda / Quadrada /
+            Retangular) e <strong>Cadeiras por Mesa</strong> (2 a 12). O tipo de assento padrão pode
+            ser <strong>Normal</strong>, <strong>VIP</strong>, <strong>PCD</strong> ou <strong>Obeso</strong>
+            — define a cor e a categoria comercial dos assentos gerados.
           </p>
-          <Figure src={geradorPasso1} caption="Gerador — passo 1: escolha de mobília e tipo de assento." />
+          <Figure src={geradorTipoMobilia} caption="Etapa 1 — Tipo de mobília (Cadeira / Mesa / Bistrô) e tipo de assento (Normal / VIP / PCD / Obeso)." size="lg" />
 
-          <h3 className="font-semibold text-lg pt-2">Etapa 2 — Geometria e numeração</h3>
+          <h3 className="font-semibold text-lg pt-2">Etapa 2 — Configuração detalhada</h3>
           <p className="text-sm text-muted-foreground">
-            Configure todos os parâmetros visuais e de numeração. O preview à direita reflete cada
-            ajuste em tempo real e mostra quantos assentos efetivamente caberão no setor.
+            Esta é a etapa mais rica. Cada parâmetro afeta o preview à direita em tempo real, e o
+            contador no topo (<em>"X assentos dentro do setor (Y lugares)"</em>) confirma o resultado.
           </p>
-          <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-0.5">
-            <li><strong>Filas (linhas):</strong> número de fileiras horizontais.</li>
-            <li><strong>Assentos por Fila:</strong> número de assentos em cada fileira.</li>
-            <li><strong>Espaçamento entre Filas / Assentos:</strong> separação visual em pixels.</li>
-            <li><strong>Tamanho do Assento:</strong> raio do círculo em pixels (8 a 32).</li>
-            <li><strong>Tipo de Fila:</strong> Letras (A, B, C…), Números (1, 2, 3…) ou Romanos (I, II, III…).</li>
-            <li><strong>Início da Fila:</strong> de onde a numeração começa (ex.: começar em "C" ou "10").</li>
-            <li><strong>Numeração do Assento:</strong> Sequencial, Reverso, Ímpares à esquerda ou Pares à esquerda.</li>
-            <li><strong>Direção:</strong> Esquerda → Direita ou Direita → Esquerda.</li>
-            <li><strong>Quantidade variável:</strong> ative para definir manualmente o número de assentos por fileira (ex.: arquibancadas trapezoidais).</li>
-            <li><strong>Rotação:</strong> gira toda a grade em graus.</li>
-            <li><strong>Prefixo:</strong> texto opcional antes do número (ex.: "VIP-").</li>
-            <li><strong>Redimensionar forma:</strong> se ativo, ajusta o tamanho do setor para caber a grade exata.</li>
+          <Figure src={geradorConfigDetalhada} caption="Etapa 2 — Visão completa: dimensões, espaçamentos, tamanho, tipo de fila, numeração, direção e preview ao vivo." size="lg" />
+
+          <h4 className="font-semibold text-base pt-2">Dimensões da grade</h4>
+          <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
+            <li><strong>Filas (Linhas)</strong> — número de fileiras horizontais (1 a 100). Cada fila recebe um identificador (A, 1, I…).</li>
+            <li><strong>Assentos por Fila</strong> — quantos lugares cada fila terá (1 a 200). Para mesas, é a quantidade de mesas por fila.</li>
           </ul>
-          <Figure src={geradorPasso2} caption="Gerador — passo 2: configuração com preview ao vivo, contagem (200/200) e dimensões do setor." size="lg" />
+
+          <h4 className="font-semibold text-base pt-2">Espaçamento e tamanho</h4>
+          <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
+            <li><strong>Espaçamento entre Filas</strong> — distância vertical em pixels (0 a 30). Mais espaço facilita a circulação.</li>
+            <li><strong>Espaçamento entre Assentos</strong> — distância horizontal entre assentos da mesma fila.</li>
+            <li><strong>Tamanho do Assento</strong> — diâmetro do círculo em pixels (8 a 40). Assentos maiores ficam mais legíveis em zoom baixo.</li>
+          </ul>
+
+          <h4 className="font-semibold text-base pt-2">Identificação das filas</h4>
+          <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
+            <li><strong>Tipo de Fila</strong> — <em>Letras</em> (A, B, C…), <em>Números</em> (1, 2, 3…) ou <em>Romano</em> (I, II, III…).</li>
+            <li><strong>Início da Fila</strong> — onde a numeração começa. Ex.: digitar "C" pula A e B; digitar "10" começa na fila 10.</li>
+            <li><strong>Posição do nome da fila</strong> — <em>Esquerda</em>, <em>Direita</em>, <em>Ambos</em> ou <em>Não informar</em>. Útil para arenas com acesso pelos dois lados.</li>
+          </ul>
+
+          <h4 className="font-semibold text-base pt-2">Numeração dos assentos</h4>
+          <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
+            <li><strong>Sequencial</strong> — 1, 2, 3, 4… na ordem natural.</li>
+            <li><strong>Reverso</strong> — começa pelo último (N…3, 2, 1).</li>
+            <li><strong>Somente Ímpares</strong> — 1, 3, 5, 7… (raro, mas usado em palcos antigos).</li>
+            <li><strong>Somente Pares</strong> — 2, 4, 6, 8…</li>
+            <li><strong>Ímpares à Esquerda / Pares à Direita</strong> — clássico de teatros: 5, 3, 1 | 2, 4, 6 a partir do corredor central.</li>
+            <li><strong>Pares à Esquerda / Ímpares à Direita</strong> — variação invertida do anterior.</li>
+            <li><strong>Customizada</strong> — você lista os números (ex.: <code>2, 7, 10, 15</code>) e eles são aplicados na ordem.</li>
+            <li><strong>Customizada por Fileira</strong> — abre uma sub-tabela onde cada fila tem seu próprio modo (numérico, ímpares, pares, customizado), número inicial e direção. Ideal para arquibancadas com layouts irregulares.</li>
+          </ul>
+
+          <h4 className="font-semibold text-base pt-2">Número Inicial e Direção</h4>
+          <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
+            <li><strong>Número Inicial</strong> — primeiro número da numeração (geralmente 1).</li>
+            <li><strong>Direção</strong> — <em>E → D</em> (Esquerda para Direita), <em>D → E</em> (Direita para Esquerda) ou <em>Centro →</em> (cresce a partir do meio para ambos os lados).</li>
+          </ul>
+
+          <h4 className="font-semibold text-base pt-2">Quantidade variável (assentos por fileira)</h4>
+          <p className="text-sm text-muted-foreground">
+            Ative <strong>"Quantidade de assentos por fileira (customizada)"</strong> para definir
+            valores diferentes para cada fila. Digite separados por vírgula (ex.:{' '}
+            <code>10, 12, 14, 16, 18</code>). Ideal para <strong>arquibancadas trapezoidais</strong>,
+            arenas em leque ou setores com curvatura. Quando ativo, surge um seletor de{' '}
+            <strong>Alinhamento</strong> (Esquerda / Centro / Direita) para definir como cada fila
+            é posicionada dentro da forma.
+          </p>
+
+          <h4 className="font-semibold text-base pt-2">Rotação e Prefixo</h4>
+          <ul className="text-sm text-muted-foreground list-disc list-inside ml-2 space-y-1">
+            <li><strong>Rotação</strong> — gira toda a grade em graus (0° a 360°, passos de 5°). O preview mostra a rotação aplicada.</li>
+            <li><strong>Prefixo</strong> — texto opcional antes do número de cada assento (ex.: <code>VIP-</code> gera <em>VIP-1, VIP-2, VIP-3…</em>; <code>SETOR1-</code> gera <em>SETOR1-A1, SETOR1-A2…</em>).</li>
+          </ul>
+          <Figure src={geradorCustomizacao} caption="Customização: rotação, prefixo, assentos por fileira variáveis e alinhamento." size="lg" />
+
+          <h4 className="font-semibold text-base pt-2">Redimensionar forma</h4>
+          <p className="text-sm text-muted-foreground">
+            Quando ativo (checkbox no painel direito do gerador), o setor é <strong>redimensionado
+            automaticamente</strong> para acomodar exatamente a grade configurada. Útil quando você
+            sabe quantos lugares quer e prefere que a forma se adapte, em vez do contrário.
+          </p>
 
           <Tip type="warn">
-            Quando o setor é menor que a grade configurada, o preview mostra em vermelho/cinza os
-            assentos que ficarão fora do polígono. Aumente o setor, reduza a grade ou ative
-            <em> Redimensionar forma</em>.
+            Se assentos aparecem em vermelho/cinza no preview, eles estão <strong>fora do polígono</strong>
+            do setor e não serão criados. Aumente o setor, reduza a grade, mude o alinhamento ou
+            ative <em>Redimensionar forma</em>.
           </Tip>
         </Section>
 
