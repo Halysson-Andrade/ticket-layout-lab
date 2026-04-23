@@ -18,6 +18,8 @@ import { RowEditorModal } from './RowEditorModal';
 import { BackgroundImagePanel, BackgroundImageConfig } from './BackgroundImagePanel';
 import { SeatPlacementPopup, SeatPlacementConfig } from './SeatPlacementPopup';
 import { TextToolbar } from './TextToolbar';
+import { AIMapAssistant } from './AIMapAssistant';
+import { buildSectorsAndElementsFromPlan, AIMapPlan } from '@/lib/aiMapPlan';
 import { 
   VenueMap, 
   Sector, 
@@ -85,6 +87,7 @@ export const MapStudio: React.FC = () => {
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [bgConfig, setBgConfig] = useState<BackgroundImageConfig | null>(null);
   const [bgPanelOpen, setBgPanelOpen] = useState(false);
+  const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
 
   // Seat placement popup
   const [seatPlacementPopup, setSeatPlacementPopup] = useState<{
@@ -1570,7 +1573,27 @@ export const MapStudio: React.FC = () => {
     }
   }, []);
 
-  // Seleciona template
+  // Aplica plano gerado pela IA: adiciona setores + elementos no mapa
+  const handleApplyAIPlan = useCallback((plan: AIMapPlan) => {
+    const { sectors: newSectors, elements: newElements } =
+      buildSectorsAndElementsFromPlan(plan, sectors.length);
+
+    const mergedSectors = [...sectors, ...newSectors];
+    const mergedElements = [...elements, ...newElements];
+
+    setSectors(mergedSectors);
+    setElements(mergedElements);
+    pushHistory(mergedSectors, mergedElements);
+
+    if (newSectors.length > 0) {
+      setSelectedSectorIds(newSectors.map(s => s.id));
+    }
+
+    const totalSeats = newSectors.reduce((acc, s) => acc + s.seats.length, 0);
+    toast.success(
+      `IA aplicou ${newSectors.length} setor(es), ${totalSeats} assentos e ${newElements.length} elemento(s)!`
+    );
+  }, [sectors, elements, pushHistory]);
   const handleSelectTemplate = useCallback((template: Template) => {
     // Cria setores baseado no template
     const newSectors: Sector[] = [];
