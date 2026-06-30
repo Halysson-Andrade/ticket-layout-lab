@@ -447,19 +447,32 @@ const EventPreview: React.FC = () => {
 
           {/* ============ MAIN ============ */}
           <main className="flex-1 flex flex-col">
-            {/* HERO: APENAS A FOTO DO EVENTO */}
-            <section className="bg-slate-100">
-              <div className={cn('mx-auto w-full', isMobile ? 'px-0' : 'px-8 py-6 max-w-6xl')}>
-                <div className={cn('overflow-hidden bg-slate-200', isMobile ? 'aspect-[16/9]' : 'rounded-2xl shadow-lg aspect-[1920/600]')}>
+            {/* HERO: banner do evento sobre fundo escuro (estilo Guichê) */}
+            <section className="relative bg-black">
+              {/* glow ambient */}
+              <div className="pointer-events-none absolute inset-0 opacity-60"
+                style={{
+                  background: `radial-gradient(ellipse 60% 70% at 50% 0%, ${BRAND.green}22, transparent 70%)`,
+                }}
+              />
+              <div className={cn('relative mx-auto w-full', isMobile ? 'px-0 pb-0' : 'px-8 pt-8 pb-10 max-w-6xl')}>
+                <div className={cn('relative overflow-hidden bg-black', isMobile ? 'aspect-[16/10]' : 'rounded-3xl shadow-2xl ring-1 ring-white/10 aspect-[1920/720]')}>
                   <img
                     src={eventInfo.heroBanner}
                     alt={eventInfo.title}
                     className="w-full h-full object-cover"
                     loading="eager"
                   />
+                  {/* leve gradiente inferior para legibilidade caso queira sobrepor algo */}
+                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent" />
                 </div>
               </div>
+              {/* recorte ondulado estilo Guichê separando o hero do conteúdo */}
+              <svg className="block w-full h-6 -mb-px text-white" viewBox="0 0 1440 24" preserveAspectRatio="none" aria-hidden="true">
+                <path fill="currentColor" d="M0,24 L0,12 Q30,0 60,12 T120,12 T180,12 T240,12 T300,12 T360,12 T420,12 T480,12 T540,12 T600,12 T660,12 T720,12 T780,12 T840,12 T900,12 T960,12 T1020,12 T1080,12 T1140,12 T1200,12 T1260,12 T1320,12 T1380,12 T1440,12 L1440,24 Z"/>
+              </svg>
             </section>
+
 
             {/* URGÊNCIA & PROVA SOCIAL (strip discreta) */}
             <section className="bg-white border-b border-slate-200">
