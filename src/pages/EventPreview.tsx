@@ -58,63 +58,80 @@ const brl = (v: number) =>
 const GW_LOGO = 'https://s3.guicheweb.com.br/nova_marca/logogw.png';
 
 const eventInfo = {
-  title: '54ª Exposete Rodeio Festival',
-  subtitle: 'Circuito Brahma apresenta — a maior festa do interior',
-  date: '09/07/2026 a 19/07/2026',
-  doors: '19:00h',
-  venue: 'Parque de Exposições João Alves Nunes',
-  city: 'Sete Lagoas / MG',
-  rating: 4.8,
-  reviews: 1284,
-  heroBanner: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-25-56.png',
-  heroThumb: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-26-01.png',
+  title: 'Manifesto Musical - Belo Horizonte',
+  subtitle: 'Henrique & Juliano • Turnê Exclusiva 2026',
+  date: '18/07/2026',
+  doors: '14:00h',
+  venue: 'Mineirão',
+  city: 'BELO HORIZONTE / MG',
+  rating: 4.9,
+  reviews: 3120,
+  heroBanner: 'https://s3.guicheweb.com.br/imagenseventos/20-01-2026_17-54-36.png',
+  heroThumb: 'https://s3.guicheweb.com.br/imagenseventos/19-01-2026_08-55-27.jpg',
+  description: `A primeira dupla sertaneja a esgotar ingressos no Maracanã/RJ, Henrique & Juliano se apresentaram para mais de 60 mil pessoas, no dia 03 de Janeiro, no maior estádio do país. O show também marcou o início da turnê Manifesto Musical, com 11 cidades confirmadas em 2026.
+
+A turnê nasceu após três apresentações com ingressos, também esgotados no Allianz Parque, em São Paulo, mostrando que o Manifesto Musical se consolidou como uma celebração da trajetória da dupla, construída com autenticidade, consistência e uma conexão rara com o público.
+
+Prepare-se para uma apresentação histórica, com um espetáculo inédito que promete emocionar o público. Não perca essa oportunidade única de vivenciar uma experiência inesquecível!`,
 };
 
 const heroCarousel = [
-  { src: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-25-56.png', alt: '54ª Exposete Rodeio Festival' },
+  { src: 'https://s3.guicheweb.com.br/imagenseventos/20-01-2026_17-54-36.png', alt: 'Manifesto Musical - Belo Horizonte' },
   { src: 'https://s3.guicheweb.com.br/banners/20-01-2026_11-45-26.jpg', alt: 'Turnê Manifesto Musical 2026' },
-  { src: 'https://s3.guicheweb.com.br/banners/16-06-2026_15-59-44.png', alt: 'No Pelo' },
   { src: 'https://s3.guicheweb.com.br/banners/27-05-2026_16-27-07.png', alt: 'Henrique e Juliano Em Casa' },
+  { src: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-25-56.png', alt: 'Exposete Rodeio Festival' },
 ];
 
 const upcomingEvents = [
-  { title: '54ª Exposete Rodeio Festival', city: 'Sete Lagoas / MG', date: '09 a 19 JUL',
-    img: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-26-01.png' },
-  { title: 'Turnê Manifesto Musical 2026', city: 'São Paulo / SP', date: '15 FEV',
+  { title: 'Turnê Manifesto Musical 2026 - SP', city: 'São Paulo / SP', date: '15 FEV',
     img: 'https://s3.guicheweb.com.br/banners/20-01-2026_11-45-24.jpg' },
-  { title: 'Festa do Peão de Salto de Pirapora', city: 'Salto de Pirapora / SP', date: '20 a 28 JUN',
-    img: 'https://s3.guicheweb.com.br/banners/20-05-2026_10-41-16.png' },
   { title: 'Henrique e Juliano Em Casa', city: 'Palmas / TO', date: '12 SET',
     img: 'https://s3.guicheweb.com.br/banners/27-05-2026_16-27-13.jpg' },
+  { title: '54ª Exposete Rodeio Festival', city: 'Sete Lagoas / MG', date: '09 a 19 JUL',
+    img: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-26-01.png' },
+  { title: 'Festa do Peão de Salto de Pirapora', city: 'Salto de Pirapora / SP', date: '20 a 28 JUN',
+    img: 'https://s3.guicheweb.com.br/banners/20-05-2026_10-41-16.png' },
   { title: 'Oba Festival 2027', city: 'Goiânia / GO', date: '03 a 05 JAN',
     img: 'https://s3.guicheweb.com.br/banners/17-06-2026_14-19-42.png' },
   { title: 'Tangará Festival Music', city: 'Tangará da Serra / MT', date: '22 AGO',
     img: 'https://s3.guicheweb.com.br/banners/19-06-2026_10-39-35.png' },
 ];
 
+const sectorDescriptions = [
+  { name: 'CAMAROTE NASALA', age: '18 anos', notes: ['Open bar: cerveja, vodka, gin, whisky, refrigerante, tônica e água', 'Acesso exclusivo e vista privilegiada', 'Área elevada • Experiências exclusivas'] },
+  { name: 'ESPAÇO ÚLTIMA SAUDADE', age: '18 anos', notes: ['Open bar: cerveja, água e refrigerante', 'Haverá venda de destilados'] },
+  { name: 'GRAMADO', age: '16 anos', notes: ['Área localizada no gramado do estádio', 'Venda de bebidas', 'Área de alimentação'] },
+  { name: 'ARQUIBANCADA', age: '16 anos', notes: ['Venda de bebidas', 'Área de alimentação'] },
+];
+
 const faqs = [
-  { q: 'Há estacionamento no local?', a: 'Sim, terceirizado.' },
-  { q: 'É permitido acesso com câmera fotográfica?', a: 'Sim.' },
-  { q: 'Há acesso para pessoas com deficiência?', a: 'Sim, com acessibilidade total.' },
-  { q: 'Há espaço para fumantes?', a: 'Sim, áreas designadas.' },
-  { q: 'Existe venda de alimentos no local?', a: 'Sim.' },
-  { q: 'Formas de pagamento aceitas no local?', a: 'Crédito, Débito, Dinheiro e PIX.' },
+  { q: 'Será permitida a entrada de menores acompanhados e com autorização?',
+    a: 'Menores com 16 e 17 anos devem estar acompanhados do responsável legal nos setores Gramado e Arquibancada. Não serão aceitos menores sozinhos. Nos setores open bar (Camarote naSala e Espaço Última Saudade) não serão permitidos menores de 18 anos mesmo que acompanhados.' },
+  { q: 'Quais alimentos serão aceitos na portaria com ingresso solidário?',
+    a: 'Apenas alimentos não perecíveis, embalados de fábrica, dentro do prazo de validade e que não sejam sal, cuscuz ou milharina.' },
+  { q: 'Qual horário de abertura dos portões do evento?', a: 'Abertura dos portões prevista para 14 horas.' },
+  { q: 'Terá estacionamento?', a: 'Sim, terceirizado. A produção não se responsabiliza pelos veículos. Aconselhamos ir de transporte por aplicativo ou táxi.' },
+  { q: 'É permitido a entrada com copos ou canecas?', a: 'Não será permitida a entrada.' },
+  { q: 'Terá área PCD?', a: 'Sim, haverá área exclusiva para PCD e seus acompanhantes.' },
+  { q: 'Haverá a possibilidade de acessar outros setores?', a: 'Não. Não haverá transição de um setor para outro.' },
 ];
 
 const rules = [
-  'Apresentação obrigatória do ingresso impresso ou digital com documento oficial com foto.',
-  'O não comparecimento ao evento não dá direito a reembolso.',
-  'Meia-entrada apenas com comprovação no local.',
-  'Menores de 16 anos somente acompanhados dos pais ou responsáveis legais.',
-  'Não é permitida a entrada com alimentos e bebidas externas.',
+  'Apresentação obrigatória do ingresso impresso ou digital, juntamente com documento oficial com foto.',
+  'O não comparecimento ao evento invalidará o ingresso e não permitirá reembolso.',
+  'Meia-entrada apenas mediante comprovação no local conforme legislação vigente.',
+  'Proibida a entrada com copos, latas, objetos pontiagudos, guarda-chuvas, drones e armas.',
+  'O evento poderá ser gravado, filmado ou fotografado; ao participar, o portador autoriza o uso de sua imagem.',
+  'Solicitações de cancelamento podem ser feitas em até 7 dias da compra, com no mínimo 48h de antecedência do evento.',
 ];
 
 const pointsOfSale = [
-  { city: 'Sete Lagoas/MG', name: 'Loja Centro', address: 'Av. Brasil, 1502', phone: '(31) 3033-1622' },
-  { city: 'Belo Horizonte/MG', name: 'Shopping Diamond', address: 'Av. Olegário Maciel, 1600', phone: '(31) 3033-2210' },
-  { city: 'Sete Lagoas/MG', name: 'Loja Iguatemi', address: 'Av. Prefeito Alberto Moura, 540', phone: '(31) 3035-9080' },
-  { city: 'Contagem/MG', name: 'Mercado Central', address: 'R. Bandeirantes, 80', phone: '(31) 3244-1199' },
+  { city: 'Belo Horizonte/MG', name: 'Shopping Diamond Mall', address: 'Av. Olegário Maciel, 1600', phone: '(31) 3033-2210' },
+  { city: 'Belo Horizonte/MG', name: 'BH Shopping', address: 'BR-356, 3049 - Belvedere', phone: '(31) 3033-1622' },
+  { city: 'Contagem/MG', name: 'ItaúPower Shopping', address: 'Av. João César de Oliveira, 1275', phone: '(31) 3244-1199' },
+  { city: 'Sete Lagoas/MG', name: 'Loja Centro', address: 'Av. Brasil, 1502', phone: '(31) 3035-9080' },
 ];
+
 
 // Mock price ladder for sectors that don't carry price info
 const MOCK_PRICES = [480, 280, 220, 180, 150, 120, 90, 380, 650, 420];
@@ -132,6 +149,9 @@ const EventPreview: React.FC = () => {
   const [cartOpen, setCartOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [hoveredSectorId, setHoveredSectorId] = useState<string | null>(null);
+  const [salesOpen, setSalesOpen] = useState(false);
+  const [selectedSectorId, setSelectedSectorId] = useState<string | null>(null);
+
 
   useEffect(() => {
     try {
@@ -305,7 +325,7 @@ const EventPreview: React.FC = () => {
                   {!isMobile && (
                     <Button
                       className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-full px-6 h-11 shadow-xl shrink-0"
-                      onClick={() => document.getElementById('preview-sectors')?.scrollIntoView({ behavior: 'smooth' })}
+                      onClick={() => setSalesOpen(true)}
                     >
                       COMPRAR INGRESSO
                     </Button>
@@ -335,7 +355,7 @@ const EventPreview: React.FC = () => {
                 {isMobile && (
                   <Button
                     className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-full px-8 h-11 shadow-xl"
-                    onClick={() => document.getElementById('preview-sectors')?.scrollIntoView({ behavior: 'smooth' })}
+                    onClick={() => setSalesOpen(true)}
                   >
                     COMPRAR INGRESSO
                   </Button>
@@ -388,7 +408,7 @@ const EventPreview: React.FC = () => {
                 <p className="text-xs text-slate-500 mb-4">+ taxa de serviço</p>
                 <Button
                   className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold h-11"
-                  onClick={() => document.getElementById('preview-sectors')?.scrollIntoView({ behavior: 'smooth' })}
+                  onClick={() => setSalesOpen(true)}
                 >
                   Escolher ingressos
                 </Button>
@@ -402,94 +422,91 @@ const EventPreview: React.FC = () => {
             </div>
           </section>
 
-          {/* Mapa real + lista de setores */}
+          {/* Mapa do evento (display-only) + descrição de setores */}
           <section id="preview-sectors" className="bg-slate-50">
             <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl')}>
               <div className="text-center mb-6">
-                <p className="text-xs text-emerald-600 font-bold tracking-widest uppercase">Setores</p>
+                <p className="text-xs text-emerald-600 font-bold tracking-widest uppercase">Mapa do evento</p>
                 <h3 className={cn('font-black text-slate-900', isMobile ? 'text-2xl' : 'text-4xl')}>
                   {snapshot.mapName}
                 </h3>
                 <p className="text-sm text-slate-500 mt-2">
-                  Escolha o setor diretamente pelo mapa ou pela lista abaixo
+                  Confira a distribuição dos setores. Clique em "Comprar ingresso" para escolher seu lugar.
                 </p>
               </div>
 
               <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-[1.4fr_1fr]')}>
-                {/* SVG do mapa real */}
+                {/* Mapa: foto do construtor se houver, senão SVG do mapa. Display-only. */}
                 <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden aspect-[4/3] relative">
-                  {sectorsForSale.length === 0 ? (
+                  {snapshot.backgroundImage ? (
+                    <img
+                      src={snapshot.backgroundImage}
+                      alt={`Mapa ${snapshot.mapName}`}
+                      className="absolute inset-0 w-full h-full object-contain bg-slate-50 select-none pointer-events-none"
+                      draggable={false}
+                    />
+                  ) : sectorsForSale.length === 0 ? (
                     <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500 text-center p-6">
                       Nenhum setor criado no mapa ainda.
                     </div>
                   ) : (
-                    <MapPreviewSVG
-                      sectors={snapshot.sectors}
-                      elements={snapshot.elements}
-                      textElements={snapshot.textElements}
-                      width={snapshot.width}
-                      height={snapshot.height}
-                      backgroundImage={snapshot.backgroundImage}
-                      bgConfig={snapshot.bgConfig}
-                      hoveredSectorId={hoveredSectorId}
-                      onHoverSector={setHoveredSectorId}
-                      onClickSector={handleSectorClick}
-                    />
-                  )}
-                  {hoveredSectorId && (
-                    <div className="absolute bottom-3 left-3 right-3 bg-slate-900/90 text-white text-xs rounded-md px-3 py-2 flex items-center justify-between pointer-events-none">
-                      <span className="font-semibold truncate">
-                        {sectorsForSale.find((s) => s.id === hoveredSectorId)?.name}
-                      </span>
-                      <span className="font-bold text-emerald-300">
-                        {brl(sectorsForSale.find((s) => s.id === hoveredSectorId)?.price ?? 0)}
-                      </span>
+                    <div className="absolute inset-0 pointer-events-none select-none">
+                      <MapPreviewSVG
+                        sectors={snapshot.sectors}
+                        elements={snapshot.elements}
+                        textElements={snapshot.textElements}
+                        width={snapshot.width}
+                        height={snapshot.height}
+                        backgroundImage={snapshot.backgroundImage}
+                        bgConfig={snapshot.bgConfig}
+                      />
                     </div>
                   )}
+                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-[10px] uppercase tracking-wider text-slate-600 font-bold rounded-full px-3 py-1 shadow">
+                    Apenas visualização
+                  </div>
                 </div>
 
-                {/* Lista/Legenda */}
-                <div className="space-y-2">
-                  {sectorsForSale.length === 0 ? (
-                    <div className="text-sm text-slate-500 p-4 bg-white border border-dashed border-slate-300 rounded-xl text-center">
-                      Crie setores no construtor para vê-los aqui.
+                {/* Descrição de setores */}
+                <div className="space-y-3">
+                  {sectorDescriptions.map((s) => (
+                    <div key={s.name} className="bg-white border border-slate-200 rounded-xl p-4">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <p className="text-sm font-bold text-slate-900">{s.name}</p>
+                        <span className="text-[10px] font-semibold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">
+                          {s.age}
+                        </span>
+                      </div>
+                      <ul className="space-y-1">
+                        {s.notes.map((n, i) => (
+                          <li key={i} className="text-xs text-slate-600 flex gap-2">
+                            <span className="text-emerald-500 mt-0.5">•</span>{n}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                  ) : (
-                    sectorsForSale.map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => addToCart(s)}
-                        onMouseEnter={() => setHoveredSectorId(s.id)}
-                        onMouseLeave={() => setHoveredSectorId(null)}
-                        className={cn(
-                          'w-full text-left flex items-center gap-3 bg-white border transition rounded-xl p-3 group',
-                          hoveredSectorId === s.id
-                            ? 'border-emerald-400 shadow-md'
-                            : 'border-slate-200 hover:border-emerald-400 hover:shadow-md',
-                        )}
-                      >
-                        <div
-                          className="h-10 w-10 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0"
-                          style={{ background: s.color }}
-                        >
-                          {s.name.slice(0, 2).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-slate-900 truncate">{s.name}</p>
-                          <p className="text-xs text-slate-500">{s.available} disponíveis</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-slate-400">a partir de</p>
-                          <p className="text-sm font-bold text-emerald-600">{brl(s.price)}</p>
-                        </div>
-                        <Plus className="h-4 w-4 text-slate-300 group-hover:text-emerald-500" />
-                      </button>
-                    ))
-                  )}
+                  ))}
+                  <Button
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold h-12"
+                    onClick={() => setSalesOpen(true)}
+                  >
+                    Comprar Ingresso
+                  </Button>
+                </div>
+              </div>
+
+              {/* Descrição do evento */}
+              <div className="mt-10 max-w-4xl mx-auto">
+                <h4 className="text-emerald-600 font-bold text-lg mb-3 flex items-center gap-2">
+                  <Info className="h-5 w-5" /> Sobre o evento
+                </h4>
+                <div className="prose prose-sm max-w-none text-slate-700 whitespace-pre-line leading-relaxed">
+                  {eventInfo.description}
                 </div>
               </div>
             </div>
           </section>
+
 
           {/* Info + Regras */}
           <section className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
@@ -638,10 +655,144 @@ const EventPreview: React.FC = () => {
               </div>
               <Button
                 className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold h-11"
-                onClick={() => document.getElementById('preview-sectors')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => setSalesOpen(true)}
               >
                 Comprar
               </Button>
+            </div>
+          )}
+
+          {/* Sales modal: mapa interativo + lista de setores (navegação bidirecional) */}
+          {salesOpen && (
+            <div className="absolute inset-0 z-40 bg-slate-900/60 backdrop-blur-sm flex items-stretch justify-center p-0 sm:p-4" onClick={() => setSalesOpen(false)}>
+              <div
+                className="bg-white w-full max-w-6xl rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b bg-slate-50">
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-emerald-600 font-bold">Escolha seu lugar</p>
+                    <h4 className="font-bold text-slate-900 text-sm sm:text-base truncate">{eventInfo.title}</h4>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSalesOpen(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className={cn('flex-1 grid overflow-hidden', isMobile ? 'grid-cols-1' : 'grid-cols-[1.4fr_1fr]')}>
+                  {/* Mapa interativo */}
+                  <div className="relative bg-slate-50 border-r border-slate-200 min-h-[300px]">
+                    {sectorsForSale.length === 0 ? (
+                      <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500 text-center p-6">
+                        Nenhum setor disponível no mapa.
+                      </div>
+                    ) : (
+                      <MapPreviewSVG
+                        sectors={snapshot.sectors}
+                        elements={snapshot.elements}
+                        textElements={snapshot.textElements}
+                        width={snapshot.width}
+                        height={snapshot.height}
+                        backgroundImage={snapshot.backgroundImage}
+                        bgConfig={snapshot.bgConfig}
+                        hoveredSectorId={hoveredSectorId}
+                        selectedSectorId={selectedSectorId}
+                        onHoverSector={setHoveredSectorId}
+                        onClickSector={(id) => setSelectedSectorId(id)}
+                      />
+                    )}
+                    {(hoveredSectorId || selectedSectorId) && (
+                      <div className="absolute bottom-3 left-3 right-3 bg-slate-900/90 text-white text-xs rounded-md px-3 py-2 flex items-center justify-between pointer-events-none">
+                        <span className="font-semibold truncate">
+                          {sectorsForSale.find((s) => s.id === (hoveredSectorId || selectedSectorId))?.name}
+                        </span>
+                        <span className="font-bold text-emerald-300">
+                          {brl(sectorsForSale.find((s) => s.id === (hoveredSectorId || selectedSectorId))?.price ?? 0)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Lista de setores (sincronizada) */}
+                  <ScrollArea className="bg-white">
+                    <div className="p-4 space-y-2">
+                      <p className="text-xs text-slate-500 mb-2">
+                        Clique em um setor — no mapa ou na lista — para destacar e adicionar ao carrinho.
+                      </p>
+                      {sectorsForSale.map((s) => {
+                        const isActive = (selectedSectorId || hoveredSectorId) === s.id;
+                        const inCart = cart.find((i) => i.sectorId === s.id);
+                        return (
+                          <div
+                            key={s.id}
+                            onMouseEnter={() => setHoveredSectorId(s.id)}
+                            onMouseLeave={() => setHoveredSectorId(null)}
+                            onClick={() => setSelectedSectorId(s.id)}
+                            className={cn(
+                              'flex items-center gap-3 border rounded-xl p-3 cursor-pointer transition',
+                              isActive ? 'border-emerald-500 shadow-md ring-2 ring-emerald-100' : 'border-slate-200 hover:border-emerald-400',
+                            )}
+                          >
+                            <div
+                              className="h-10 w-10 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0"
+                              style={{ background: s.color }}
+                            >
+                              {s.name.slice(0, 2).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-slate-900 truncate">{s.name}</p>
+                              <p className="text-xs text-slate-500">{s.available} disponíveis</p>
+                            </div>
+                            <div className="text-right mr-2">
+                              <p className="text-[10px] text-slate-400">a partir de</p>
+                              <p className="text-sm font-bold text-emerald-600">{brl(s.price)}</p>
+                            </div>
+                            {inCart ? (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); updateQty(s.id, -1); }}
+                                  className="h-7 w-7 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50"
+                                ><Minus className="h-3 w-3" /></button>
+                                <span className="text-sm font-semibold w-5 text-center">{inCart.qty}</span>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); addToCart(s); }}
+                                  className="h-7 w-7 rounded border border-emerald-300 bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-100"
+                                ><Plus className="h-3 w-3" /></button>
+                              </div>
+                            ) : (
+                              <Button
+                                size="sm"
+                                className="bg-emerald-500 hover:bg-emerald-600 text-white h-8"
+                                onClick={(e) => { e.stopPropagation(); addToCart(s); }}
+                              >
+                                <Plus className="h-3 w-3 mr-1" /> Adicionar
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </div>
+
+                {/* Resumo do modal */}
+                <div className="border-t bg-slate-50 px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] text-slate-500">{cartCount} {cartCount === 1 ? 'ingresso' : 'ingressos'}</p>
+                    <p className="text-base font-black text-slate-900">{brl(total)}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setSalesOpen(false)}>Continuar olhando</Button>
+                    <Button
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold"
+                      disabled={cartCount === 0}
+                      onClick={() => { setSalesOpen(false); setCartOpen(true); }}
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-2" /> Ver carrinho
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
