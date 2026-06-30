@@ -167,12 +167,29 @@ const EventPreview: React.FC = () => {
   const [salesOpen, setSalesOpen] = useState(false);
   const [selectedSectorId, setSelectedSectorId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showStickyCTA, setShowStickyCTA] = useState(false);
 
   // === Conversion boosters ===
   const [viewers, setViewers] = useState(() => 87 + Math.floor(Math.random() * 60));
   const [now, setNow] = useState(Date.now());
   // Deadline: data simulada do evento (09/Jul/2026 18:00 BRT)
   const deadline = useMemo(() => new Date('2026-07-09T18:00:00-03:00').getTime(), []);
+
+  // Mostrar barra fixa apenas após scroll (sai do hero) e esconder próximo do footer
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      const docH = document.documentElement.scrollHeight;
+      const winH = window.innerHeight;
+      const nearBottom = y + winH > docH - 220;
+      setShowStickyCTA(y > 360 && !nearBottom);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+
 
 
   useEffect(() => {
@@ -1011,11 +1028,19 @@ const EventPreview: React.FC = () => {
             </div>
           </footer>
 
-          {/* ============ Mobile bottom bar (fixed, always visible) ============ */}
+          {/* ============ Mobile bottom bar — aparece ao scroll ============ */}
           {isMobile && !salesOpen && !cartOpen && (
-            <div className="fixed bottom-0 left-0 right-0 z-[60] animate-slide-in-bottom">
-              <div className="mx-2 mb-2 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200 shadow-[0_-8px_30px_rgb(0,0,0,0.12)] p-2.5 flex items-center gap-2.5">
-                <div className="relative h-12 w-12 rounded-xl overflow-hidden shrink-0 ring-1 ring-slate-200 bg-slate-100">
+            <div
+              className={cn(
+                'fixed bottom-0 left-0 right-0 z-[60] transition-all duration-300 ease-out',
+                showStickyCTA ? 'translate-y-0 opacity-100' : 'translate-y-[120%] opacity-0 pointer-events-none',
+              )}
+            >
+              <div
+                className="mx-3 mb-3 rounded-2xl bg-white border border-slate-200/80 p-2 flex items-center gap-2.5"
+                style={{ boxShadow: '0 -10px 40px -10px rgba(15,23,42,0.18), 0 2px 6px rgba(15,23,42,0.04)' }}
+              >
+                <div className="relative h-11 w-11 rounded-xl overflow-hidden shrink-0 bg-slate-100">
                   <img
                     src={eventInfo.heroBanner}
                     alt={eventInfo.title}
@@ -1024,22 +1049,22 @@ const EventPreview: React.FC = () => {
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-bold text-slate-900 leading-tight truncate">{eventInfo.title}</p>
-                  <p className="text-sm font-black text-slate-900 leading-tight mt-0.5 tabular-nums">{minPrice ? brl(minPrice) : '—'}</p>
-                  <p className="text-[10px] text-slate-500 leading-none mt-0.5 flex items-center gap-1">
-                    <ShieldCheck className="h-2.5 w-2.5" style={{ color: BRAND.green }} />
-                    {dynamicCta.micro}
+                  <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 leading-none">A partir de</p>
+                  <p className="text-base font-black text-slate-900 leading-tight tabular-nums mt-1">
+                    {minPrice ? brl(minPrice) : '—'}
                   </p>
                 </div>
                 <Button
-                  className="h-12 px-5 font-bold text-white rounded-xl shadow-md relative"
-                  style={{ background: BRAND.green }}
+                  className="h-11 px-4 font-bold text-white rounded-xl relative text-sm"
+                  style={{ background: BRAND.green, boxShadow: `0 8px 20px -6px ${BRAND.green}aa` }}
                   onClick={() => setSalesOpen(true)}
                 >
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  {cartCount > 0 ? 'Finalizar' : 'Comprar'}
+                  {cartCount > 0 ? 'Finalizar' : dynamicCta.label}
                   {cartCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-white text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center shadow ring-2 ring-white" style={{ color: BRAND.green }}>
+                    <span
+                      className="absolute -top-1.5 -right-1.5 bg-white text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center shadow ring-2 ring-white"
+                      style={{ color: BRAND.green }}
+                    >
                       {cartCount}
                     </span>
                   )}
@@ -1048,60 +1073,79 @@ const EventPreview: React.FC = () => {
             </div>
           )}
 
-          {/* ============ Desktop floating CTA bar (fixed, always visible) ============ */}
+          {/* ============ Desktop floating CTA bar — aparece ao scroll ============ */}
           {!isMobile && !salesOpen && !cartOpen && (
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] animate-fade-in">
-              <div className="flex items-center gap-4 rounded-full bg-white/95 backdrop-blur-xl border border-slate-200 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)] pl-5 pr-2 py-2">
+            <div
+              className={cn(
+                'fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] transition-all duration-300 ease-out',
+                showStickyCTA ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0 pointer-events-none',
+              )}
+            >
+              <div
+                className="flex items-stretch gap-0 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/80 p-2"
+                style={{ boxShadow: '0 24px 60px -20px rgba(15,23,42,0.35), 0 4px 12px rgba(15,23,42,0.06)' }}
+              >
                 {/* Identidade compacta */}
-                <div className="flex items-center gap-3 pr-4 border-r border-slate-200">
-                  <div className="relative h-11 w-11 rounded-lg overflow-hidden shrink-0 ring-1 ring-slate-200 bg-slate-100">
+                <div className="flex items-center gap-3 pl-2 pr-5">
+                  <div className="relative h-12 w-12 rounded-xl overflow-hidden shrink-0 bg-slate-100">
                     <img
                       src={eventInfo.heroBanner}
                       alt={eventInfo.title}
                       loading="lazy"
                       className="absolute inset-0 h-full w-full object-cover"
                     />
-                    <span
-                      className="absolute inset-0 ring-2 ring-inset rounded-lg pointer-events-none"
-                      style={{ borderColor: BRAND.green, boxShadow: `inset 0 0 0 1.5px ${BRAND.green}55` }}
-                    />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-slate-900 leading-tight truncate max-w-[220px]">{eventInfo.title}</p>
-                    <p className="text-[10px] text-slate-500 leading-tight flex items-center gap-1">
-                      <Calendar className="h-2.5 w-2.5" /> {eventInfo.date} · {eventInfo.city}
+                    <p className="text-[13px] font-bold text-slate-900 leading-tight truncate max-w-[240px]">
+                      {eventInfo.title}
+                    </p>
+                    <p className="text-[11px] text-slate-500 leading-tight flex items-center gap-1 mt-0.5">
+                      <Calendar className="h-3 w-3" /> {eventInfo.city}
                     </p>
                   </div>
                 </div>
 
+                <div className="w-px bg-slate-200/80 my-1" />
+
                 {/* Preço */}
-                <div className="hidden md:block">
-                  <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400 leading-none">A partir de</p>
-                  <p className="text-base font-black text-slate-900 leading-tight tabular-nums">{minPrice ? brl(minPrice) : '—'}</p>
+                <div className="hidden md:flex flex-col justify-center px-5">
+                  <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 leading-none">A partir de</p>
+                  <p className="text-lg font-black text-slate-900 leading-tight tabular-nums mt-1">
+                    {minPrice ? brl(minPrice) : '—'}
+                  </p>
                 </div>
 
                 {/* Cart pill se houver itens */}
                 {cartCount > 0 && (
-                  <button
-                    onClick={() => setCartOpen(true)}
-                    className="hidden lg:flex items-center gap-1.5 px-3 h-9 rounded-full border border-slate-200 hover:border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
-                  >
-                    <ShoppingCart className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
-                    {cartCount} · {brl(subtotal)}
-                  </button>
+                  <>
+                    <div className="w-px bg-slate-200/80 my-1" />
+                    <button
+                      onClick={() => setCartOpen(true)}
+                      className="hidden lg:flex items-center gap-2 px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 transition rounded-xl"
+                    >
+                      <ShoppingCart className="h-4 w-4" style={{ color: BRAND.green }} />
+                      <span>
+                        {cartCount} {cartCount === 1 ? 'item' : 'itens'}
+                        <span className="block text-[10px] font-semibold text-slate-500 tabular-nums">{brl(subtotal)}</span>
+                      </span>
+                    </button>
+                  </>
                 )}
 
                 {/* CTA dinâmico */}
-                <div className="flex flex-col items-stretch">
+                <div className="flex flex-col items-stretch pl-2">
                   <Button
-                    className="gw-cta-glow h-11 px-6 font-bold text-white rounded-full border-0 shadow-lg"
-                    style={{ background: `linear-gradient(120deg, ${BRAND.green}, #0fb02e)` }}
+                    className="h-12 px-7 font-bold text-white rounded-xl border-0 text-sm"
+                    style={{
+                      background: `linear-gradient(135deg, ${BRAND.green} 0%, ${BRAND.greenDark} 100%)`,
+                      boxShadow: `0 12px 24px -8px ${BRAND.green}aa`,
+                    }}
                     onClick={() => setSalesOpen(true)}
                   >
-                    <Zap className="h-4 w-4 mr-2" />
                     {dynamicCta.label}
+                    <ChevronDown className="h-4 w-4 ml-1 -rotate-90" />
                   </Button>
-                  <p className="text-[9px] text-center text-slate-500 mt-0.5 flex items-center justify-center gap-1 font-medium">
+                  <p className="text-[10px] text-center text-slate-500 mt-1 flex items-center justify-center gap-1 font-medium">
                     <ShieldCheck className="h-2.5 w-2.5" style={{ color: BRAND.green }} />
                     {dynamicCta.micro}
                   </p>
@@ -1109,6 +1153,8 @@ const EventPreview: React.FC = () => {
               </div>
             </div>
           )}
+
+
 
 
           {/* ============ WhatsApp FAB — sempre visível ============ */}
