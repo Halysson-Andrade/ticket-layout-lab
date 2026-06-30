@@ -481,41 +481,88 @@ const EventPreview: React.FC = () => {
 
           {/* ============ MAIN ============ */}
           <main className="flex-1 flex flex-col">
-            {/* HERO: banner do evento sobre fundo escuro (estilo Guichê) */}
-            <section className="relative bg-black">
-              {/* glow ambient */}
-              <div className="pointer-events-none absolute inset-0 opacity-60"
-                style={{
-                  background: `radial-gradient(ellipse 60% 70% at 50% 0%, ${BRAND.green}22, transparent 70%)`,
-                }}
+            {/* HERO cinematográfico */}
+            <section className="relative bg-black overflow-hidden">
+              {/* Blobs animados de fundo */}
+              <div className="gw-blob gw-blob-g" style={{ width: 380, height: 380, top: -120, left: -80 }} />
+              <div className="gw-blob gw-blob-m" style={{ width: 320, height: 320, top: 40, right: -80 }} />
+              <div className="gw-blob gw-blob-c" style={{ width: 260, height: 260, bottom: -80, left: '40%' }} />
+              <div className="pointer-events-none absolute inset-0 gw-noise opacity-40" />
+              <div className="pointer-events-none absolute inset-0"
+                style={{ background: `radial-gradient(ellipse 70% 80% at 50% 0%, ${BRAND.green}26, transparent 70%)` }}
               />
-              <div className={cn('relative mx-auto w-full', isMobile ? 'px-0 pb-0' : 'px-8 pt-8 pb-10 max-w-6xl')}>
-                <div className={cn('relative overflow-hidden bg-black', isMobile ? 'aspect-[16/10]' : 'rounded-3xl shadow-2xl ring-1 ring-white/10 aspect-[1920/720]')}>
+
+              <div className={cn('relative mx-auto w-full', isMobile ? 'px-0 pb-0' : 'px-8 pt-10 pb-12 max-w-6xl')}>
+                {/* mini badge superior */}
+                {!isMobile && (
+                  <div className="flex items-center gap-3 mb-5 gw-rise">
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 backdrop-blur border border-white/10 text-[11px] font-bold uppercase tracking-[0.18em] text-white/80">
+                      <span className="h-1.5 w-1.5 rounded-full gw-dot-pulse" style={{ background: BRAND.green }} />
+                      Vendas abertas
+                    </span>
+                    <span className="text-[11px] text-white/40 font-medium uppercase tracking-[0.18em]">
+                      Sete Lagoas · MG · Julho 2026
+                    </span>
+                  </div>
+                )}
+
+                <div className={cn('relative overflow-hidden bg-black group',
+                  isMobile ? 'aspect-[16/10]' : 'rounded-[28px] shadow-2xl ring-1 ring-white/10 aspect-[1920/720]'
+                )}>
                   <img
                     src={eventInfo.heroBanner}
                     alt={eventInfo.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-[1.04]"
                     loading="eager"
                   />
-                  {/* leve gradiente inferior para legibilidade caso queira sobrepor algo */}
-                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent" />
+                  {/* gradiente neon overlay */}
+                  <div className="absolute inset-0 mix-blend-overlay opacity-50"
+                    style={{ background: `linear-gradient(120deg, ${BRAND.magenta}33, transparent 35%, ${BRAND.cyan}22 70%, ${BRAND.green}33)` }} />
+                  <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/60 to-transparent" />
+
+                  {/* badge 54ª Edição (skewed) */}
+                  <div className="absolute top-4 left-4 sm:top-6 sm:left-6 gw-rise">
+                    <span className="gw-skew bg-[#ffce00] text-black text-[10px] sm:text-xs font-black uppercase tracking-widest px-3 py-1 shadow-lg">
+                      54ª Edição · Confirmado
+                    </span>
+                  </div>
+
+                  {/* título sobreposto (apenas desktop, p/ não competir com a info abaixo) */}
+                  {!isMobile && (
+                    <div className="absolute bottom-6 left-6 right-6 gw-rise gw-rise-delay-2">
+                      <h2 className="text-white font-black uppercase italic leading-[0.95] text-3xl md:text-5xl tracking-tight drop-shadow-2xl">
+                        Exposete <span className="gw-grad-text">Rodeio Festival</span>
+                      </h2>
+                    </div>
+                  )}
                 </div>
               </div>
-              {/* recorte ondulado estilo Guichê separando o hero do conteúdo */}
-              <svg className="block w-full h-6 -mb-px text-white" viewBox="0 0 1440 24" preserveAspectRatio="none" aria-hidden="true">
-                <path fill="currentColor" d="M0,24 L0,12 Q30,0 60,12 T120,12 T180,12 T240,12 T300,12 T360,12 T420,12 T480,12 T540,12 T600,12 T660,12 T720,12 T780,12 T840,12 T900,12 T960,12 T1020,12 T1080,12 T1140,12 T1200,12 T1260,12 T1320,12 T1380,12 T1440,12 L1440,24 Z"/>
-              </svg>
-            </section>
 
+              {/* Marquee kinética */}
+              <div className="gw-ticker-strip py-2 overflow-hidden border-y-2 border-black select-none">
+                <div className="gw-marquee-track whitespace-nowrap">
+                  {Array.from({ length: 2 }).map((_, k) => (
+                    <span key={k} className="flex items-center text-black font-black uppercase italic text-[11px] sm:text-xs tracking-wide">
+                      {['09 a 19 de Julho · 2026', 'Sete Lagoas · MG', 'Open Bar Premium', 'Os Maiores Shows do Sertanejo', 'Vendas Liberadas', 'Parcele em 10x', 'Ingresso digital imediato', '54ª Edição'].map((t, i) => (
+                        <span key={i} className="flex items-center mx-6">
+                          {t}
+                          <svg className="ml-6 h-3 w-3 opacity-70" viewBox="0 0 12 12"><circle cx="6" cy="6" r="3" fill="currentColor"/></svg>
+                        </span>
+                      ))}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </section>
 
             {/* URGÊNCIA & PROVA SOCIAL (strip discreta) */}
             <section className="bg-white border-b border-slate-200">
               <div className={cn('mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-2', isMobile ? 'px-4 py-3 text-[11px]' : 'px-8 py-3.5 text-xs max-w-6xl')}>
                 <div className="flex items-center gap-2 text-slate-600">
-                  <Timer className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
+                  <Timer className="h-3.5 w-3.5 gw-dot-pulse" style={{ color: BRAND.green }} />
                   <span className="font-medium">Faltam</span>
                   <span className="font-bold text-slate-900 tabular-nums">
-                    {countdown.d}d {String(countdown.h).padStart(2, '0')}:{String(countdown.m).padStart(2, '0')}:{String(countdown.s).padStart(2, '0')}
+                    {countdown.d}d {String(countdown.h).padStart(2, '0')}:{String(countdown.m).padStart(2, '0')}:<span style={{ color: BRAND.green }}>{String(countdown.s).padStart(2, '0')}</span>
                   </span>
                 </div>
                 <div className="hidden sm:block h-3 w-px bg-slate-200" />
@@ -530,6 +577,7 @@ const EventPreview: React.FC = () => {
                 </div>
               </div>
             </section>
+
 
 
 
