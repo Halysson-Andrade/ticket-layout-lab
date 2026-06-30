@@ -1015,9 +1015,17 @@ const EventPreview: React.FC = () => {
           {isMobile && !salesOpen && !cartOpen && (
             <div className="fixed bottom-0 left-0 right-0 z-[60] animate-slide-in-bottom">
               <div className="mx-2 mb-2 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200 shadow-[0_-8px_30px_rgb(0,0,0,0.12)] p-2.5 flex items-center gap-2.5">
-                <div className="flex-1 min-w-0 pl-1">
-                  <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold leading-none">A partir de</p>
-                  <p className="text-lg font-black text-slate-900 leading-tight mt-0.5">{minPrice ? brl(minPrice) : '—'}</p>
+                <div className="relative h-12 w-12 rounded-xl overflow-hidden shrink-0 ring-1 ring-slate-200 bg-slate-100">
+                  <img
+                    src={eventInfo.heroBanner}
+                    alt={eventInfo.title}
+                    loading="lazy"
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold text-slate-900 leading-tight truncate">{eventInfo.title}</p>
+                  <p className="text-sm font-black text-slate-900 leading-tight mt-0.5 tabular-nums">{minPrice ? brl(minPrice) : '—'}</p>
                   <p className="text-[10px] text-slate-500 leading-none mt-0.5 flex items-center gap-1">
                     <ShieldCheck className="h-2.5 w-2.5" style={{ color: BRAND.green }} />
                     {dynamicCta.micro}
@@ -1046,13 +1054,22 @@ const EventPreview: React.FC = () => {
               <div className="flex items-center gap-4 rounded-full bg-white/95 backdrop-blur-xl border border-slate-200 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)] pl-5 pr-2 py-2">
                 {/* Identidade compacta */}
                 <div className="flex items-center gap-3 pr-4 border-r border-slate-200">
-                  <div className="h-9 w-9 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
-                    <Sparkles className="h-4 w-4" style={{ color: BRAND.green }} />
+                  <div className="relative h-11 w-11 rounded-lg overflow-hidden shrink-0 ring-1 ring-slate-200 bg-slate-100">
+                    <img
+                      src={eventInfo.heroBanner}
+                      alt={eventInfo.title}
+                      loading="lazy"
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                    <span
+                      className="absolute inset-0 ring-2 ring-inset rounded-lg pointer-events-none"
+                      style={{ borderColor: BRAND.green, boxShadow: `inset 0 0 0 1.5px ${BRAND.green}55` }}
+                    />
                   </div>
                   <div className="min-w-0">
                     <p className="text-[11px] font-bold text-slate-900 leading-tight truncate max-w-[220px]">{eventInfo.title}</p>
                     <p className="text-[10px] text-slate-500 leading-tight flex items-center gap-1">
-                      <Calendar className="h-2.5 w-2.5" /> {eventInfo.date}
+                      <Calendar className="h-2.5 w-2.5" /> {eventInfo.date} · {eventInfo.city}
                     </p>
                   </div>
                 </div>
