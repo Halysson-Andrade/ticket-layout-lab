@@ -258,10 +258,7 @@ const EventPreview: React.FC = () => {
           <header className="bg-[#2f3640] text-white">
             <div className={cn('flex items-center justify-between', isMobile ? 'px-4 py-3' : 'px-8 py-4')}>
               <div className="flex items-center gap-2">
-                <div className="bg-emerald-500 rounded p-1">
-                  <Ticket className="h-4 w-4" />
-                </div>
-                <span className="font-bold">guichê<span className="text-emerald-400">web</span></span>
+                <img src={GW_LOGO} alt="Guichê Web" className="h-7 w-auto object-contain" />
               </div>
               {!isMobile && (
                 <nav className="flex items-center gap-6 text-sm">
