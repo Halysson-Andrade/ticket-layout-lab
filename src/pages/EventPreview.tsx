@@ -287,21 +287,47 @@ const EventPreview: React.FC = () => {
           </header>
 
           {/* Hero */}
-          <section className="relative" style={{ background: eventInfo.heroGradient }}>
-            <div className={cn('mx-auto', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-5xl')}>
-              <div className="rounded-2xl overflow-hidden shadow-2xl bg-black/30 aspect-[16/7] flex items-center justify-center relative">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(255,200,150,0.4),transparent_60%),radial-gradient(circle_at_70%_60%,rgba(255,100,100,0.5),transparent_60%)]" />
-                <div className="relative z-10 text-center text-white px-4">
-                  <p className="text-xs uppercase tracking-widest opacity-80">Circuito Brahma apresenta</p>
-                  <h1 className={cn('font-black drop-shadow-lg', isMobile ? 'text-3xl' : 'text-6xl')}>
-                    {eventInfo.title}
-                  </h1>
-                  <div className="inline-block mt-3 bg-amber-400/95 text-amber-950 font-bold rounded-full px-4 py-1 text-sm">
-                    09 a 19 de Maio
+          <section className="relative bg-slate-900">
+            <div className={cn('mx-auto', isMobile ? 'px-3 py-4' : 'px-8 py-8 max-w-6xl')}>
+              <div className="rounded-2xl overflow-hidden shadow-2xl relative aspect-[1920/500] bg-slate-800">
+                <img
+                  src={eventInfo.heroBanner}
+                  alt={eventInfo.title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  loading="eager"
+                />
+                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-4 text-white">
+                  <div className="min-w-0">
+                    <div className="inline-block bg-amber-400 text-amber-950 font-bold rounded-full px-3 py-0.5 text-[11px] mb-2">
+                      09 a 19 de Julho
+                    </div>
+                    <h1 className={cn('font-black drop-shadow-lg truncate', isMobile ? 'text-xl' : 'text-3xl')}>
+                      {eventInfo.title}
+                    </h1>
+                    <p className="text-[11px] opacity-90 mt-1">SETE LAGOAS • MINAS GERAIS • BRASIL</p>
                   </div>
-                  <p className="mt-2 text-sm opacity-90">MARINGÁ • PARANÁ • BRASIL</p>
+                  {!isMobile && (
+                    <Button
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-full px-6 h-11 shadow-xl shrink-0"
+                      onClick={() => document.getElementById('preview-sectors')?.scrollIntoView({ behavior: 'smooth' })}
+                    >
+                      COMPRAR INGRESSO
+                    </Button>
+                  )}
                 </div>
               </div>
+
+              {/* Mini carousel of other event banners */}
+              {!isMobile && (
+                <div className="mt-4 grid grid-cols-4 gap-3">
+                  {heroCarousel.slice(0, 4).map((b) => (
+                    <div key={b.src} className="rounded-lg overflow-hidden aspect-[800/400] bg-slate-800 ring-1 ring-white/10 hover:ring-emerald-400 transition cursor-pointer">
+                      <img src={b.src} alt={b.alt} className="w-full h-full object-cover" loading="lazy" />
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className={cn('mt-4 flex items-center gap-3', isMobile && 'flex-wrap')}>
                 <button className="bg-white/90 backdrop-blur rounded-full p-2 text-rose-500 hover:scale-110 transition">
@@ -311,12 +337,14 @@ const EventPreview: React.FC = () => {
                   <Share2 className="h-5 w-5" />
                 </button>
                 <div className="flex-1" />
-                <Button
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-full px-8 h-12 shadow-xl"
-                  onClick={() => document.getElementById('preview-sectors')?.scrollIntoView({ behavior: 'smooth' })}
-                >
-                  COMPRAR INGRESSO
-                </Button>
+                {isMobile && (
+                  <Button
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-full px-8 h-11 shadow-xl"
+                    onClick={() => document.getElementById('preview-sectors')?.scrollIntoView({ behavior: 'smooth' })}
+                  >
+                    COMPRAR INGRESSO
+                  </Button>
+                )}
               </div>
             </div>
           </section>
