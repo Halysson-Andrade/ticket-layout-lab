@@ -653,33 +653,41 @@ const EventPreview: React.FC = () => {
 
 
 
-                <aside
-                  className="rounded-2xl p-6 h-fit sticky top-20 border border-slate-200 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)]"
-                >
-                  <p className="text-[10px] uppercase tracking-[0.15em] font-bold text-slate-400">A partir de</p>
-                  <div className="flex items-baseline gap-2 mt-1">
-                    <p className="text-4xl font-black text-slate-900 leading-none">{minPrice ? brl(minPrice) : '—'}</p>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-2">
-                    ou <span className="font-semibold text-slate-700">10x de {brl((minPrice || 0) / 10)}</span> sem juros
-                  </p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">+ taxa de serviço</p>
+                <aside className="relative h-fit sticky top-20 gw-rise gw-rise-delay-2">
+                  {/* glow halo */}
+                  <div className="pointer-events-none absolute -inset-[1px] rounded-[20px] opacity-60 blur-xl"
+                    style={{ background: `linear-gradient(140deg, ${BRAND.green}55, ${BRAND.cyan}33, ${BRAND.magenta}33)` }} />
+                  <div className="relative rounded-2xl p-6 border border-slate-200 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)]">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] uppercase tracking-[0.15em] font-bold text-slate-400">A partir de</p>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                        style={{ background: `${BRAND.green}1a`, color: BRAND.green }}>
+                        <span className="h-1.5 w-1.5 rounded-full gw-dot-pulse" style={{ background: BRAND.green }} /> Disponível
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <p className="text-4xl font-black text-slate-900 leading-none tracking-tight">{minPrice ? brl(minPrice) : '—'}</p>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">
+                      ou <span className="font-semibold text-slate-700">10x de {brl((minPrice || 0) / 10)}</span> sem juros
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">+ taxa de serviço</p>
 
-                  <Button
-                    className="w-full font-bold h-12 text-white mt-5 rounded-xl shadow-sm hover:shadow-md transition-shadow"
-                    style={{ background: BRAND.green }}
-                    onClick={() => setSalesOpen(true)}
-                  >
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    Comprar Ingresso
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="w-full mt-2 h-10 font-semibold text-slate-600 hover:text-slate-900"
-                    onClick={handleRemindMe}
-                  >
-                    <Bell className="h-4 w-4 mr-2" /> Lembre-me deste evento
-                  </Button>
+                    <Button
+                      className="gw-cta-glow w-full font-bold h-12 text-white mt-5 rounded-xl border-0"
+                      style={{ background: `linear-gradient(120deg, ${BRAND.green}, #0fb02e)` }}
+                      onClick={() => setSalesOpen(true)}
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      Comprar Ingresso
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full mt-2 h-10 font-semibold text-slate-600 hover:text-slate-900"
+                      onClick={handleRemindMe}
+                    >
+                      <Bell className="h-4 w-4 mr-2" /> Lembre-me deste evento
+                    </Button>
 
                   <div className="mt-5 pt-5 border-t border-slate-100 space-y-2.5">
                     <div className="flex items-center gap-2.5 text-xs text-slate-600">
