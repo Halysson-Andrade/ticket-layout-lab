@@ -1,9 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
 import {
   ArrowLeft,
@@ -22,15 +27,19 @@ import {
   ShoppingCart,
   ShieldCheck,
   CreditCard,
-  Ticket,
   Info,
   Star,
   Instagram,
   Facebook,
   Youtube,
+  Linkedin,
   CheckCircle2,
   X,
   Search,
+  Menu,
+  LifeBuoy,
+  Ticket,
+  UserCircle,
 } from 'lucide-react';
 import { MapPreviewSVG } from '@/components/MapStudio/MapPreviewSVG';
 import type { Sector, VenueElement, TextElement } from '@/types/mapStudio';
@@ -51,69 +60,68 @@ interface PreviewSnapshot {
 
 const SNAPSHOT_KEY = 'mapstudio.preview.snapshot';
 
+// Brand tokens (Guichê Web)
+const BRAND = {
+  green: '#11CC35',
+  greenDark: '#0fb02e',
+  magenta: '#da15ff',
+  cyan: '#00a5ff',
+  yellow: '#ffce00',
+};
+
 const brl = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-// Real assets pulled from guicheweb.com.br (CDN s3.guicheweb.com.br)
 const GW_LOGO = 'https://s3.guicheweb.com.br/nova_marca/logogw.png';
 
+// Modelo: 54ª Exposete Rodeio Festival
 const eventInfo = {
-  title: 'Manifesto Musical - Belo Horizonte',
-  subtitle: 'Henrique & Juliano • Turnê Exclusiva 2026',
-  date: '18/07/2026',
-  doors: '14:00h',
-  venue: 'Mineirão',
-  city: 'BELO HORIZONTE / MG',
+  title: '54ª Exposete Rodeio Festival',
+  subtitle: 'A maior festa do interior de Minas Gerais',
+  date: '09 a 19 de Julho de 2026',
+  doors: '18:00h',
+  venue: 'Parque de Exposições Edgar Maffei',
+  city: 'SETE LAGOAS / MG',
   rating: 4.9,
-  reviews: 3120,
-  heroBanner: 'https://s3.guicheweb.com.br/imagenseventos/20-01-2026_17-54-36.png',
-  heroThumb: 'https://s3.guicheweb.com.br/imagenseventos/19-01-2026_08-55-27.jpg',
-  description: `A primeira dupla sertaneja a esgotar ingressos no Maracanã/RJ, Henrique & Juliano se apresentaram para mais de 60 mil pessoas, no dia 03 de Janeiro, no maior estádio do país. O show também marcou o início da turnê Manifesto Musical, com 11 cidades confirmadas em 2026.
+  reviews: 4820,
+  heroBanner: 'https://s3.guicheweb.com.br/imagenseventos/19-06-2026_10-39-35.png',
+  description: `A Exposete chega à sua 54ª edição como uma das maiores festas agropecuárias do país, reunindo rodeio profissional, shows nacionais, parque de diversões, praça de alimentação e leilões.
 
-A turnê nasceu após três apresentações com ingressos, também esgotados no Allianz Parque, em São Paulo, mostrando que o Manifesto Musical se consolidou como uma celebração da trajetória da dupla, construída com autenticidade, consistência e uma conexão rara com o público.
+Durante 11 dias de programação, o Parque de Exposições Edgar Maffei recebe mais de 300 mil visitantes e atrações de primeira linha do sertanejo, pagode e piseiro.
 
-Prepare-se para uma apresentação histórica, com um espetáculo inédito que promete emocionar o público. Não perca essa oportunidade única de vivenciar uma experiência inesquecível!`,
+Garanta seu ingresso e viva uma experiência inesquecível em Sete Lagoas / MG.`,
 };
-
-const heroCarousel = [
-  { src: 'https://s3.guicheweb.com.br/imagenseventos/20-01-2026_17-54-36.png', alt: 'Manifesto Musical - Belo Horizonte' },
-  { src: 'https://s3.guicheweb.com.br/banners/20-01-2026_11-45-26.jpg', alt: 'Turnê Manifesto Musical 2026' },
-  { src: 'https://s3.guicheweb.com.br/banners/27-05-2026_16-27-07.png', alt: 'Henrique e Juliano Em Casa' },
-  { src: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-25-56.png', alt: 'Exposete Rodeio Festival' },
-];
 
 const upcomingEvents = [
   { title: 'Turnê Manifesto Musical 2026 - SP', city: 'São Paulo / SP', date: '15 FEV',
     img: 'https://s3.guicheweb.com.br/banners/20-01-2026_11-45-24.jpg' },
   { title: 'Henrique e Juliano Em Casa', city: 'Palmas / TO', date: '12 SET',
     img: 'https://s3.guicheweb.com.br/banners/27-05-2026_16-27-13.jpg' },
-  { title: '54ª Exposete Rodeio Festival', city: 'Sete Lagoas / MG', date: '09 a 19 JUL',
-    img: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-26-01.png' },
   { title: 'Festa do Peão de Salto de Pirapora', city: 'Salto de Pirapora / SP', date: '20 a 28 JUN',
     img: 'https://s3.guicheweb.com.br/banners/20-05-2026_10-41-16.png' },
   { title: 'Oba Festival 2027', city: 'Goiânia / GO', date: '03 a 05 JAN',
     img: 'https://s3.guicheweb.com.br/banners/17-06-2026_14-19-42.png' },
   { title: 'Tangará Festival Music', city: 'Tangará da Serra / MT', date: '22 AGO',
     img: 'https://s3.guicheweb.com.br/banners/19-06-2026_10-39-35.png' },
+  { title: 'Manifesto Musical - BH', city: 'Belo Horizonte / MG', date: '18 JUL',
+    img: 'https://s3.guicheweb.com.br/banners/20-01-2026_11-45-26.jpg' },
 ];
 
 const sectorDescriptions = [
-  { name: 'CAMAROTE NASALA', age: '18 anos', notes: ['Open bar: cerveja, vodka, gin, whisky, refrigerante, tônica e água', 'Acesso exclusivo e vista privilegiada', 'Área elevada • Experiências exclusivas'] },
+  { name: 'CAMAROTE NASALA', age: '18 anos', notes: ['Open bar premium: cerveja, vodka, gin, whisky, refrigerante, tônica e água', 'Acesso exclusivo e vista privilegiada', 'Área elevada • Experiências exclusivas'] },
   { name: 'ESPAÇO ÚLTIMA SAUDADE', age: '18 anos', notes: ['Open bar: cerveja, água e refrigerante', 'Haverá venda de destilados'] },
-  { name: 'GRAMADO', age: '16 anos', notes: ['Área localizada no gramado do estádio', 'Venda de bebidas', 'Área de alimentação'] },
+  { name: 'GRAMADO', age: '16 anos', notes: ['Área localizada no gramado do parque', 'Venda de bebidas', 'Área de alimentação'] },
   { name: 'ARQUIBANCADA', age: '16 anos', notes: ['Venda de bebidas', 'Área de alimentação'] },
 ];
 
 const faqs = [
   { q: 'Será permitida a entrada de menores acompanhados e com autorização?',
-    a: 'Menores com 16 e 17 anos devem estar acompanhados do responsável legal nos setores Gramado e Arquibancada. Não serão aceitos menores sozinhos. Nos setores open bar (Camarote naSala e Espaço Última Saudade) não serão permitidos menores de 18 anos mesmo que acompanhados.' },
+    a: 'Menores com 16 e 17 anos devem estar acompanhados do responsável legal nos setores Gramado e Arquibancada. Não serão aceitos menores sozinhos. Nos setores open bar não serão permitidos menores de 18 anos mesmo que acompanhados.' },
   { q: 'Quais alimentos serão aceitos na portaria com ingresso solidário?',
     a: 'Apenas alimentos não perecíveis, embalados de fábrica, dentro do prazo de validade e que não sejam sal, cuscuz ou milharina.' },
-  { q: 'Qual horário de abertura dos portões do evento?', a: 'Abertura dos portões prevista para 14 horas.' },
-  { q: 'Terá estacionamento?', a: 'Sim, terceirizado. A produção não se responsabiliza pelos veículos. Aconselhamos ir de transporte por aplicativo ou táxi.' },
-  { q: 'É permitido a entrada com copos ou canecas?', a: 'Não será permitida a entrada.' },
+  { q: 'Qual horário de abertura dos portões do evento?', a: 'Abertura dos portões prevista para 18 horas.' },
+  { q: 'Terá estacionamento?', a: 'Sim, terceirizado. A produção não se responsabiliza pelos veículos.' },
   { q: 'Terá área PCD?', a: 'Sim, haverá área exclusiva para PCD e seus acompanhantes.' },
-  { q: 'Haverá a possibilidade de acessar outros setores?', a: 'Não. Não haverá transição de um setor para outro.' },
 ];
 
 const rules = [
@@ -121,19 +129,16 @@ const rules = [
   'O não comparecimento ao evento invalidará o ingresso e não permitirá reembolso.',
   'Meia-entrada apenas mediante comprovação no local conforme legislação vigente.',
   'Proibida a entrada com copos, latas, objetos pontiagudos, guarda-chuvas, drones e armas.',
-  'O evento poderá ser gravado, filmado ou fotografado; ao participar, o portador autoriza o uso de sua imagem.',
   'Solicitações de cancelamento podem ser feitas em até 7 dias da compra, com no mínimo 48h de antecedência do evento.',
 ];
 
 const pointsOfSale = [
+  { city: 'Sete Lagoas/MG', name: 'Loja Centro', address: 'Av. Brasil, 1502', phone: '(31) 3035-9080' },
   { city: 'Belo Horizonte/MG', name: 'Shopping Diamond Mall', address: 'Av. Olegário Maciel, 1600', phone: '(31) 3033-2210' },
   { city: 'Belo Horizonte/MG', name: 'BH Shopping', address: 'BR-356, 3049 - Belvedere', phone: '(31) 3033-1622' },
   { city: 'Contagem/MG', name: 'ItaúPower Shopping', address: 'Av. João César de Oliveira, 1275', phone: '(31) 3244-1199' },
-  { city: 'Sete Lagoas/MG', name: 'Loja Centro', address: 'Av. Brasil, 1502', phone: '(31) 3035-9080' },
 ];
 
-
-// Mock price ladder for sectors that don't carry price info
 const MOCK_PRICES = [480, 280, 220, 180, 150, 120, 90, 380, 650, 420];
 const getSectorPrice = (s: Sector, idx: number): number => {
   const seatWithPrice = s.seats.find((x) => typeof x.price === 'number' && x.price! > 0);
@@ -143,6 +148,7 @@ const getSectorPrice = (s: Sector, idx: number): number => {
 
 const EventPreview: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [snapshot, setSnapshot] = useState<PreviewSnapshot | null>(null);
   const [device, setDevice] = useState<Device>('desktop');
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -151,7 +157,7 @@ const EventPreview: React.FC = () => {
   const [hoveredSectorId, setHoveredSectorId] = useState<string | null>(null);
   const [salesOpen, setSalesOpen] = useState(false);
   const [selectedSectorId, setSelectedSectorId] = useState<string | null>(null);
-
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -161,6 +167,9 @@ const EventPreview: React.FC = () => {
       console.error('Falha ao carregar snapshot do mapa', e);
     }
   }, []);
+
+  // Fecha menu mobile ao mudar rota
+  useEffect(() => { setMobileMenuOpen(false); }, [location.pathname]);
 
   const sectorsForSale = useMemo(() => {
     if (!snapshot) return [] as Array<{ id: string; name: string; color: string; price: number; available: number }>;
@@ -180,39 +189,27 @@ const EventPreview: React.FC = () => {
   const addToCart = (s: { id: string; name: string; price: number; color: string }) => {
     setCart((prev) => {
       const found = prev.find((i) => i.sectorId === s.id);
-      if (found) {
-        return prev.map((i) =>
-          i.sectorId === s.id ? { ...i, qty: i.qty + 1 } : i,
-        );
-      }
+      if (found) return prev.map((i) => (i.sectorId === s.id ? { ...i, qty: i.qty + 1 } : i));
       return [...prev, { sectorId: s.id, name: s.name, price: s.price, qty: 1, color: s.color }];
     });
     setCartOpen(true);
   };
   const updateQty = (id: string, delta: number) =>
     setCart((prev) =>
-      prev
-        .map((i) => (i.sectorId === id ? { ...i, qty: Math.max(0, i.qty + delta) } : i))
-        .filter((i) => i.qty > 0),
+      prev.map((i) => (i.sectorId === id ? { ...i, qty: Math.max(0, i.qty + delta) } : i)).filter((i) => i.qty > 0),
     );
-  const removeFromCart = (id: string) =>
-    setCart((prev) => prev.filter((i) => i.sectorId !== id));
+  const removeFromCart = (id: string) => setCart((prev) => prev.filter((i) => i.sectorId !== id));
 
   const cartCount = cart.reduce((a, b) => a + b.qty, 0);
   const subtotal = cart.reduce((a, b) => a + b.qty * b.price, 0);
   const fee = subtotal * 0.1;
   const total = subtotal + fee;
 
-  const handleSectorClick = (id: string) => {
-    const s = sectorsForSale.find((x) => x.id === id);
-    if (s) addToCart(s);
-  };
-
   const isMobile = device === 'mobile';
 
   if (!snapshot) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center" style={{ fontFamily: "'DM Sans', sans-serif" }}>
         <p className="text-slate-700 font-medium mb-2">Nenhum mapa em pré-visualização</p>
         <p className="text-sm text-slate-500 mb-6">
           Abra o construtor de mapas e clique em "Preview Página do Evento".
@@ -224,10 +221,17 @@ const EventPreview: React.FC = () => {
     );
   }
 
+  const mobileMenuItems = [
+    { label: 'Meus Dados', icon: UserCircle, active: false },
+    { label: 'Meus Ingressos', icon: Ticket, active: false },
+    { label: 'Carrinho', icon: ShoppingCart, active: false, onClick: () => { setMobileMenuOpen(false); setCartOpen(true); } },
+    { label: 'Suporte', icon: LifeBuoy, active: false },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#eef0f3] flex flex-col">
+    <div className="min-h-screen bg-[#eef0f3] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       {/* Botão flutuante: voltar ao mapa + toggle device */}
-      <div className="fixed top-3 left-3 z-50 flex items-center gap-2">
+      <div className="fixed top-3 left-3 z-[100] flex items-center gap-2">
         <Button
           variant="default"
           size="sm"
@@ -240,421 +244,506 @@ const EventPreview: React.FC = () => {
         <div className="flex items-center bg-white/95 backdrop-blur rounded-md p-0.5 shadow-lg border border-slate-200">
           <Button
             variant={device === 'desktop' ? 'default' : 'ghost'}
-            size="sm"
-            className="h-7 px-2"
-            onClick={() => setDevice('desktop')}
-            title="Desktop"
-          >
-            <Monitor className="h-3.5 w-3.5" />
-          </Button>
+            size="sm" className="h-7 px-2"
+            onClick={() => setDevice('desktop')} title="Desktop"
+          ><Monitor className="h-3.5 w-3.5" /></Button>
           <Button
             variant={device === 'mobile' ? 'default' : 'ghost'}
-            size="sm"
-            className="h-7 px-2"
-            onClick={() => setDevice('mobile')}
-            title="Mobile"
-          >
-            <Smartphone className="h-3.5 w-3.5" />
-          </Button>
+            size="sm" className="h-7 px-2"
+            onClick={() => setDevice('mobile')} title="Mobile"
+          ><Smartphone className="h-3.5 w-3.5" /></Button>
         </div>
       </div>
 
-      {/* Conteúdo da preview */}
+      {/* Container da preview (simula viewport) */}
       <div className={cn('flex-1 flex justify-center', isMobile && 'py-6 px-4')}>
         <div
           className={cn(
-            'bg-white transition-all duration-300 relative',
+            'bg-white transition-all duration-300 relative flex flex-col',
             isMobile
-              ? 'w-[390px] shadow-2xl rounded-xl overflow-hidden'
+              ? 'w-[390px] shadow-2xl rounded-xl overflow-hidden min-h-[844px]'
               : 'w-full min-h-screen',
           )}
         >
-          {/* Top nav */}
-          <header className="bg-[#2f3640] text-white">
-            <div className={cn('flex items-center justify-between', isMobile ? 'px-4 py-3' : 'px-8 py-4')}>
+          {/* ============ HEADER STICKY ============ */}
+          <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+            <div className={cn('flex items-center justify-between gap-3', isMobile ? 'px-4 h-14' : 'px-8 h-16')}>
+              {/* Logo */}
               <div className="flex items-center gap-2">
-                <img src={GW_LOGO} alt="Guichê Web" className="h-7 w-auto object-contain" />
+                <img
+                  src={GW_LOGO}
+                  alt="Guichê Web"
+                  className={cn('w-auto object-contain', isMobile ? 'h-6' : 'h-8')}
+                />
               </div>
+
+              {/* Desktop nav */}
               {!isMobile && (
-                <nav className="flex items-center gap-6 text-sm">
-                  <Search className="h-4 w-4 text-emerald-400" />
-                  <button className="flex items-center gap-1 text-emerald-400">
+                <nav className="flex items-center gap-5 text-sm text-slate-700">
+                  <button className="hover:text-[color:var(--brand-green)] flex items-center gap-1" style={{ ['--brand-green' as never]: BRAND.green }}>
+                    <Search className="h-4 w-4" /> Buscar evento
+                  </button>
+                  <button className="hover:text-[color:var(--brand-green)] flex items-center gap-1" style={{ ['--brand-green' as never]: BRAND.green }}>
                     <MapPin className="h-4 w-4" /> Localização <ChevronDown className="h-3 w-3" />
                   </button>
-                  <button className="hover:text-emerald-400">Crie seu evento</button>
-                  <button className="border border-emerald-400 text-emerald-400 rounded-full px-4 py-1 flex items-center gap-1">
-                    Entrar <User className="h-3 w-3" />
+                  <Button
+                    variant="outline"
+                    className="rounded-full border-2 font-semibold"
+                    style={{ borderColor: BRAND.green, color: BRAND.green }}
+                  >
+                    Crie seu evento
+                  </Button>
+                  <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
+                    <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center">
+                      <User className="h-4 w-4 text-slate-500" />
+                    </div>
+                    <button className="text-sm font-medium hover:underline">Conta</button>
+                  </div>
+                  <button
+                    className="relative rounded-full p-2 text-white"
+                    style={{ background: BRAND.green }}
+                    onClick={() => setCartOpen(true)}
+                    aria-label="Abrir carrinho"
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    {cartCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-white text-[10px] font-bold rounded-full h-4 min-w-4 px-1 flex items-center justify-center" style={{ color: BRAND.green }}>
+                        {cartCount}
+                      </span>
+                    )}
                   </button>
                 </nav>
               )}
-              <button
-                className="relative bg-emerald-500 hover:bg-emerald-600 rounded-full p-2"
-                onClick={() => setCartOpen(true)}
-              >
-                <ShoppingCart className="h-4 w-4" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-white text-emerald-600 text-[10px] font-bold rounded-full h-4 min-w-4 px-1 flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-              </button>
+
+              {/* Mobile: cart + hambúrguer */}
+              {isMobile && (
+                <div className="flex items-center gap-2">
+                  <button
+                    className="relative rounded-full p-2 text-white"
+                    style={{ background: BRAND.green }}
+                    onClick={() => setCartOpen(true)}
+                    aria-label="Abrir carrinho"
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    {cartCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-white text-[10px] font-bold rounded-full h-4 min-w-4 px-1 flex items-center justify-center" style={{ color: BRAND.green }}>
+                        {cartCount}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setMobileMenuOpen(true)}
+                    className="h-10 w-10 rounded-md border border-slate-200 flex items-center justify-center text-slate-700"
+                    aria-label="Abrir menu"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </button>
+                </div>
+              )}
             </div>
           </header>
 
-          {/* Hero */}
-          <section className="relative bg-slate-900">
-            <div className={cn('mx-auto', isMobile ? 'px-3 py-4' : 'px-8 py-8 max-w-6xl')}>
-              <div className="rounded-2xl overflow-hidden shadow-2xl relative aspect-[1920/500] bg-slate-800">
-                <img
-                  src={eventInfo.heroBanner}
-                  alt={eventInfo.title}
-                  className="absolute inset-0 w-full h-full object-cover"
-                  loading="eager"
-                />
-                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-4 text-white">
+          {/* ============ MOBILE MENU DRAWER ============ */}
+          {isMobile && mobileMenuOpen && (
+            <>
+              <div className="absolute inset-0 z-[60] bg-black/50" onClick={() => setMobileMenuOpen(false)} />
+              <aside className="absolute top-14 right-0 bottom-0 w-[280px] bg-white z-[61] shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+                {/* Perfil */}
+                <div className="p-4 border-b border-slate-200 flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-full bg-slate-200 flex items-center justify-center">
+                    <User className="h-6 w-6 text-slate-500" />
+                  </div>
                   <div className="min-w-0">
-                    <div className="inline-block bg-amber-400 text-amber-950 font-bold rounded-full px-3 py-0.5 text-[11px] mb-2">
-                      09 a 19 de Julho
-                    </div>
-                    <h1 className={cn('font-black drop-shadow-lg truncate', isMobile ? 'text-xl' : 'text-3xl')}>
-                      {eventInfo.title}
-                    </h1>
-                    <p className="text-[11px] opacity-90 mt-1">SETE LAGOAS • MINAS GERAIS • BRASIL</p>
+                    <p className="text-sm font-bold text-slate-900 truncate">Olá, Visitante</p>
+                    <button className="text-xs font-medium" style={{ color: BRAND.green }}>Entrar ou cadastrar</button>
                   </div>
-                  {!isMobile && (
-                    <Button
-                      className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-full px-6 h-11 shadow-xl shrink-0"
-                      onClick={() => setSalesOpen(true)}
-                    >
-                      COMPRAR INGRESSO
-                    </Button>
-                  )}
                 </div>
-              </div>
 
-              {/* Mini carousel of other event banners */}
-              {!isMobile && (
-                <div className="mt-4 grid grid-cols-4 gap-3">
-                  {heroCarousel.slice(0, 4).map((b) => (
-                    <div key={b.src} className="rounded-lg overflow-hidden aspect-[800/400] bg-slate-800 ring-1 ring-white/10 hover:ring-emerald-400 transition cursor-pointer">
-                      <img src={b.src} alt={b.alt} className="w-full h-full object-cover" loading="lazy" />
-                    </div>
-                  ))}
+                {/* Ícones busca/localização */}
+                <div className="flex border-b border-slate-200">
+                  <button className="flex-1 flex items-center justify-center gap-2 py-3 text-sm text-slate-700 hover:bg-slate-50">
+                    <Search className="h-4 w-4" /> Buscar
+                  </button>
+                  <button className="flex-1 flex items-center justify-center gap-2 py-3 text-sm text-slate-700 hover:bg-slate-50 border-l border-slate-200">
+                    <MapPin className="h-4 w-4" /> Cidade
+                  </button>
                 </div>
-              )}
 
-              <div className={cn('mt-4 flex items-center gap-3', isMobile && 'flex-wrap')}>
-                <button className="bg-white/90 backdrop-blur rounded-full p-2 text-rose-500 hover:scale-110 transition">
-                  <Heart className="h-5 w-5" />
-                </button>
-                <button className="bg-white/90 backdrop-blur rounded-full p-2 text-emerald-600 hover:scale-110 transition">
-                  <Share2 className="h-5 w-5" />
-                </button>
-                <div className="flex-1" />
-                {isMobile && (
+                {/* Itens */}
+                <nav className="flex-1 py-2">
+                  {mobileMenuItems.map((m) => {
+                    const Icon = m.icon;
+                    return (
+                      <button
+                        key={m.label}
+                        onClick={m.onClick}
+                        className={cn(
+                          'w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 transition',
+                          m.active && 'bg-primary/10 text-primary border-r-2 border-primary font-semibold',
+                        )}
+                      >
+                        <Icon className="h-4 w-4" /> {m.label}
+                      </button>
+                    );
+                  })}
+                </nav>
+
+                {/* Rodapé */}
+                <div className="p-4 border-t border-slate-200">
                   <Button
-                    className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-full px-8 h-11 shadow-xl"
-                    onClick={() => setSalesOpen(true)}
+                    className="w-full rounded-full font-semibold text-white"
+                    style={{ background: BRAND.green }}
                   >
-                    COMPRAR INGRESSO
+                    Crie seu evento
                   </Button>
-                )}
-              </div>
-            </div>
-          </section>
-
-          {/* Event info + quick CTA */}
-          <section className={cn('mx-auto', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-5xl')}>
-            <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-[1fr_320px]')}>
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900">{eventInfo.title}</h2>
-                <p className="text-sm text-slate-500 mt-1">{eventInfo.subtitle}</p>
-
-                <div className="flex items-center gap-1 mt-3 text-amber-500">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Star key={i} className={cn('h-4 w-4', i <= Math.round(eventInfo.rating) ? 'fill-amber-500' : '')} />
-                  ))}
-                  <span className="text-xs text-slate-600 ml-2">
-                    {eventInfo.rating} • {eventInfo.reviews.toLocaleString('pt-BR')} avaliações
-                  </span>
-                </div>
-
-                <div className="mt-5 space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="bg-emerald-50 text-emerald-600 rounded-lg p-2"><Calendar className="h-4 w-4" /></div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">{eventInfo.date}</p>
-                      <p className="text-xs text-slate-500 flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> Abertura {eventInfo.doors}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="bg-emerald-50 text-emerald-600 rounded-lg p-2"><MapPin className="h-4 w-4" /></div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">{eventInfo.venue}</p>
-                      <p className="text-xs text-slate-500">{eventInfo.city}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <aside className="bg-gradient-to-br from-emerald-50 to-white border border-emerald-200 rounded-2xl p-5 h-fit sticky top-20">
-                <p className="text-xs uppercase tracking-wider text-emerald-700 font-semibold">A partir de</p>
-                <p className="text-3xl font-black text-slate-900 mt-1">
-                  {minPrice ? brl(minPrice) : '—'}
-                </p>
-                <p className="text-xs text-slate-500 mb-4">+ taxa de serviço</p>
-                <Button
-                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold h-11"
-                  onClick={() => setSalesOpen(true)}
-                >
-                  Escolher ingressos
-                </Button>
-                <div className="mt-4 flex items-center gap-2 text-xs text-slate-600">
-                  <ShieldCheck className="h-4 w-4 text-emerald-600" /> Compra 100% segura
-                </div>
-                <div className="mt-1 flex items-center gap-2 text-xs text-slate-600">
-                  <CreditCard className="h-4 w-4 text-emerald-600" /> Parcele em até 10x sem juros
                 </div>
               </aside>
-            </div>
-          </section>
+            </>
+          )}
 
-          {/* Mapa do evento (display-only) + descrição de setores */}
-          <section id="preview-sectors" className="bg-slate-50">
-            <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl')}>
-              <div className="text-center mb-6">
-                <p className="text-xs text-emerald-600 font-bold tracking-widest uppercase">Mapa do evento</p>
-                <h3 className={cn('font-black text-slate-900', isMobile ? 'text-2xl' : 'text-4xl')}>
-                  {snapshot.mapName}
-                </h3>
-                <p className="text-sm text-slate-500 mt-2">
-                  Confira a distribuição dos setores. Clique em "Comprar ingresso" para escolher seu lugar.
-                </p>
+          {/* ============ MAIN ============ */}
+          <main className="flex-1 flex flex-col">
+            {/* HERO: APENAS A FOTO DO EVENTO */}
+            <section className="bg-slate-100">
+              <div className={cn('mx-auto w-full', isMobile ? 'px-0' : 'px-8 py-6 max-w-6xl')}>
+                <div className={cn('overflow-hidden bg-slate-200', isMobile ? 'aspect-[16/9]' : 'rounded-2xl shadow-lg aspect-[1920/600]')}>
+                  <img
+                    src={eventInfo.heroBanner}
+                    alt={eventInfo.title}
+                    className="w-full h-full object-cover"
+                    loading="eager"
+                  />
+                </div>
               </div>
+            </section>
 
-              <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-[1.4fr_1fr]')}>
-                {/* Mapa: foto do construtor se houver, senão SVG do mapa. Display-only. */}
-                <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden aspect-[4/3] relative">
-                  {snapshot.backgroundImage ? (
-                    <img
-                      src={snapshot.backgroundImage}
-                      alt={`Mapa ${snapshot.mapName}`}
-                      className="absolute inset-0 w-full h-full object-contain bg-slate-50 select-none pointer-events-none"
-                      draggable={false}
-                    />
-                  ) : sectorsForSale.length === 0 ? (
-                    <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500 text-center p-6">
-                      Nenhum setor criado no mapa ainda.
+            {/* Info do evento + card de preço */}
+            <section className={cn('container mx-auto', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-5xl')}>
+              <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-[1fr_320px]')}>
+                <div>
+                  <h1 className={cn('font-black text-slate-900 leading-tight', isMobile ? 'text-2xl' : 'text-4xl')}>
+                    {eventInfo.title}
+                  </h1>
+                  <p className="text-sm text-slate-500 mt-1">{eventInfo.subtitle}</p>
+
+                  <div className="flex items-center gap-1 mt-3 text-amber-500">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Star key={i} className={cn('h-4 w-4', i <= Math.round(eventInfo.rating) ? 'fill-amber-500' : '')} />
+                    ))}
+                    <span className="text-xs text-slate-600 ml-2">
+                      {eventInfo.rating} • {eventInfo.reviews.toLocaleString('pt-BR')} avaliações
+                    </span>
+                  </div>
+
+                  <div className="mt-5 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-lg p-2" style={{ background: `${BRAND.green}1a`, color: BRAND.green }}>
+                        <Calendar className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">{eventInfo.date}</p>
+                        <p className="text-xs text-slate-500 flex items-center gap-1">
+                          <Clock className="h-3 w-3" /> Abertura {eventInfo.doors}
+                        </p>
+                      </div>
                     </div>
-                  ) : (
-                    <div className="absolute inset-0 pointer-events-none select-none">
-                      <MapPreviewSVG
-                        sectors={snapshot.sectors}
-                        elements={snapshot.elements}
-                        textElements={snapshot.textElements}
-                        width={snapshot.width}
-                        height={snapshot.height}
-                        backgroundImage={snapshot.backgroundImage}
-                        bgConfig={snapshot.bgConfig}
-                      />
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-lg p-2" style={{ background: `${BRAND.cyan}1a`, color: BRAND.cyan }}>
+                        <MapPin className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">{eventInfo.venue}</p>
+                        <p className="text-xs text-slate-500">{eventInfo.city}</p>
+                      </div>
                     </div>
-                  )}
-                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-[10px] uppercase tracking-wider text-slate-600 font-bold rounded-full px-3 py-1 shadow">
-                    Apenas visualização
+                  </div>
+
+                  <div className="mt-5 flex items-center gap-2">
+                    <button className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center text-rose-500 hover:bg-rose-50">
+                      <Heart className="h-4 w-4" />
+                    </button>
+                    <button className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50">
+                      <Share2 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
 
-                {/* Descrição de setores */}
-                <div className="space-y-3">
-                  {sectorDescriptions.map((s) => (
-                    <div key={s.name} className="bg-white border border-slate-200 rounded-xl p-4">
-                      <div className="flex items-center justify-between gap-2 mb-2">
-                        <p className="text-sm font-bold text-slate-900">{s.name}</p>
-                        <span className="text-[10px] font-semibold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">
-                          {s.age}
-                        </span>
-                      </div>
-                      <ul className="space-y-1">
-                        {s.notes.map((n, i) => (
-                          <li key={i} className="text-xs text-slate-600 flex gap-2">
-                            <span className="text-emerald-500 mt-0.5">•</span>{n}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
+                <aside
+                  className="rounded-2xl p-5 h-fit sticky top-20 border"
+                  style={{ background: `linear-gradient(180deg, ${BRAND.green}10, #ffffff)`, borderColor: `${BRAND.green}40` }}
+                >
+                  <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: BRAND.green }}>A partir de</p>
+                  <p className="text-3xl font-black text-slate-900 mt-1">{minPrice ? brl(minPrice) : '—'}</p>
+                  <p className="text-xs text-slate-500 mb-4">+ taxa de serviço</p>
                   <Button
-                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold h-12"
+                    className="w-full font-bold h-11 text-white"
+                    style={{ background: BRAND.green }}
                     onClick={() => setSalesOpen(true)}
                   >
                     Comprar Ingresso
                   </Button>
+                  <div className="mt-4 flex items-center gap-2 text-xs text-slate-600">
+                    <ShieldCheck className="h-4 w-4" style={{ color: BRAND.green }} /> Compra 100% segura
+                  </div>
+                  <div className="mt-1 flex items-center gap-2 text-xs text-slate-600">
+                    <CreditCard className="h-4 w-4" style={{ color: BRAND.green }} /> Parcele em até 10x sem juros
+                  </div>
+                </aside>
+              </div>
+            </section>
+
+            {/* Mapa do evento (display-only) + descrições */}
+            <section id="preview-sectors" className="bg-slate-50">
+              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl')}>
+                <div className="text-center mb-6">
+                  <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Mapa do evento</p>
+                  <h3 className={cn('font-black text-slate-900', isMobile ? 'text-2xl' : 'text-4xl')}>{snapshot.mapName}</h3>
+                  <p className="text-sm text-slate-500 mt-2">
+                    Confira a distribuição dos setores. Clique em "Comprar ingresso" para escolher seu lugar.
+                  </p>
                 </div>
-              </div>
 
-              {/* Descrição do evento */}
-              <div className="mt-10 max-w-4xl mx-auto">
-                <h4 className="text-emerald-600 font-bold text-lg mb-3 flex items-center gap-2">
-                  <Info className="h-5 w-5" /> Sobre o evento
-                </h4>
-                <div className="prose prose-sm max-w-none text-slate-700 whitespace-pre-line leading-relaxed">
-                  {eventInfo.description}
-                </div>
-              </div>
-            </div>
-          </section>
-
-
-          {/* Info + Regras */}
-          <section className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
-            <div className={cn('grid gap-8', isMobile ? 'grid-cols-1' : 'grid-cols-2')}>
-              <div>
-                <h3 className="text-emerald-600 font-bold text-xl mb-4 flex items-center gap-2">
-                  <Info className="h-5 w-5" /> Informações
-                </h3>
-                <div className="space-y-2">
-                  {faqs.map((f, i) => (
-                    <div key={i} className="border border-slate-200 rounded-lg overflow-hidden">
-                      <button
-                        className="w-full flex items-center justify-between p-3 text-left hover:bg-slate-50"
-                        onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                      >
-                        <span className="text-sm font-medium text-slate-900">{f.q}</span>
-                        <ChevronDown className={cn('h-4 w-4 transition', openFaq === i && 'rotate-180')} />
-                      </button>
-                      {openFaq === i && (
-                        <div className="px-3 pb-3 text-sm text-slate-600 border-t border-slate-100 bg-slate-50">
-                          {f.a}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-emerald-600 font-bold text-xl mb-4 flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5" /> Regras da venda on-line
-                </h3>
-                <ul className="space-y-3">
-                  {rules.map((r, i) => (
-                    <li key={i} className="flex gap-2 text-sm text-slate-600">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                      {r}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </section>
-
-          {/* Pontos de venda */}
-          <section className="bg-slate-50">
-            <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
-              <h3 className="text-emerald-600 font-bold text-xl mb-4">Pontos de venda</h3>
-              <div className={cn('grid gap-3', isMobile ? 'grid-cols-1' : 'grid-cols-4')}>
-                {pointsOfSale.map((p, i) => (
-                  <div key={i} className="border border-slate-200 rounded-lg overflow-hidden bg-white">
-                    <div className="bg-slate-800 text-white text-xs font-semibold px-3 py-2">{p.city}</div>
-                    <div className="p-3">
-                      <p className="text-sm font-bold text-slate-900">{p.name}</p>
-                      <p className="text-xs text-slate-500 mt-1">{p.address}</p>
-                      <p className="text-xs text-slate-500">{p.phone}</p>
+                <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-[1.4fr_1fr]')}>
+                  <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden aspect-[4/3] relative">
+                    {snapshot.backgroundImage ? (
+                      <img
+                        src={snapshot.backgroundImage}
+                        alt={`Mapa ${snapshot.mapName}`}
+                        className="absolute inset-0 w-full h-full object-contain bg-slate-50 select-none pointer-events-none"
+                        draggable={false}
+                      />
+                    ) : sectorsForSale.length === 0 ? (
+                      <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500 text-center p-6">
+                        Nenhum setor criado no mapa ainda.
+                      </div>
+                    ) : (
+                      <div className="absolute inset-0 pointer-events-none select-none">
+                        <MapPreviewSVG
+                          sectors={snapshot.sectors}
+                          elements={snapshot.elements}
+                          textElements={snapshot.textElements}
+                          width={snapshot.width}
+                          height={snapshot.height}
+                          backgroundImage={snapshot.backgroundImage}
+                          bgConfig={snapshot.bgConfig}
+                        />
+                      </div>
+                    )}
+                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-[10px] uppercase tracking-wider text-slate-600 font-bold rounded-full px-3 py-1 shadow">
+                      Apenas visualização
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          </section>
 
-          {/* Você também pode gostar */}
-          <section className="bg-white">
-            <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl')}>
-              <div className="flex items-end justify-between mb-5">
-                <div>
-                  <p className="text-xs text-emerald-600 font-bold tracking-widest uppercase">Outros eventos</p>
-                  <h3 className={cn('font-black text-slate-900', isMobile ? 'text-xl' : 'text-2xl')}>
-                    Você também pode gostar
-                  </h3>
+                  <div className="space-y-3">
+                    {sectorDescriptions.map((s) => (
+                      <div key={s.name} className="bg-white border border-slate-200 rounded-xl p-4">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <p className="text-sm font-bold text-slate-900">{s.name}</p>
+                          <span className="text-[10px] font-semibold rounded-full px-2 py-0.5" style={{ background: `${BRAND.yellow}33`, color: '#7a5b00' }}>
+                            {s.age}
+                          </span>
+                        </div>
+                        <ul className="space-y-1">
+                          {s.notes.map((n, i) => (
+                            <li key={i} className="text-xs text-slate-600 flex gap-2">
+                              <span style={{ color: BRAND.green }} className="mt-0.5">•</span>{n}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                    <Button
+                      className="w-full font-bold h-12 text-white"
+                      style={{ background: BRAND.green }}
+                      onClick={() => setSalesOpen(true)}
+                    >
+                      Comprar Ingresso
+                    </Button>
+                  </div>
                 </div>
-                <button className="text-xs font-semibold text-emerald-600 hover:underline hidden sm:block">
-                  Ver todos →
-                </button>
+
+                <div className="mt-10 max-w-4xl mx-auto">
+                  <h4 className="font-bold text-lg mb-3 flex items-center gap-2" style={{ color: BRAND.green }}>
+                    <Info className="h-5 w-5" /> Sobre o evento
+                  </h4>
+                  <div className="prose prose-sm max-w-none text-slate-700 whitespace-pre-line leading-relaxed">
+                    {eventInfo.description}
+                  </div>
+                </div>
               </div>
-              <div className={cn('grid gap-4', isMobile ? 'grid-cols-2' : 'grid-cols-3 lg:grid-cols-6')}>
-                {upcomingEvents.map((e) => (
-                  <div key={e.title} className="group cursor-pointer">
-                    <div className="aspect-[800/400] rounded-xl overflow-hidden bg-slate-200 ring-1 ring-slate-200 group-hover:ring-emerald-400 transition shadow-sm">
-                      <img
-                        src={e.img}
-                        alt={e.title}
-                        loading="lazy"
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                      />
+            </section>
+
+            {/* Info + Regras */}
+            <section className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
+              <div className={cn('grid gap-8', isMobile ? 'grid-cols-1' : 'grid-cols-2')}>
+                <div>
+                  <h3 className="font-bold text-xl mb-4 flex items-center gap-2" style={{ color: BRAND.green }}>
+                    <Info className="h-5 w-5" /> Informações
+                  </h3>
+                  <div className="space-y-2">
+                    {faqs.map((f, i) => (
+                      <div key={i} className="border border-slate-200 rounded-lg overflow-hidden">
+                        <button
+                          className="w-full flex items-center justify-between p-3 text-left hover:bg-slate-50"
+                          onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                        >
+                          <span className="text-sm font-medium text-slate-900">{f.q}</span>
+                          <ChevronDown className={cn('h-4 w-4 transition', openFaq === i && 'rotate-180')} />
+                        </button>
+                        {openFaq === i && (
+                          <div className="px-3 pb-3 text-sm text-slate-600 border-t border-slate-100 bg-slate-50">{f.a}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-xl mb-4 flex items-center gap-2" style={{ color: BRAND.green }}>
+                    <ShieldCheck className="h-5 w-5" /> Regras da venda on-line
+                  </h3>
+                  <ul className="space-y-3">
+                    {rules.map((r, i) => (
+                      <li key={i} className="flex gap-2 text-sm text-slate-600">
+                        <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" style={{ color: BRAND.green }} />
+                        {r}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            {/* Pontos de venda */}
+            <section className="bg-slate-50">
+              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
+                <h3 className="font-bold text-xl mb-4" style={{ color: BRAND.green }}>Pontos de venda</h3>
+                <div className={cn('grid gap-3', isMobile ? 'grid-cols-1' : 'grid-cols-4')}>
+                  {pointsOfSale.map((p, i) => (
+                    <div key={i} className="border border-slate-200 rounded-lg overflow-hidden bg-white">
+                      <div className="bg-slate-800 text-white text-xs font-semibold px-3 py-2">{p.city}</div>
+                      <div className="p-3">
+                        <p className="text-sm font-bold text-slate-900">{p.name}</p>
+                        <p className="text-xs text-slate-500 mt-1">{p.address}</p>
+                        <p className="text-xs text-slate-500">{p.phone}</p>
+                      </div>
                     </div>
-                    <p className="mt-2 text-[11px] font-bold text-emerald-600">{e.date}</p>
-                    <p className="text-xs font-semibold text-slate-900 leading-tight line-clamp-2">{e.title}</p>
-                    <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                      <MapPin className="h-3 w-3" /> {e.city}
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Você também pode gostar */}
+            <section className="bg-white">
+              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl')}>
+                <div className="flex items-end justify-between mb-5">
+                  <div>
+                    <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Outros eventos</p>
+                    <h3 className={cn('font-black text-slate-900', isMobile ? 'text-xl' : 'text-2xl')}>Você também pode gostar</h3>
+                  </div>
+                  <button className="text-xs font-semibold hover:underline hidden sm:block" style={{ color: BRAND.green }}>Ver todos →</button>
+                </div>
+                <div className={cn('grid gap-4', isMobile ? 'grid-cols-2' : 'grid-cols-3 lg:grid-cols-6')}>
+                  {upcomingEvents.map((e) => (
+                    <div key={e.title} className="group cursor-pointer">
+                      <div className="aspect-[800/400] rounded-xl overflow-hidden bg-slate-200 ring-1 ring-slate-200 group-hover:ring-[var(--bg)] transition shadow-sm" style={{ ['--bg' as never]: BRAND.green }}>
+                        <img src={e.img} alt={e.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                      </div>
+                      <p className="mt-2 text-[11px] font-bold" style={{ color: BRAND.green }}>{e.date}</p>
+                      <p className="text-xs font-semibold text-slate-900 leading-tight line-clamp-2">{e.title}</p>
+                      <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                        <MapPin className="h-3 w-3" /> {e.city}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          </main>
+
+          {/* ============ FOOTER ============ */}
+          <footer className="bg-slate-900 text-slate-200">
+            <div className={cn('mx-auto', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-6xl')}>
+              {/* Topo: logo + sociais + badges */}
+              <div className={cn('flex gap-6 pb-6 border-b border-white/10', isMobile ? 'flex-col' : 'flex-row items-center justify-between')}>
+                <img src={GW_LOGO} alt="Guichê Web" className="h-8 w-auto object-contain brightness-0 invert" />
+                <div className="flex items-center gap-3">
+                  {[Instagram, Facebook, Youtube, Linkedin].map((Icon, i) => (
+                    <a key={i} href="#" className="h-9 w-9 rounded-full border border-white/30 hover:border-white flex items-center justify-center transition" aria-label="Rede social">
+                      <Icon className="h-4 w-4" />
+                    </a>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Google Play" className="h-10 w-auto" />
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" alt="App Store" className="h-10 w-auto" />
+                </div>
+              </div>
+
+              {/* Meio */}
+              {isMobile ? (
+                <Accordion type="single" collapsible className="py-2">
+                  {[
+                    { t: 'Institucional', items: ['Página Inicial', 'Blog', 'Termos de Uso', 'Política de Privacidade'] },
+                    { t: 'Eventos', items: ['Criar Evento', 'Procurar Evento', 'Categorias'] },
+                    { t: 'Acesso Rápido', items: ['Esqueci minha senha', 'Formas de pagamento', 'Compras canceladas', 'Suporte'] },
+                  ].map((s) => (
+                    <AccordionItem key={s.t} value={s.t} className="border-white/10">
+                      <AccordionTrigger className="text-sm font-bold uppercase hover:no-underline" style={{ color: BRAND.green }}>
+                        {s.t}
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <ul className="text-sm text-slate-300 space-y-2">
+                          {s.items.map((i) => <li key={i}>{i}</li>)}
+                        </ul>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              ) : (
+                <div className="grid grid-cols-4 gap-6 py-8">
+                  <div>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      Plataforma de venda de ingressos online para shows, festivais, esportes e eventos culturais em todo Brasil.
                     </p>
                   </div>
-                ))}
-              </div>
-            </div>
-          </section>
+                  {[
+                    { t: 'INSTITUCIONAL', items: ['Página Inicial', 'Blog', 'Termos de Uso', 'Política de Privacidade'] },
+                    { t: 'EVENTOS', items: ['Criar Evento', 'Procurar Evento', 'Categorias', 'Suporte'] },
+                    { t: 'ACESSO RÁPIDO', items: ['Esqueci minha senha', 'Formas de pagamento', 'Compras canceladas'] },
+                  ].map((s) => (
+                    <div key={s.t}>
+                      <p className="font-bold text-xs mb-3 tracking-widest" style={{ color: BRAND.green }}>{s.t}</p>
+                      <ul className="text-sm text-slate-300 space-y-2">
+                        {s.items.map((i) => <li key={i} className="hover:text-white cursor-pointer transition">{i}</li>)}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-          {/* Footer */}
-          <footer className="bg-slate-100 border-t border-slate-200">
-            <div className={cn('mx-auto', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-5xl')}>
-              <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-4')}>
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <img src={GW_LOGO} alt="Guichê Web" className="h-6 w-auto object-contain" />
-                  </div>
-                  <div className="flex gap-3 text-slate-500">
-                    <Instagram className="h-4 w-4" />
-                    <Facebook className="h-4 w-4" />
-                    <Youtube className="h-4 w-4" />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-emerald-600 font-bold text-xs mb-2">INSTITUCIONAL</p>
-                  <ul className="text-xs text-slate-600 space-y-1">
-                    <li>Página Inicial</li><li>Blog</li><li>Termos de Uso</li><li>Política de Privacidade</li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-emerald-600 font-bold text-xs mb-2">EVENTOS</p>
-                  <ul className="text-xs text-slate-600 space-y-1">
-                    <li>Suporte</li><li>Criar Evento</li><li>Procurar Evento</li><li>Categorias</li>
-                  </ul>
-                </div>
-                <div>
-                  <p className="text-emerald-600 font-bold text-xs mb-2">ACESSO RÁPIDO</p>
-                  <ul className="text-xs text-slate-600 space-y-1">
-                    <li>Esqueci minha senha</li><li>Formas de pagamento</li><li>Compras canceladas</li>
-                  </ul>
-                </div>
+              {/* Rodapé legal */}
+              <div className="pt-6 border-t border-white/10 text-center">
+                <p className="text-[11px] text-slate-400">
+                  Guichê Web Tecnologia LTDA • CNPJ 00.000.000/0001-00
+                </p>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  © {new Date().getFullYear()} Todos os direitos reservados. Preview gerada a partir do mapa "{snapshot.mapName}".
+                </p>
               </div>
-              <Separator className="my-4" />
-              <p className="text-[10px] text-center text-slate-500">
-                Preview gerada a partir do mapa "{snapshot.mapName}"
-              </p>
             </div>
           </footer>
 
           {/* Mobile sticky CTA */}
           {isMobile && (
-            <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 flex items-center gap-3 shadow-2xl">
+            <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 flex items-center gap-3 shadow-2xl z-40">
               <div className="flex-1">
                 <p className="text-[10px] text-slate-500">A partir de</p>
                 <p className="text-base font-black text-slate-900">{minPrice ? brl(minPrice) : '—'}</p>
               </div>
               <Button
-                className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold h-11"
+                className="flex-1 font-bold h-11 text-white"
+                style={{ background: BRAND.green }}
                 onClick={() => setSalesOpen(true)}
               >
                 Comprar
@@ -662,16 +751,16 @@ const EventPreview: React.FC = () => {
             </div>
           )}
 
-          {/* Sales modal: mapa interativo + lista de setores (navegação bidirecional) */}
+          {/* ============ SALES MODAL ============ */}
           {salesOpen && (
-            <div className="absolute inset-0 z-40 bg-slate-900/60 backdrop-blur-sm flex items-stretch justify-center p-0 sm:p-4" onClick={() => setSalesOpen(false)}>
+            <div className="absolute inset-0 z-[70] bg-slate-900/60 backdrop-blur-sm flex items-stretch justify-center p-0 sm:p-4" onClick={() => setSalesOpen(false)}>
               <div
                 className="bg-white w-full max-w-6xl rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b bg-slate-50">
                   <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wider text-emerald-600 font-bold">Escolha seu lugar</p>
+                    <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: BRAND.green }}>Escolha seu lugar</p>
                     <h4 className="font-bold text-slate-900 text-sm sm:text-base truncate">{eventInfo.title}</h4>
                   </div>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSalesOpen(false)}>
@@ -680,7 +769,6 @@ const EventPreview: React.FC = () => {
                 </div>
 
                 <div className={cn('flex-1 grid overflow-hidden', isMobile ? 'grid-cols-1' : 'grid-cols-[1.4fr_1fr]')}>
-                  {/* Mapa interativo */}
                   <div className="relative bg-slate-50 border-r border-slate-200 min-h-[300px]">
                     {sectorsForSale.length === 0 ? (
                       <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500 text-center p-6">
@@ -706,14 +794,13 @@ const EventPreview: React.FC = () => {
                         <span className="font-semibold truncate">
                           {sectorsForSale.find((s) => s.id === (hoveredSectorId || selectedSectorId))?.name}
                         </span>
-                        <span className="font-bold text-emerald-300">
+                        <span className="font-bold" style={{ color: BRAND.green }}>
                           {brl(sectorsForSale.find((s) => s.id === (hoveredSectorId || selectedSectorId))?.price ?? 0)}
                         </span>
                       </div>
                     )}
                   </div>
 
-                  {/* Lista de setores (sincronizada) */}
                   <ScrollArea className="bg-white">
                     <div className="p-4 space-y-2">
                       <p className="text-xs text-slate-500 mb-2">
@@ -730,8 +817,9 @@ const EventPreview: React.FC = () => {
                             onClick={() => setSelectedSectorId(s.id)}
                             className={cn(
                               'flex items-center gap-3 border rounded-xl p-3 cursor-pointer transition',
-                              isActive ? 'border-emerald-500 shadow-md ring-2 ring-emerald-100' : 'border-slate-200 hover:border-emerald-400',
+                              isActive ? 'shadow-md' : 'border-slate-200 hover:border-slate-300',
                             )}
+                            style={isActive ? { borderColor: BRAND.green, boxShadow: `0 0 0 3px ${BRAND.green}26` } : undefined}
                           >
                             <div
                               className="h-10 w-10 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0"
@@ -745,7 +833,7 @@ const EventPreview: React.FC = () => {
                             </div>
                             <div className="text-right mr-2">
                               <p className="text-[10px] text-slate-400">a partir de</p>
-                              <p className="text-sm font-bold text-emerald-600">{brl(s.price)}</p>
+                              <p className="text-sm font-bold" style={{ color: BRAND.green }}>{brl(s.price)}</p>
                             </div>
                             {inCart ? (
                               <div className="flex items-center gap-1">
@@ -756,13 +844,15 @@ const EventPreview: React.FC = () => {
                                 <span className="text-sm font-semibold w-5 text-center">{inCart.qty}</span>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); addToCart(s); }}
-                                  className="h-7 w-7 rounded border border-emerald-300 bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-100"
+                                  className="h-7 w-7 rounded text-white flex items-center justify-center"
+                                  style={{ background: BRAND.green }}
                                 ><Plus className="h-3 w-3" /></button>
                               </div>
                             ) : (
                               <Button
                                 size="sm"
-                                className="bg-emerald-500 hover:bg-emerald-600 text-white h-8"
+                                className="text-white h-8"
+                                style={{ background: BRAND.green }}
                                 onClick={(e) => { e.stopPropagation(); addToCart(s); }}
                               >
                                 <Plus className="h-3 w-3 mr-1" /> Adicionar
@@ -775,7 +865,6 @@ const EventPreview: React.FC = () => {
                   </ScrollArea>
                 </div>
 
-                {/* Resumo do modal */}
                 <div className="border-t bg-slate-50 px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[10px] text-slate-500">{cartCount} {cartCount === 1 ? 'ingresso' : 'ingressos'}</p>
@@ -784,7 +873,8 @@ const EventPreview: React.FC = () => {
                   <div className="flex gap-2">
                     <Button variant="outline" onClick={() => setSalesOpen(false)}>Continuar olhando</Button>
                     <Button
-                      className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold"
+                      className="font-bold text-white"
+                      style={{ background: BRAND.green }}
                       disabled={cartCount === 0}
                       onClick={() => { setSalesOpen(false); setCartOpen(true); }}
                     >
@@ -796,9 +886,9 @@ const EventPreview: React.FC = () => {
             </div>
           )}
 
-          {/* Cart drawer */}
+          {/* ============ CART DRAWER ============ */}
           {cartOpen && (
-            <div className="absolute inset-0 z-50 flex" onClick={() => setCartOpen(false)}>
+            <div className="absolute inset-0 z-[80] flex" onClick={() => setCartOpen(false)}>
               <div className="flex-1 bg-black/40" />
               <div
                 className={cn('bg-white shadow-2xl flex flex-col', isMobile ? 'w-full' : 'w-[400px]')}
@@ -819,7 +909,7 @@ const EventPreview: React.FC = () => {
                     <div className="text-center py-10 text-slate-500">
                       <ShoppingCart className="h-12 w-12 mx-auto opacity-30 mb-3" />
                       <p className="text-sm">Seu carrinho está vazio.</p>
-                      <p className="text-xs mt-1">Clique em um setor do mapa para começar.</p>
+                      <p className="text-xs mt-1">Abra "Comprar Ingresso" para escolher seu setor.</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -838,22 +928,16 @@ const EventPreview: React.FC = () => {
                               <button
                                 onClick={() => updateQty(i.sectorId, -1)}
                                 className="h-6 w-6 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50"
-                              >
-                                <Minus className="h-3 w-3" />
-                              </button>
+                              ><Minus className="h-3 w-3" /></button>
                               <span className="text-sm font-medium w-6 text-center">{i.qty}</span>
                               <button
                                 onClick={() => updateQty(i.sectorId, 1)}
                                 className="h-6 w-6 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50"
-                              >
-                                <Plus className="h-3 w-3" />
-                              </button>
+                              ><Plus className="h-3 w-3" /></button>
                               <button
                                 onClick={() => removeFromCart(i.sectorId)}
                                 className="ml-auto text-rose-500 hover:text-rose-700"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
+                              ><Trash2 className="h-3.5 w-3.5" /></button>
                             </div>
                           </div>
                           <p className="text-sm font-bold text-slate-900 whitespace-nowrap">
@@ -878,13 +962,13 @@ const EventPreview: React.FC = () => {
                     <Separator />
                     <div className="flex justify-between">
                       <span className="font-bold text-slate-900">Total</span>
-                      <span className="font-black text-lg text-emerald-600">{brl(total)}</span>
+                      <span className="font-black text-lg" style={{ color: BRAND.green }}>{brl(total)}</span>
                     </div>
-                    <Button className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold h-11">
+                    <Button className="w-full font-bold h-11 text-white" style={{ background: BRAND.green }}>
                       Ir para o pagamento
                     </Button>
                     <p className="text-[10px] text-center text-slate-500 flex items-center justify-center gap-1">
-                      <ShieldCheck className="h-3 w-3 text-emerald-500" /> Pagamento criptografado
+                      <ShieldCheck className="h-3 w-3" style={{ color: BRAND.green }} /> Pagamento criptografado
                     </p>
                   </div>
                 )}
