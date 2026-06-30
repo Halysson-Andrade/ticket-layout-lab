@@ -149,6 +149,9 @@ const EventPreview: React.FC = () => {
   const [cartOpen, setCartOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [hoveredSectorId, setHoveredSectorId] = useState<string | null>(null);
+  const [salesOpen, setSalesOpen] = useState(false);
+  const [selectedSectorId, setSelectedSectorId] = useState<string | null>(null);
+
 
   useEffect(() => {
     try {
