@@ -269,6 +269,15 @@ const EventPreview: React.FC = () => {
   const fee = subtotal * 0.1;
   const total = subtotal + fee;
 
+  // CTA dinâmico baseado em contexto (declarado depois de cartCount)
+  const dynamicCta = useMemo(() => {
+    if (cartCount > 0) return { label: 'Finalizar compra', micro: 'Garanta antes que esgote' };
+    if (countdown.d <= 2) return { label: 'Garantir meu ingresso', micro: 'Últimas horas · evento se aproxima' };
+    if (sectorsForSale.some((s) => s.available <= 20)) return { label: 'Últimos ingressos', micro: 'Setores quase esgotados' };
+    if (nextLoteDays <= 7) return { label: 'Comprar antes da virada de lote', micro: `Lote sobe em ${nextLoteDays} dias` };
+    return { label: 'Comprar ingresso', micro: 'Compra 100% segura' };
+  }, [sectorsForSale, countdown.d, cartCount]);
+
   const isMobile = device === 'mobile';
 
   if (!snapshot) {
