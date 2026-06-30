@@ -10,6 +10,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import {
   ArrowLeft,
   Monitor,
@@ -40,6 +41,10 @@ import {
   LifeBuoy,
   Ticket,
   UserCircle,
+  Eye,
+  Bell,
+  Flame,
+  Timer,
 } from 'lucide-react';
 import { MapPreviewSVG } from '@/components/MapStudio/MapPreviewSVG';
 import type { Sector, VenueElement, TextElement } from '@/types/mapStudio';
