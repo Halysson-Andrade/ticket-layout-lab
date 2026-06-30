@@ -54,18 +54,43 @@ const SNAPSHOT_KEY = 'mapstudio.preview.snapshot';
 const brl = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+// Real assets pulled from guicheweb.com.br (CDN s3.guicheweb.com.br)
+const GW_LOGO = 'https://s3.guicheweb.com.br/nova_marca/logogw.png';
+
 const eventInfo = {
-  title: 'Expoingá 2024',
-  subtitle: '50ª Exposição Feira Agropecuária e Industrial de Maringá',
-  date: '09/05/2024 a 19/05/2024',
+  title: '54ª Exposete Rodeio Festival',
+  subtitle: 'Circuito Brahma apresenta — a maior festa do interior',
+  date: '09/07/2026 a 19/07/2026',
   doors: '19:00h',
-  venue: 'Parque Internacional de Exposições Francisco Feio Ribeiro',
-  city: 'Maringá / PR',
+  venue: 'Parque de Exposições João Alves Nunes',
+  city: 'Sete Lagoas / MG',
   rating: 4.8,
   reviews: 1284,
-  heroGradient:
-    'linear-gradient(135deg,#7a1d1d 0%,#b32626 35%,#e63946 65%,#f4a261 100%)',
+  heroBanner: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-25-56.png',
+  heroThumb: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-26-01.png',
 };
+
+const heroCarousel = [
+  { src: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-25-56.png', alt: '54ª Exposete Rodeio Festival' },
+  { src: 'https://s3.guicheweb.com.br/banners/20-01-2026_11-45-26.jpg', alt: 'Turnê Manifesto Musical 2026' },
+  { src: 'https://s3.guicheweb.com.br/banners/16-06-2026_15-59-44.png', alt: 'No Pelo' },
+  { src: 'https://s3.guicheweb.com.br/banners/27-05-2026_16-27-07.png', alt: 'Henrique e Juliano Em Casa' },
+];
+
+const upcomingEvents = [
+  { title: '54ª Exposete Rodeio Festival', city: 'Sete Lagoas / MG', date: '09 a 19 JUL',
+    img: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-26-01.png' },
+  { title: 'Turnê Manifesto Musical 2026', city: 'São Paulo / SP', date: '15 FEV',
+    img: 'https://s3.guicheweb.com.br/banners/20-01-2026_11-45-24.jpg' },
+  { title: 'Festa do Peão de Salto de Pirapora', city: 'Salto de Pirapora / SP', date: '20 a 28 JUN',
+    img: 'https://s3.guicheweb.com.br/banners/20-05-2026_10-41-16.png' },
+  { title: 'Henrique e Juliano Em Casa', city: 'Palmas / TO', date: '12 SET',
+    img: 'https://s3.guicheweb.com.br/banners/27-05-2026_16-27-13.jpg' },
+  { title: 'Oba Festival 2027', city: 'Goiânia / GO', date: '03 a 05 JAN',
+    img: 'https://s3.guicheweb.com.br/banners/17-06-2026_14-19-42.png' },
+  { title: 'Tangará Festival Music', city: 'Tangará da Serra / MT', date: '22 AGO',
+    img: 'https://s3.guicheweb.com.br/banners/19-06-2026_10-39-35.png' },
+];
 
 const faqs = [
   { q: 'Há estacionamento no local?', a: 'Sim, terceirizado.' },
@@ -85,10 +110,10 @@ const rules = [
 ];
 
 const pointsOfSale = [
-  { city: 'Maringá/PR', name: 'Loja Centro', address: 'Av. Brasil, 1502', phone: '(44) 3033-1622' },
-  { city: 'Maringá/PR', name: 'Shopping Catuaí', address: 'Av. Colombo, 9161 - L. 232', phone: '(44) 3033-2210' },
-  { city: 'Sarandi/PR', name: 'Loja Sarandi', address: 'Av. Londrina, 540', phone: '(44) 3035-9080' },
-  { city: 'Paiçandu/PR', name: 'Mercado Central', address: 'R. Bandeirantes, 80', phone: '(44) 3244-1199' },
+  { city: 'Sete Lagoas/MG', name: 'Loja Centro', address: 'Av. Brasil, 1502', phone: '(31) 3033-1622' },
+  { city: 'Belo Horizonte/MG', name: 'Shopping Diamond', address: 'Av. Olegário Maciel, 1600', phone: '(31) 3033-2210' },
+  { city: 'Sete Lagoas/MG', name: 'Loja Iguatemi', address: 'Av. Prefeito Alberto Moura, 540', phone: '(31) 3035-9080' },
+  { city: 'Contagem/MG', name: 'Mercado Central', address: 'R. Bandeirantes, 80', phone: '(31) 3244-1199' },
 ];
 
 // Mock price ladder for sectors that don't carry price info
@@ -233,10 +258,7 @@ const EventPreview: React.FC = () => {
           <header className="bg-[#2f3640] text-white">
             <div className={cn('flex items-center justify-between', isMobile ? 'px-4 py-3' : 'px-8 py-4')}>
               <div className="flex items-center gap-2">
-                <div className="bg-emerald-500 rounded p-1">
-                  <Ticket className="h-4 w-4" />
-                </div>
-                <span className="font-bold">guichê<span className="text-emerald-400">web</span></span>
+                <img src={GW_LOGO} alt="Guichê Web" className="h-7 w-auto object-contain" />
               </div>
               {!isMobile && (
                 <nav className="flex items-center gap-6 text-sm">
@@ -265,21 +287,47 @@ const EventPreview: React.FC = () => {
           </header>
 
           {/* Hero */}
-          <section className="relative" style={{ background: eventInfo.heroGradient }}>
-            <div className={cn('mx-auto', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-5xl')}>
-              <div className="rounded-2xl overflow-hidden shadow-2xl bg-black/30 aspect-[16/7] flex items-center justify-center relative">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(255,200,150,0.4),transparent_60%),radial-gradient(circle_at_70%_60%,rgba(255,100,100,0.5),transparent_60%)]" />
-                <div className="relative z-10 text-center text-white px-4">
-                  <p className="text-xs uppercase tracking-widest opacity-80">Circuito Brahma apresenta</p>
-                  <h1 className={cn('font-black drop-shadow-lg', isMobile ? 'text-3xl' : 'text-6xl')}>
-                    {eventInfo.title}
-                  </h1>
-                  <div className="inline-block mt-3 bg-amber-400/95 text-amber-950 font-bold rounded-full px-4 py-1 text-sm">
-                    09 a 19 de Maio
+          <section className="relative bg-slate-900">
+            <div className={cn('mx-auto', isMobile ? 'px-3 py-4' : 'px-8 py-8 max-w-6xl')}>
+              <div className="rounded-2xl overflow-hidden shadow-2xl relative aspect-[1920/500] bg-slate-800">
+                <img
+                  src={eventInfo.heroBanner}
+                  alt={eventInfo.title}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  loading="eager"
+                />
+                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-4 text-white">
+                  <div className="min-w-0">
+                    <div className="inline-block bg-amber-400 text-amber-950 font-bold rounded-full px-3 py-0.5 text-[11px] mb-2">
+                      09 a 19 de Julho
+                    </div>
+                    <h1 className={cn('font-black drop-shadow-lg truncate', isMobile ? 'text-xl' : 'text-3xl')}>
+                      {eventInfo.title}
+                    </h1>
+                    <p className="text-[11px] opacity-90 mt-1">SETE LAGOAS • MINAS GERAIS • BRASIL</p>
                   </div>
-                  <p className="mt-2 text-sm opacity-90">MARINGÁ • PARANÁ • BRASIL</p>
+                  {!isMobile && (
+                    <Button
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-full px-6 h-11 shadow-xl shrink-0"
+                      onClick={() => document.getElementById('preview-sectors')?.scrollIntoView({ behavior: 'smooth' })}
+                    >
+                      COMPRAR INGRESSO
+                    </Button>
+                  )}
                 </div>
               </div>
+
+              {/* Mini carousel of other event banners */}
+              {!isMobile && (
+                <div className="mt-4 grid grid-cols-4 gap-3">
+                  {heroCarousel.slice(0, 4).map((b) => (
+                    <div key={b.src} className="rounded-lg overflow-hidden aspect-[800/400] bg-slate-800 ring-1 ring-white/10 hover:ring-emerald-400 transition cursor-pointer">
+                      <img src={b.src} alt={b.alt} className="w-full h-full object-cover" loading="lazy" />
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className={cn('mt-4 flex items-center gap-3', isMobile && 'flex-wrap')}>
                 <button className="bg-white/90 backdrop-blur rounded-full p-2 text-rose-500 hover:scale-110 transition">
@@ -289,12 +337,14 @@ const EventPreview: React.FC = () => {
                   <Share2 className="h-5 w-5" />
                 </button>
                 <div className="flex-1" />
-                <Button
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-full px-8 h-12 shadow-xl"
-                  onClick={() => document.getElementById('preview-sectors')?.scrollIntoView({ behavior: 'smooth' })}
-                >
-                  COMPRAR INGRESSO
-                </Button>
+                {isMobile && (
+                  <Button
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-full px-8 h-11 shadow-xl"
+                    onClick={() => document.getElementById('preview-sectors')?.scrollIntoView({ behavior: 'smooth' })}
+                  >
+                    COMPRAR INGRESSO
+                  </Button>
+                )}
               </div>
             </div>
           </section>
@@ -508,14 +558,49 @@ const EventPreview: React.FC = () => {
             </div>
           </section>
 
+          {/* Você também pode gostar */}
+          <section className="bg-white">
+            <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl')}>
+              <div className="flex items-end justify-between mb-5">
+                <div>
+                  <p className="text-xs text-emerald-600 font-bold tracking-widest uppercase">Outros eventos</p>
+                  <h3 className={cn('font-black text-slate-900', isMobile ? 'text-xl' : 'text-2xl')}>
+                    Você também pode gostar
+                  </h3>
+                </div>
+                <button className="text-xs font-semibold text-emerald-600 hover:underline hidden sm:block">
+                  Ver todos →
+                </button>
+              </div>
+              <div className={cn('grid gap-4', isMobile ? 'grid-cols-2' : 'grid-cols-3 lg:grid-cols-6')}>
+                {upcomingEvents.map((e) => (
+                  <div key={e.title} className="group cursor-pointer">
+                    <div className="aspect-[800/400] rounded-xl overflow-hidden bg-slate-200 ring-1 ring-slate-200 group-hover:ring-emerald-400 transition shadow-sm">
+                      <img
+                        src={e.img}
+                        alt={e.title}
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                      />
+                    </div>
+                    <p className="mt-2 text-[11px] font-bold text-emerald-600">{e.date}</p>
+                    <p className="text-xs font-semibold text-slate-900 leading-tight line-clamp-2">{e.title}</p>
+                    <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                      <MapPin className="h-3 w-3" /> {e.city}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
           {/* Footer */}
           <footer className="bg-slate-100 border-t border-slate-200">
             <div className={cn('mx-auto', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-5xl')}>
               <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-4')}>
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="bg-emerald-500 rounded p-1"><Ticket className="h-4 w-4 text-white" /></div>
-                    <span className="font-bold text-slate-900">guichê<span className="text-emerald-500">web</span></span>
+                    <img src={GW_LOGO} alt="Guichê Web" className="h-6 w-auto object-contain" />
                   </div>
                   <div className="flex gap-3 text-slate-500">
                     <Instagram className="h-4 w-4" />
