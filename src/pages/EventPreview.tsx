@@ -1214,6 +1214,7 @@ const EventPreview: React.FC = () => {
                       {sectorsForSale.map((s) => {
                         const isActive = (selectedSectorId || hoveredSectorId) === s.id;
                         const inCart = cart.find((i) => i.sectorId === s.id);
+                        const isBest = s.id === bestValueSectorId;
                         return (
                           <div
                             key={s.id}
@@ -1221,11 +1222,24 @@ const EventPreview: React.FC = () => {
                             onMouseLeave={() => setHoveredSectorId(null)}
                             onClick={() => setSelectedSectorId(s.id)}
                             className={cn(
-                              'flex items-center gap-3 border rounded-xl p-3 cursor-pointer transition',
+                              'relative flex items-center gap-3 border rounded-xl p-3 cursor-pointer transition',
                               isActive ? 'shadow-md' : 'border-slate-200 hover:border-slate-300',
+                              isBest && !isActive && 'border-transparent',
                             )}
-                            style={isActive ? { borderColor: BRAND.green, boxShadow: `0 0 0 3px ${BRAND.green}26` } : undefined}
+                            style={
+                              isActive
+                                ? { borderColor: BRAND.green, boxShadow: `0 0 0 3px ${BRAND.green}26` }
+                                : isBest
+                                ? { background: `linear-gradient(180deg, ${BRAND.green}08, #fff)`, boxShadow: `0 0 0 1.5px ${BRAND.green}55` }
+                                : undefined
+                            }
                           >
+                            {isBest && (
+                              <span className="absolute -top-2 left-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-white shadow"
+                                style={{ background: BRAND.green }}>
+                                <Award className="h-2.5 w-2.5" /> Melhor escolha
+                              </span>
+                            )}
                             <div
                               className="h-10 w-10 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0"
                               style={{ background: s.color }}
