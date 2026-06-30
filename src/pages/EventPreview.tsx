@@ -858,18 +858,24 @@ const EventPreview: React.FC = () => {
                   <button className="text-xs font-semibold hover:underline hidden sm:block" style={{ color: BRAND.green }}>Ver todos →</button>
                 </div>
                 <div className={cn('grid gap-4', isMobile ? 'grid-cols-2' : 'grid-cols-3 lg:grid-cols-6')}>
-                  {upcomingEvents.map((e) => (
-                    <div key={e.title} className="group cursor-pointer">
-                      <div className="aspect-[800/400] rounded-xl overflow-hidden bg-slate-200 ring-1 ring-slate-200 group-hover:ring-[var(--bg)] transition shadow-sm" style={{ ['--bg' as never]: BRAND.green }}>
-                        <img src={e.img} alt={e.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-                      </div>
-                      <p className="mt-2 text-[11px] font-bold" style={{ color: BRAND.green }}>{e.date}</p>
-                      <p className="text-xs font-semibold text-slate-900 leading-tight line-clamp-2">{e.title}</p>
-                      <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                        <MapPin className="h-3 w-3" /> {e.city}
-                      </p>
-                    </div>
-                  ))}
+                  {upcomingEvents.map((e, i) => {
+                    const accent = [BRAND.green, BRAND.magenta, BRAND.cyan, BRAND.yellow][i % 4];
+                    return (
+                      <a key={e.title} href="#" className="gw-event-card group cursor-pointer block">
+                        <div className="relative aspect-[800/400] rounded-2xl overflow-hidden bg-slate-200 ring-1 ring-slate-200 shadow-sm">
+                          <img src={e.img} alt={e.title} loading="lazy" className="gw-event-img w-full h-full object-cover" />
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300"
+                            style={{ background: `linear-gradient(180deg, transparent 40%, ${accent}cc)` }} />
+                          <span className="absolute top-2 left-2 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md text-white shadow"
+                            style={{ background: accent }}>{e.date}</span>
+                        </div>
+                        <p className="mt-2 text-xs font-bold text-slate-900 leading-tight line-clamp-2 group-hover:underline underline-offset-4 decoration-2" style={{ textDecorationColor: accent }}>{e.title}</p>
+                        <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                          <MapPin className="h-3 w-3" /> {e.city}
+                        </p>
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             </section>
