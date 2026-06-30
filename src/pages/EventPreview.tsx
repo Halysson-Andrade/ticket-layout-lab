@@ -928,15 +928,52 @@ const EventPreview: React.FC = () => {
                 className="bg-white w-full max-w-6xl rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b bg-slate-50">
-                  <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: BRAND.green }}>Escolha seu lugar</p>
-                    <h4 className="font-bold text-slate-900 text-sm sm:text-base truncate">{eventInfo.title}</h4>
+                <div className="border-b bg-slate-50">
+                  <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: BRAND.green }}>Escolha seu lugar</p>
+                      <h4 className="font-bold text-slate-900 text-sm sm:text-base truncate">{eventInfo.title}</h4>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSalesOpen(false)}>
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSalesOpen(false)}>
-                    <X className="h-4 w-4" />
-                  </Button>
+                  {/* Stepper de progresso */}
+                  <div className="px-4 sm:px-6 pb-3 flex items-center gap-2 text-[11px] font-semibold">
+                    {[
+                      { n: 1, label: 'Setor', done: !!selectedSectorId || cartCount > 0 },
+                      { n: 2, label: 'Quantidade', done: cartCount > 0 },
+                      { n: 3, label: 'Pagamento', done: false },
+                    ].map((step, i, arr) => {
+                      const active = step.done || (i > 0 && arr[i - 1].done && !step.done);
+                      return (
+                        <React.Fragment key={step.n}>
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className="h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold transition"
+                              style={
+                                step.done
+                                  ? { background: BRAND.green, color: '#fff' }
+                                  : active
+                                  ? { background: '#fff', color: BRAND.green, border: `1.5px solid ${BRAND.green}` }
+                                  : { background: '#e5e7eb', color: '#94a3b8' }
+                              }
+                            >
+                              {step.done ? <CheckCircle2 className="h-3 w-3" /> : step.n}
+                            </div>
+                            <span className={cn('uppercase tracking-wider', step.done || active ? 'text-slate-900' : 'text-slate-400')}>
+                              {step.label}
+                            </span>
+                          </div>
+                          {i < arr.length - 1 && (
+                            <div className="flex-1 h-px" style={{ background: step.done ? BRAND.green : '#e5e7eb' }} />
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
                 </div>
+
 
                 <div className={cn('flex-1 grid overflow-hidden', isMobile ? 'grid-cols-1' : 'grid-cols-[1.4fr_1fr]')}>
                   <div className="relative bg-slate-50 border-r border-slate-200 min-h-[300px]">
