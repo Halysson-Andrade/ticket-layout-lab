@@ -164,6 +164,22 @@ const EventPreview: React.FC = () => {
   const [selectedSectorId, setSelectedSectorId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // === Conversion boosters ===
+  const [viewers, setViewers] = useState(() => 87 + Math.floor(Math.random() * 60));
+  const [proofIdx, setProofIdx] = useState(0);
+  const [showProof, setShowProof] = useState(true);
+  const [now, setNow] = useState(Date.now());
+  // Deadline: data simulada do evento (09/Jul/2026 18:00 BRT)
+  const deadline = useMemo(() => new Date('2026-07-09T18:00:00-03:00').getTime(), []);
+
+  const socialProofs = useMemo(() => ([
+    { name: 'Maria, BH/MG', sector: 'Camarote Nasala', ago: 'há 2 min' },
+    { name: 'João, Sete Lagoas/MG', sector: 'Arquibancada', ago: 'há 4 min' },
+    { name: 'Ana, Contagem/MG', sector: 'Gramado', ago: 'há 6 min' },
+    { name: 'Pedro, BH/MG', sector: 'Última Saudade', ago: 'há 8 min' },
+    { name: 'Camila, Betim/MG', sector: 'Camarote Nasala', ago: 'há 11 min' },
+  ]), []);
+
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(SNAPSHOT_KEY);
@@ -173,8 +189,43 @@ const EventPreview: React.FC = () => {
     }
   }, []);
 
+  // Tick do contador (1s)
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Variação suave de viewers
+  useEffect(() => {
+    const t = setInterval(() => {
+      setViewers((v) => Math.max(60, Math.min(180, v + (Math.random() > 0.5 ? 1 : -1) * (Math.random() > 0.7 ? 2 : 1))));
+    }, 4000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Rotação de prova social
+  useEffect(() => {
+    const t = setInterval(() => setProofIdx((i) => (i + 1) % socialProofs.length), 6000);
+    return () => clearInterval(t);
+  }, [socialProofs.length]);
+
   // Fecha menu mobile ao mudar rota
   useEffect(() => { setMobileMenuOpen(false); }, [location.pathname]);
+
+  const countdown = useMemo(() => {
+    const diff = Math.max(0, deadline - now);
+    const d = Math.floor(diff / 86_400_000);
+    const h = Math.floor((diff % 86_400_000) / 3_600_000);
+    const m = Math.floor((diff % 3_600_000) / 60_000);
+    const s = Math.floor((diff % 60_000) / 1000);
+    return { d, h, m, s };
+  }, [deadline, now]);
+
+  const handleRemindMe = () => {
+    toast.success('Pronto! Vamos te avisar', {
+      description: 'Você receberá um alerta antes do evento esgotar.',
+    });
+  };
 
   const sectorsForSale = useMemo(() => {
     if (!snapshot) return [] as Array<{ id: string; name: string; color: string; price: number; available: number }>;
