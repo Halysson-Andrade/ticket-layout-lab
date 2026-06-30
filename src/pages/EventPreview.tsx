@@ -84,7 +84,7 @@ const eventInfo = {
   city: 'SETE LAGOAS / MG',
   rating: 4.9,
   reviews: 4820,
-  heroBanner: 'https://s3.guicheweb.com.br/imagenseventos/19-06-2026_10-39-35.png',
+  heroBanner: 'https://s3.guicheweb.com.br/banners/19-06-2026_10-39-35.png',
   description: `A Exposete chega à sua 54ª edição como uma das maiores festas agropecuárias do país, reunindo rodeio profissional, shows nacionais, parque de diversões, praça de alimentação e leilões.
 
 Durante 11 dias de programação, o Parque de Exposições Edgar Maffei recebe mais de 300 mil visitantes e atrações de primeira linha do sertanejo, pagode e piseiro.
@@ -266,7 +266,7 @@ const EventPreview: React.FC = () => {
           )}
         >
           {/* ============ HEADER STICKY ============ */}
-          <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+          <header className="sticky top-0 z-50 bg-black text-white border-b border-black shadow-sm">
             <div className={cn('flex items-center justify-between gap-3', isMobile ? 'px-4 h-14' : 'px-8 h-16')}>
               {/* Logo */}
               <div className="flex items-center gap-2">
@@ -279,7 +279,7 @@ const EventPreview: React.FC = () => {
 
               {/* Desktop nav */}
               {!isMobile && (
-                <nav className="flex items-center gap-5 text-sm text-slate-700">
+                <nav className="flex items-center gap-5 text-sm text-white/90">
                   <button className="hover:text-[color:var(--brand-green)] flex items-center gap-1" style={{ ['--brand-green' as never]: BRAND.green }}>
                     <Search className="h-4 w-4" /> Buscar evento
                   </button>
@@ -288,14 +288,14 @@ const EventPreview: React.FC = () => {
                   </button>
                   <Button
                     variant="outline"
-                    className="rounded-full border-2 font-semibold"
+                    className="rounded-full border-2 font-semibold bg-transparent hover:bg-white/10"
                     style={{ borderColor: BRAND.green, color: BRAND.green }}
                   >
                     Crie seu evento
                   </Button>
-                  <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
-                    <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center">
-                      <User className="h-4 w-4 text-slate-500" />
+                  <div className="flex items-center gap-2 pl-3 border-l border-white/20">
+                    <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center">
+                      <User className="h-4 w-4 text-white/80" />
                     </div>
                     <button className="text-sm font-medium hover:underline">Conta</button>
                   </div>
@@ -333,7 +333,7 @@ const EventPreview: React.FC = () => {
                   </button>
                   <button
                     onClick={() => setMobileMenuOpen(true)}
-                    className="h-10 w-10 rounded-md border border-slate-200 flex items-center justify-center text-slate-700"
+                    className="h-10 w-10 rounded-md border border-white/20 flex items-center justify-center text-white"
                     aria-label="Abrir menu"
                   >
                     <Menu className="h-5 w-5" />
@@ -662,7 +662,7 @@ const EventPreview: React.FC = () => {
           </main>
 
           {/* ============ FOOTER ============ */}
-          <footer className="bg-slate-900 text-slate-200">
+          <footer className="bg-black text-[#B3B3B3]">
             <div className={cn('mx-auto', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-6xl')}>
               {/* Topo: logo + sociais + badges */}
               <div className={cn('flex gap-6 pb-6 border-b border-white/10', isMobile ? 'flex-col' : 'flex-row items-center justify-between')}>
