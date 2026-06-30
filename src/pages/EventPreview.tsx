@@ -45,6 +45,10 @@ import {
   Bell,
   Flame,
   Timer,
+  Zap,
+  TrendingUp,
+  Sparkles,
+  Award,
 } from 'lucide-react';
 import { MapPreviewSVG } from '@/components/MapStudio/MapPreviewSVG';
 import type { Sector, VenueElement, TextElement } from '@/types/mapStudio';
