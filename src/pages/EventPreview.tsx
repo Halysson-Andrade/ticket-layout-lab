@@ -700,6 +700,7 @@ const EventPreview: React.FC = () => {
                       <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> Ingresso digital imediato
                     </div>
                   </div>
+                  </div>
                 </aside>
 
               </div>
