@@ -462,31 +462,28 @@ const EventPreview: React.FC = () => {
             </section>
 
             {/* URGÊNCIA & PROVA SOCIAL (strip discreta) */}
-            <section className="bg-white border-y border-slate-200">
-              <div className={cn('mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-2', isMobile ? 'px-4 py-3 text-[11px]' : 'px-8 py-3 text-xs max-w-6xl')}>
-                <div className="flex items-center gap-2 text-slate-700">
-                  <Timer className="h-4 w-4" style={{ color: BRAND.green }} />
-                  <span>Faltam</span>
+            <section className="bg-white border-b border-slate-200">
+              <div className={cn('mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-2', isMobile ? 'px-4 py-3 text-[11px]' : 'px-8 py-3.5 text-xs max-w-6xl')}>
+                <div className="flex items-center gap-2 text-slate-600">
+                  <Timer className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
+                  <span className="font-medium">Faltam</span>
                   <span className="font-bold text-slate-900 tabular-nums">
-                    {countdown.d}d {String(countdown.h).padStart(2, '0')}h {String(countdown.m).padStart(2, '0')}m {String(countdown.s).padStart(2, '0')}s
+                    {countdown.d}d {String(countdown.h).padStart(2, '0')}:{String(countdown.m).padStart(2, '0')}:{String(countdown.s).padStart(2, '0')}
                   </span>
                 </div>
                 <div className="hidden sm:block h-3 w-px bg-slate-200" />
-                <div className="flex items-center gap-2 text-slate-700">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: BRAND.green }} />
-                    <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: BRAND.green }} />
-                  </span>
-                  <Eye className="h-4 w-4 text-slate-500" />
-                  <span><span className="font-bold text-slate-900 tabular-nums">{viewers}</span> pessoas vendo este evento</span>
+                <div className="flex items-center gap-2 text-slate-600">
+                  <ShieldCheck className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
+                  <span>Compra <span className="font-semibold text-slate-900">100% segura</span></span>
                 </div>
                 <div className="hidden sm:block h-3 w-px bg-slate-200" />
-                <div className="flex items-center gap-2 text-slate-700">
-                  <Flame className="h-4 w-4" style={{ color: BRAND.yellow, fill: BRAND.yellow }} />
-                  <span>Camarote com <span className="font-bold text-slate-900">poucas unidades</span></span>
+                <div className="flex items-center gap-2 text-slate-600">
+                  <CreditCard className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
+                  <span>Em até <span className="font-semibold text-slate-900">10x sem juros</span></span>
                 </div>
               </div>
             </section>
+
 
 
 
