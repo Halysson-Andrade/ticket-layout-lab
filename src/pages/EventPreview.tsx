@@ -598,8 +598,9 @@ const EventPreview: React.FC = () => {
                     <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">Setembro · 2026</span>
                   </div>
 
-                  <h1 className={cn('font-black text-slate-900 leading-[1.05] tracking-tight', isMobile ? 'text-3xl' : 'text-5xl')}>
-                    {eventInfo.title}
+                  <h1 className={cn('font-black text-slate-900 leading-[1.02] tracking-tight gw-rise', isMobile ? 'text-3xl' : 'text-[3.4rem]')}>
+                    54ª Exposete <br className="hidden sm:block" />
+                    <span className="gw-grad-text italic">Rodeio Festival</span>
                   </h1>
                   <p className="text-base text-slate-500 mt-2 max-w-2xl">{eventInfo.subtitle}</p>
 
