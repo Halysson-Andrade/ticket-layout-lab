@@ -2602,6 +2602,12 @@ export const MapStudio: React.FC = () => {
         sector={selectedSector}
       />
 
+      <EventPreviewModal
+        open={showEventPreview}
+        onClose={() => setShowEventPreview(false)}
+        mapName={mapData.name}
+      />
+
       <OnboardingWizard
         open={showOnboarding}
         onClose={() => setShowOnboarding(false)}
