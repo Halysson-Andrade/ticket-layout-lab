@@ -333,7 +333,7 @@ const EventPreview: React.FC = () => {
                   </button>
                   <button
                     onClick={() => setMobileMenuOpen(true)}
-                    className="h-10 w-10 rounded-md border border-slate-200 flex items-center justify-center text-slate-700"
+                    className="h-10 w-10 rounded-md border border-white/20 flex items-center justify-center text-white"
                     aria-label="Abrir menu"
                   >
                     <Menu className="h-5 w-5" />
