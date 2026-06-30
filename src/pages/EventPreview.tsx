@@ -273,7 +273,41 @@ const EventPreview: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#eef0f3] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="min-h-screen bg-[#eef0f3] flex flex-col gw-preview" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      {/* === Scoped animations & utilities === */}
+      <style>{`
+        @keyframes gw-marquee { 0% { transform: translateX(0) } 100% { transform: translateX(-50%) } }
+        @keyframes gw-shimmer { 0% { background-position: -200% 0 } 100% { background-position: 200% 0 } }
+        @keyframes gw-float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
+        @keyframes gw-glow { 0%,100% { box-shadow: 0 0 0 0 rgba(17,204,53,0.35), 0 10px 30px -8px rgba(17,204,53,0.45) } 50% { box-shadow: 0 0 0 8px rgba(17,204,53,0.0), 0 14px 36px -8px rgba(17,204,53,0.55) } }
+        @keyframes gw-blob { 0%,100% { transform: translate(0,0) scale(1) } 33% { transform: translate(20px,-15px) scale(1.05) } 66% { transform: translate(-15px,10px) scale(0.97) } }
+        @keyframes gw-rise { 0% { opacity: 0; transform: translateY(18px) } 100% { opacity: 1; transform: translateY(0) } }
+        @keyframes gw-pulse-dot { 0%,100% { opacity: 1; transform: scale(1) } 50% { opacity: .55; transform: scale(1.35) } }
+        .gw-marquee-track { display: inline-flex; animation: gw-marquee 28s linear infinite; }
+        .gw-cta-glow { animation: gw-glow 2.6s ease-in-out infinite; }
+        .gw-float { animation: gw-float 5s ease-in-out infinite; }
+        .gw-rise { animation: gw-rise .7s cubic-bezier(.22,.61,.36,1) both; }
+        .gw-rise-delay-1 { animation-delay: .08s; }
+        .gw-rise-delay-2 { animation-delay: .16s; }
+        .gw-rise-delay-3 { animation-delay: .24s; }
+        .gw-grad-text { background: linear-gradient(92deg, ${BRAND.green}, ${BRAND.cyan} 45%, ${BRAND.magenta}); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .gw-shimmer-text { background: linear-gradient(90deg, #fff 0%, #fff 40%, ${BRAND.green} 50%, #fff 60%, #fff 100%); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: gw-shimmer 4s linear infinite; }
+        .gw-dot-pulse { animation: gw-pulse-dot 1.4s ease-in-out infinite; }
+        .gw-card-hover { transition: transform .35s cubic-bezier(.22,.61,.36,1), box-shadow .35s, border-color .35s; }
+        .gw-card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -18px rgba(17,204,53,.35); }
+        .gw-event-card { transition: transform .4s cubic-bezier(.22,.61,.36,1), box-shadow .4s; }
+        .gw-event-card:hover { transform: translateY(-6px); }
+        .gw-event-card:hover .gw-event-img { transform: scale(1.08); }
+        .gw-event-img { transition: transform .8s cubic-bezier(.22,.61,.36,1); }
+        .gw-blob { position:absolute; border-radius:9999px; filter: blur(60px); opacity:.35; pointer-events:none; }
+        .gw-blob-g { background: ${BRAND.green}; animation: gw-blob 14s ease-in-out infinite; }
+        .gw-blob-m { background: ${BRAND.magenta}; animation: gw-blob 18s ease-in-out infinite reverse; }
+        .gw-blob-c { background: ${BRAND.cyan}; animation: gw-blob 16s ease-in-out infinite; }
+        .gw-noise { background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px); background-size: 3px 3px; }
+        .gw-ticker-strip { background: linear-gradient(90deg, ${BRAND.green}, #0fb02e); }
+        .gw-skew { transform: skewX(-10deg); display:inline-block; }
+        .gw-section-title-bar { display:inline-block; width:34px; height:3px; background: ${BRAND.green}; border-radius: 2px; vertical-align: middle; margin-right: 10px; }
+      `}</style>
       {/* Botão flutuante: voltar ao mapa + toggle device */}
       <div className="fixed top-3 left-3 z-[100] flex items-center gap-2">
         <Button
