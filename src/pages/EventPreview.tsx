@@ -422,94 +422,91 @@ const EventPreview: React.FC = () => {
             </div>
           </section>
 
-          {/* Mapa real + lista de setores */}
+          {/* Mapa do evento (display-only) + descrição de setores */}
           <section id="preview-sectors" className="bg-slate-50">
             <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl')}>
               <div className="text-center mb-6">
-                <p className="text-xs text-emerald-600 font-bold tracking-widest uppercase">Setores</p>
+                <p className="text-xs text-emerald-600 font-bold tracking-widest uppercase">Mapa do evento</p>
                 <h3 className={cn('font-black text-slate-900', isMobile ? 'text-2xl' : 'text-4xl')}>
                   {snapshot.mapName}
                 </h3>
                 <p className="text-sm text-slate-500 mt-2">
-                  Escolha o setor diretamente pelo mapa ou pela lista abaixo
+                  Confira a distribuição dos setores. Clique em "Comprar ingresso" para escolher seu lugar.
                 </p>
               </div>
 
               <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-[1.4fr_1fr]')}>
-                {/* SVG do mapa real */}
+                {/* Mapa: foto do construtor se houver, senão SVG do mapa. Display-only. */}
                 <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden aspect-[4/3] relative">
-                  {sectorsForSale.length === 0 ? (
+                  {snapshot.backgroundImage ? (
+                    <img
+                      src={snapshot.backgroundImage}
+                      alt={`Mapa ${snapshot.mapName}`}
+                      className="absolute inset-0 w-full h-full object-contain bg-slate-50 select-none pointer-events-none"
+                      draggable={false}
+                    />
+                  ) : sectorsForSale.length === 0 ? (
                     <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500 text-center p-6">
                       Nenhum setor criado no mapa ainda.
                     </div>
                   ) : (
-                    <MapPreviewSVG
-                      sectors={snapshot.sectors}
-                      elements={snapshot.elements}
-                      textElements={snapshot.textElements}
-                      width={snapshot.width}
-                      height={snapshot.height}
-                      backgroundImage={snapshot.backgroundImage}
-                      bgConfig={snapshot.bgConfig}
-                      hoveredSectorId={hoveredSectorId}
-                      onHoverSector={setHoveredSectorId}
-                      onClickSector={handleSectorClick}
-                    />
-                  )}
-                  {hoveredSectorId && (
-                    <div className="absolute bottom-3 left-3 right-3 bg-slate-900/90 text-white text-xs rounded-md px-3 py-2 flex items-center justify-between pointer-events-none">
-                      <span className="font-semibold truncate">
-                        {sectorsForSale.find((s) => s.id === hoveredSectorId)?.name}
-                      </span>
-                      <span className="font-bold text-emerald-300">
-                        {brl(sectorsForSale.find((s) => s.id === hoveredSectorId)?.price ?? 0)}
-                      </span>
+                    <div className="absolute inset-0 pointer-events-none select-none">
+                      <MapPreviewSVG
+                        sectors={snapshot.sectors}
+                        elements={snapshot.elements}
+                        textElements={snapshot.textElements}
+                        width={snapshot.width}
+                        height={snapshot.height}
+                        backgroundImage={snapshot.backgroundImage}
+                        bgConfig={snapshot.bgConfig}
+                      />
                     </div>
                   )}
+                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-[10px] uppercase tracking-wider text-slate-600 font-bold rounded-full px-3 py-1 shadow">
+                    Apenas visualização
+                  </div>
                 </div>
 
-                {/* Lista/Legenda */}
-                <div className="space-y-2">
-                  {sectorsForSale.length === 0 ? (
-                    <div className="text-sm text-slate-500 p-4 bg-white border border-dashed border-slate-300 rounded-xl text-center">
-                      Crie setores no construtor para vê-los aqui.
+                {/* Descrição de setores */}
+                <div className="space-y-3">
+                  {sectorDescriptions.map((s) => (
+                    <div key={s.name} className="bg-white border border-slate-200 rounded-xl p-4">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <p className="text-sm font-bold text-slate-900">{s.name}</p>
+                        <span className="text-[10px] font-semibold text-amber-700 bg-amber-100 rounded-full px-2 py-0.5">
+                          {s.age}
+                        </span>
+                      </div>
+                      <ul className="space-y-1">
+                        {s.notes.map((n, i) => (
+                          <li key={i} className="text-xs text-slate-600 flex gap-2">
+                            <span className="text-emerald-500 mt-0.5">•</span>{n}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                  ) : (
-                    sectorsForSale.map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => addToCart(s)}
-                        onMouseEnter={() => setHoveredSectorId(s.id)}
-                        onMouseLeave={() => setHoveredSectorId(null)}
-                        className={cn(
-                          'w-full text-left flex items-center gap-3 bg-white border transition rounded-xl p-3 group',
-                          hoveredSectorId === s.id
-                            ? 'border-emerald-400 shadow-md'
-                            : 'border-slate-200 hover:border-emerald-400 hover:shadow-md',
-                        )}
-                      >
-                        <div
-                          className="h-10 w-10 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0"
-                          style={{ background: s.color }}
-                        >
-                          {s.name.slice(0, 2).toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-slate-900 truncate">{s.name}</p>
-                          <p className="text-xs text-slate-500">{s.available} disponíveis</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-slate-400">a partir de</p>
-                          <p className="text-sm font-bold text-emerald-600">{brl(s.price)}</p>
-                        </div>
-                        <Plus className="h-4 w-4 text-slate-300 group-hover:text-emerald-500" />
-                      </button>
-                    ))
-                  )}
+                  ))}
+                  <Button
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold h-12"
+                    onClick={() => setSalesOpen(true)}
+                  >
+                    Comprar Ingresso
+                  </Button>
+                </div>
+              </div>
+
+              {/* Descrição do evento */}
+              <div className="mt-10 max-w-4xl mx-auto">
+                <h4 className="text-emerald-600 font-bold text-lg mb-3 flex items-center gap-2">
+                  <Info className="h-5 w-5" /> Sobre o evento
+                </h4>
+                <div className="prose prose-sm max-w-none text-slate-700 whitespace-pre-line leading-relaxed">
+                  {eventInfo.description}
                 </div>
               </div>
             </div>
           </section>
+
 
           {/* Info + Regras */}
           <section className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
