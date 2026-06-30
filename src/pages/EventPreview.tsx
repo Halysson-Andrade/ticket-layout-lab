@@ -273,7 +273,41 @@ const EventPreview: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#eef0f3] flex flex-col" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="min-h-screen bg-[#eef0f3] flex flex-col gw-preview" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      {/* === Scoped animations & utilities === */}
+      <style>{`
+        @keyframes gw-marquee { 0% { transform: translateX(0) } 100% { transform: translateX(-50%) } }
+        @keyframes gw-shimmer { 0% { background-position: -200% 0 } 100% { background-position: 200% 0 } }
+        @keyframes gw-float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
+        @keyframes gw-glow { 0%,100% { box-shadow: 0 0 0 0 rgba(17,204,53,0.35), 0 10px 30px -8px rgba(17,204,53,0.45) } 50% { box-shadow: 0 0 0 8px rgba(17,204,53,0.0), 0 14px 36px -8px rgba(17,204,53,0.55) } }
+        @keyframes gw-blob { 0%,100% { transform: translate(0,0) scale(1) } 33% { transform: translate(20px,-15px) scale(1.05) } 66% { transform: translate(-15px,10px) scale(0.97) } }
+        @keyframes gw-rise { 0% { opacity: 0; transform: translateY(18px) } 100% { opacity: 1; transform: translateY(0) } }
+        @keyframes gw-pulse-dot { 0%,100% { opacity: 1; transform: scale(1) } 50% { opacity: .55; transform: scale(1.35) } }
+        .gw-marquee-track { display: inline-flex; animation: gw-marquee 28s linear infinite; }
+        .gw-cta-glow { animation: gw-glow 2.6s ease-in-out infinite; }
+        .gw-float { animation: gw-float 5s ease-in-out infinite; }
+        .gw-rise { animation: gw-rise .7s cubic-bezier(.22,.61,.36,1) both; }
+        .gw-rise-delay-1 { animation-delay: .08s; }
+        .gw-rise-delay-2 { animation-delay: .16s; }
+        .gw-rise-delay-3 { animation-delay: .24s; }
+        .gw-grad-text { background: linear-gradient(92deg, ${BRAND.green}, ${BRAND.cyan} 45%, ${BRAND.magenta}); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .gw-shimmer-text { background: linear-gradient(90deg, #fff 0%, #fff 40%, ${BRAND.green} 50%, #fff 60%, #fff 100%); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: gw-shimmer 4s linear infinite; }
+        .gw-dot-pulse { animation: gw-pulse-dot 1.4s ease-in-out infinite; }
+        .gw-card-hover { transition: transform .35s cubic-bezier(.22,.61,.36,1), box-shadow .35s, border-color .35s; }
+        .gw-card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -18px rgba(17,204,53,.35); }
+        .gw-event-card { transition: transform .4s cubic-bezier(.22,.61,.36,1), box-shadow .4s; }
+        .gw-event-card:hover { transform: translateY(-6px); }
+        .gw-event-card:hover .gw-event-img { transform: scale(1.08); }
+        .gw-event-img { transition: transform .8s cubic-bezier(.22,.61,.36,1); }
+        .gw-blob { position:absolute; border-radius:9999px; filter: blur(60px); opacity:.35; pointer-events:none; }
+        .gw-blob-g { background: ${BRAND.green}; animation: gw-blob 14s ease-in-out infinite; }
+        .gw-blob-m { background: ${BRAND.magenta}; animation: gw-blob 18s ease-in-out infinite reverse; }
+        .gw-blob-c { background: ${BRAND.cyan}; animation: gw-blob 16s ease-in-out infinite; }
+        .gw-noise { background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px); background-size: 3px 3px; }
+        .gw-ticker-strip { background: linear-gradient(90deg, ${BRAND.green}, #0fb02e); }
+        .gw-skew { transform: skewX(-10deg); display:inline-block; }
+        .gw-section-title-bar { display:inline-block; width:34px; height:3px; background: ${BRAND.green}; border-radius: 2px; vertical-align: middle; margin-right: 10px; }
+      `}</style>
       {/* Botão flutuante: voltar ao mapa + toggle device */}
       <div className="fixed top-3 left-3 z-[100] flex items-center gap-2">
         <Button
@@ -447,41 +481,88 @@ const EventPreview: React.FC = () => {
 
           {/* ============ MAIN ============ */}
           <main className="flex-1 flex flex-col">
-            {/* HERO: banner do evento sobre fundo escuro (estilo Guichê) */}
-            <section className="relative bg-black">
-              {/* glow ambient */}
-              <div className="pointer-events-none absolute inset-0 opacity-60"
-                style={{
-                  background: `radial-gradient(ellipse 60% 70% at 50% 0%, ${BRAND.green}22, transparent 70%)`,
-                }}
+            {/* HERO cinematográfico */}
+            <section className="relative bg-black overflow-hidden">
+              {/* Blobs animados de fundo */}
+              <div className="gw-blob gw-blob-g" style={{ width: 380, height: 380, top: -120, left: -80 }} />
+              <div className="gw-blob gw-blob-m" style={{ width: 320, height: 320, top: 40, right: -80 }} />
+              <div className="gw-blob gw-blob-c" style={{ width: 260, height: 260, bottom: -80, left: '40%' }} />
+              <div className="pointer-events-none absolute inset-0 gw-noise opacity-40" />
+              <div className="pointer-events-none absolute inset-0"
+                style={{ background: `radial-gradient(ellipse 70% 80% at 50% 0%, ${BRAND.green}26, transparent 70%)` }}
               />
-              <div className={cn('relative mx-auto w-full', isMobile ? 'px-0 pb-0' : 'px-8 pt-8 pb-10 max-w-6xl')}>
-                <div className={cn('relative overflow-hidden bg-black', isMobile ? 'aspect-[16/10]' : 'rounded-3xl shadow-2xl ring-1 ring-white/10 aspect-[1920/720]')}>
+
+              <div className={cn('relative mx-auto w-full', isMobile ? 'px-0 pb-0' : 'px-8 pt-10 pb-12 max-w-6xl')}>
+                {/* mini badge superior */}
+                {!isMobile && (
+                  <div className="flex items-center gap-3 mb-5 gw-rise">
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 backdrop-blur border border-white/10 text-[11px] font-bold uppercase tracking-[0.18em] text-white/80">
+                      <span className="h-1.5 w-1.5 rounded-full gw-dot-pulse" style={{ background: BRAND.green }} />
+                      Vendas abertas
+                    </span>
+                    <span className="text-[11px] text-white/40 font-medium uppercase tracking-[0.18em]">
+                      Sete Lagoas · MG · Julho 2026
+                    </span>
+                  </div>
+                )}
+
+                <div className={cn('relative overflow-hidden bg-black group',
+                  isMobile ? 'aspect-[16/10]' : 'rounded-[28px] shadow-2xl ring-1 ring-white/10 aspect-[1920/720]'
+                )}>
                   <img
                     src={eventInfo.heroBanner}
                     alt={eventInfo.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-[1.04]"
                     loading="eager"
                   />
-                  {/* leve gradiente inferior para legibilidade caso queira sobrepor algo */}
-                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent" />
+                  {/* gradiente neon overlay */}
+                  <div className="absolute inset-0 mix-blend-overlay opacity-50"
+                    style={{ background: `linear-gradient(120deg, ${BRAND.magenta}33, transparent 35%, ${BRAND.cyan}22 70%, ${BRAND.green}33)` }} />
+                  <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/60 to-transparent" />
+
+                  {/* badge 54ª Edição (skewed) */}
+                  <div className="absolute top-4 left-4 sm:top-6 sm:left-6 gw-rise">
+                    <span className="gw-skew bg-[#ffce00] text-black text-[10px] sm:text-xs font-black uppercase tracking-widest px-3 py-1 shadow-lg">
+                      54ª Edição · Confirmado
+                    </span>
+                  </div>
+
+                  {/* título sobreposto (apenas desktop, p/ não competir com a info abaixo) */}
+                  {!isMobile && (
+                    <div className="absolute bottom-6 left-6 right-6 gw-rise gw-rise-delay-2">
+                      <h2 className="text-white font-black uppercase italic leading-[0.95] text-3xl md:text-5xl tracking-tight drop-shadow-2xl">
+                        Exposete <span className="gw-grad-text">Rodeio Festival</span>
+                      </h2>
+                    </div>
+                  )}
                 </div>
               </div>
-              {/* recorte ondulado estilo Guichê separando o hero do conteúdo */}
-              <svg className="block w-full h-6 -mb-px text-white" viewBox="0 0 1440 24" preserveAspectRatio="none" aria-hidden="true">
-                <path fill="currentColor" d="M0,24 L0,12 Q30,0 60,12 T120,12 T180,12 T240,12 T300,12 T360,12 T420,12 T480,12 T540,12 T600,12 T660,12 T720,12 T780,12 T840,12 T900,12 T960,12 T1020,12 T1080,12 T1140,12 T1200,12 T1260,12 T1320,12 T1380,12 T1440,12 L1440,24 Z"/>
-              </svg>
-            </section>
 
+              {/* Marquee kinética */}
+              <div className="gw-ticker-strip py-2 overflow-hidden border-y-2 border-black select-none">
+                <div className="gw-marquee-track whitespace-nowrap">
+                  {Array.from({ length: 2 }).map((_, k) => (
+                    <span key={k} className="flex items-center text-black font-black uppercase italic text-[11px] sm:text-xs tracking-wide">
+                      {['09 a 19 de Julho · 2026', 'Sete Lagoas · MG', 'Open Bar Premium', 'Os Maiores Shows do Sertanejo', 'Vendas Liberadas', 'Parcele em 10x', 'Ingresso digital imediato', '54ª Edição'].map((t, i) => (
+                        <span key={i} className="flex items-center mx-6">
+                          {t}
+                          <svg className="ml-6 h-3 w-3 opacity-70" viewBox="0 0 12 12"><circle cx="6" cy="6" r="3" fill="currentColor"/></svg>
+                        </span>
+                      ))}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </section>
 
             {/* URGÊNCIA & PROVA SOCIAL (strip discreta) */}
             <section className="bg-white border-b border-slate-200">
               <div className={cn('mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-2', isMobile ? 'px-4 py-3 text-[11px]' : 'px-8 py-3.5 text-xs max-w-6xl')}>
                 <div className="flex items-center gap-2 text-slate-600">
-                  <Timer className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
+                  <Timer className="h-3.5 w-3.5 gw-dot-pulse" style={{ color: BRAND.green }} />
                   <span className="font-medium">Faltam</span>
                   <span className="font-bold text-slate-900 tabular-nums">
-                    {countdown.d}d {String(countdown.h).padStart(2, '0')}:{String(countdown.m).padStart(2, '0')}:{String(countdown.s).padStart(2, '0')}
+                    {countdown.d}d {String(countdown.h).padStart(2, '0')}:{String(countdown.m).padStart(2, '0')}:<span style={{ color: BRAND.green }}>{String(countdown.s).padStart(2, '0')}</span>
                   </span>
                 </div>
                 <div className="hidden sm:block h-3 w-px bg-slate-200" />
@@ -496,6 +577,7 @@ const EventPreview: React.FC = () => {
                 </div>
               </div>
             </section>
+
 
 
 
@@ -516,8 +598,9 @@ const EventPreview: React.FC = () => {
                     <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">Setembro · 2026</span>
                   </div>
 
-                  <h1 className={cn('font-black text-slate-900 leading-[1.05] tracking-tight', isMobile ? 'text-3xl' : 'text-5xl')}>
-                    {eventInfo.title}
+                  <h1 className={cn('font-black text-slate-900 leading-[1.02] tracking-tight gw-rise', isMobile ? 'text-3xl' : 'text-[3.4rem]')}>
+                    54ª Exposete <br className="hidden sm:block" />
+                    <span className="gw-grad-text italic">Rodeio Festival</span>
                   </h1>
                   <p className="text-base text-slate-500 mt-2 max-w-2xl">{eventInfo.subtitle}</p>
 
@@ -532,11 +615,12 @@ const EventPreview: React.FC = () => {
 
                   {/* Meta cards */}
                   <div className={cn('mt-6 grid gap-3', isMobile ? 'grid-cols-1' : 'grid-cols-2')}>
-                    <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-300 transition">
-                      <div className="rounded-lg p-2.5 shrink-0" style={{ background: `${BRAND.green}1a`, color: BRAND.green }}>
+                    <div className="gw-card-hover flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 relative overflow-hidden">
+                      <div className="absolute -top-10 -right-10 w-28 h-28 rounded-full opacity-[0.08]" style={{ background: BRAND.green }} />
+                      <div className="rounded-xl p-2.5 shrink-0" style={{ background: `${BRAND.green}1a`, color: BRAND.green }}>
                         <Calendar className="h-5 w-5" />
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 relative">
                         <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Data</p>
                         <p className="text-sm font-semibold text-slate-900 leading-tight mt-0.5">{eventInfo.date}</p>
                         <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
@@ -544,11 +628,12 @@ const EventPreview: React.FC = () => {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-300 transition">
-                      <div className="rounded-lg p-2.5 shrink-0" style={{ background: `${BRAND.cyan}1a`, color: BRAND.cyan }}>
+                    <div className="gw-card-hover flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 relative overflow-hidden">
+                      <div className="absolute -top-10 -right-10 w-28 h-28 rounded-full opacity-[0.08]" style={{ background: BRAND.cyan }} />
+                      <div className="rounded-xl p-2.5 shrink-0" style={{ background: `${BRAND.cyan}1a`, color: BRAND.cyan }}>
                         <MapPin className="h-5 w-5" />
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 relative">
                         <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Local</p>
                         <p className="text-sm font-semibold text-slate-900 leading-tight mt-0.5 truncate">{eventInfo.venue}</p>
                         <p className="text-xs text-slate-500 mt-1">{eventInfo.city}</p>
@@ -568,33 +653,41 @@ const EventPreview: React.FC = () => {
 
 
 
-                <aside
-                  className="rounded-2xl p-6 h-fit sticky top-20 border border-slate-200 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)]"
-                >
-                  <p className="text-[10px] uppercase tracking-[0.15em] font-bold text-slate-400">A partir de</p>
-                  <div className="flex items-baseline gap-2 mt-1">
-                    <p className="text-4xl font-black text-slate-900 leading-none">{minPrice ? brl(minPrice) : '—'}</p>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-2">
-                    ou <span className="font-semibold text-slate-700">10x de {brl((minPrice || 0) / 10)}</span> sem juros
-                  </p>
-                  <p className="text-[11px] text-slate-400 mt-0.5">+ taxa de serviço</p>
+                <aside className="relative h-fit sticky top-20 gw-rise gw-rise-delay-2">
+                  {/* glow halo */}
+                  <div className="pointer-events-none absolute -inset-[1px] rounded-[20px] opacity-60 blur-xl"
+                    style={{ background: `linear-gradient(140deg, ${BRAND.green}55, ${BRAND.cyan}33, ${BRAND.magenta}33)` }} />
+                  <div className="relative rounded-2xl p-6 border border-slate-200 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)]">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] uppercase tracking-[0.15em] font-bold text-slate-400">A partir de</p>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+                        style={{ background: `${BRAND.green}1a`, color: BRAND.green }}>
+                        <span className="h-1.5 w-1.5 rounded-full gw-dot-pulse" style={{ background: BRAND.green }} /> Disponível
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <p className="text-4xl font-black text-slate-900 leading-none tracking-tight">{minPrice ? brl(minPrice) : '—'}</p>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">
+                      ou <span className="font-semibold text-slate-700">10x de {brl((minPrice || 0) / 10)}</span> sem juros
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">+ taxa de serviço</p>
 
-                  <Button
-                    className="w-full font-bold h-12 text-white mt-5 rounded-xl shadow-sm hover:shadow-md transition-shadow"
-                    style={{ background: BRAND.green }}
-                    onClick={() => setSalesOpen(true)}
-                  >
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    Comprar Ingresso
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="w-full mt-2 h-10 font-semibold text-slate-600 hover:text-slate-900"
-                    onClick={handleRemindMe}
-                  >
-                    <Bell className="h-4 w-4 mr-2" /> Lembre-me deste evento
-                  </Button>
+                    <Button
+                      className="gw-cta-glow w-full font-bold h-12 text-white mt-5 rounded-xl border-0"
+                      style={{ background: `linear-gradient(120deg, ${BRAND.green}, #0fb02e)` }}
+                      onClick={() => setSalesOpen(true)}
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      Comprar Ingresso
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full mt-2 h-10 font-semibold text-slate-600 hover:text-slate-900"
+                      onClick={handleRemindMe}
+                    >
+                      <Bell className="h-4 w-4 mr-2" /> Lembre-me deste evento
+                    </Button>
 
                   <div className="mt-5 pt-5 border-t border-slate-100 space-y-2.5">
                     <div className="flex items-center gap-2.5 text-xs text-slate-600">
@@ -606,6 +699,7 @@ const EventPreview: React.FC = () => {
                     <div className="flex items-center gap-2.5 text-xs text-slate-600">
                       <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> Ingresso digital imediato
                     </div>
+                  </div>
                   </div>
                 </aside>
 
@@ -764,18 +858,24 @@ const EventPreview: React.FC = () => {
                   <button className="text-xs font-semibold hover:underline hidden sm:block" style={{ color: BRAND.green }}>Ver todos →</button>
                 </div>
                 <div className={cn('grid gap-4', isMobile ? 'grid-cols-2' : 'grid-cols-3 lg:grid-cols-6')}>
-                  {upcomingEvents.map((e) => (
-                    <div key={e.title} className="group cursor-pointer">
-                      <div className="aspect-[800/400] rounded-xl overflow-hidden bg-slate-200 ring-1 ring-slate-200 group-hover:ring-[var(--bg)] transition shadow-sm" style={{ ['--bg' as never]: BRAND.green }}>
-                        <img src={e.img} alt={e.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-                      </div>
-                      <p className="mt-2 text-[11px] font-bold" style={{ color: BRAND.green }}>{e.date}</p>
-                      <p className="text-xs font-semibold text-slate-900 leading-tight line-clamp-2">{e.title}</p>
-                      <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                        <MapPin className="h-3 w-3" /> {e.city}
-                      </p>
-                    </div>
-                  ))}
+                  {upcomingEvents.map((e, i) => {
+                    const accent = [BRAND.green, BRAND.magenta, BRAND.cyan, BRAND.yellow][i % 4];
+                    return (
+                      <a key={e.title} href="#" className="gw-event-card group cursor-pointer block">
+                        <div className="relative aspect-[800/400] rounded-2xl overflow-hidden bg-slate-200 ring-1 ring-slate-200 shadow-sm">
+                          <img src={e.img} alt={e.title} loading="lazy" className="gw-event-img w-full h-full object-cover" />
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-300"
+                            style={{ background: `linear-gradient(180deg, transparent 40%, ${accent}cc)` }} />
+                          <span className="absolute top-2 left-2 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md text-white shadow"
+                            style={{ background: accent }}>{e.date}</span>
+                        </div>
+                        <p className="mt-2 text-xs font-bold text-slate-900 leading-tight line-clamp-2 group-hover:underline underline-offset-4 decoration-2" style={{ textDecorationColor: accent }}>{e.title}</p>
+                        <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                          <MapPin className="h-3 w-3" /> {e.city}
+                        </p>
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             </section>
