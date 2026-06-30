@@ -838,22 +838,88 @@ const EventPreview: React.FC = () => {
             </div>
           </footer>
 
-          {/* Mobile sticky CTA */}
+          {/* Mobile sticky CTA — sempre visível */}
           {isMobile && (
-            <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 flex items-center gap-3 shadow-2xl z-40">
-              <div className="flex-1">
-                <p className="text-[10px] text-slate-500">A partir de</p>
-                <p className="text-base font-black text-slate-900">{minPrice ? brl(minPrice) : '—'}</p>
+            <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 shadow-2xl z-40">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-bold rounded-full px-2 py-0.5 flex items-center gap-1" style={{ background: `${BRAND.yellow}33`, color: '#7a5b00' }}>
+                  <Timer className="h-3 w-3" /> {countdown.d}d {String(countdown.h).padStart(2, '0')}:{String(countdown.m).padStart(2, '0')}:{String(countdown.s).padStart(2, '0')}
+                </span>
+                <span className="text-[10px] font-semibold text-slate-500 flex items-center gap-1">
+                  <Eye className="h-3 w-3" /> {viewers} agora
+                </span>
               </div>
-              <Button
-                className="flex-1 font-bold h-11 text-white"
-                style={{ background: BRAND.green }}
-                onClick={() => setSalesOpen(true)}
-              >
-                Comprar
-              </Button>
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <p className="text-[10px] text-slate-500">A partir de</p>
+                  <p className="text-base font-black text-slate-900 leading-tight">{minPrice ? brl(minPrice) : '—'}</p>
+                  <p className="text-[10px] text-slate-500">10x de {brl((minPrice || 0) / 10)}</p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="h-11 px-3"
+                  style={{ borderColor: `${BRAND.green}66`, color: BRAND.green }}
+                  onClick={handleRemindMe}
+                  aria-label="Lembre-me"
+                >
+                  <Bell className="h-4 w-4" />
+                </Button>
+                <Button
+                  className="flex-1 font-bold h-11 text-white relative"
+                  style={{ background: BRAND.green }}
+                  onClick={() => setSalesOpen(true)}
+                >
+                  Comprar
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-white text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center shadow" style={{ color: BRAND.green }}>
+                      {cartCount}
+                    </span>
+                  )}
+                </Button>
+              </div>
             </div>
           )}
+
+          {/* FAB de carrinho (desktop) — aparece quando há itens */}
+          {!isMobile && cartCount > 0 && (
+            <button
+              onClick={() => setCartOpen(true)}
+              className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full text-white shadow-2xl flex items-center justify-center hover:scale-105 transition-transform animate-scale-in"
+              style={{ background: BRAND.green }}
+              aria-label="Abrir carrinho"
+            >
+              <ShoppingCart className="h-6 w-6" />
+              <span className="absolute -top-1 -right-1 bg-white rounded-full h-6 min-w-6 px-1 text-xs font-bold flex items-center justify-center shadow" style={{ color: BRAND.green }}>
+                {cartCount}
+              </span>
+            </button>
+          )}
+
+          {/* Prova social rotativa (toast discreto) */}
+          {showProof && !salesOpen && !cartOpen && (
+            <div className={cn('fixed z-40 animate-fade-in', isMobile ? 'bottom-24 left-3 right-3' : 'bottom-6 left-6 max-w-xs')}>
+              <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-3 flex items-center gap-3 relative">
+                <div className="h-9 w-9 rounded-full flex items-center justify-center shrink-0" style={{ background: `${BRAND.green}1a` }}>
+                  <CheckCircle2 className="h-5 w-5" style={{ color: BRAND.green }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-slate-900 truncate">{socialProofs[proofIdx].name}</p>
+                  <p className="text-[11px] text-slate-500 truncate">
+                    comprou <span className="font-medium text-slate-700">{socialProofs[proofIdx].sector}</span> {socialProofs[proofIdx].ago}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowProof(false)}
+                  className="absolute top-1.5 right-1.5 h-5 w-5 rounded-full text-slate-400 hover:bg-slate-100 flex items-center justify-center"
+                  aria-label="Dispensar"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          )}
+
+
 
           {/* ============ SALES MODAL ============ */}
           {salesOpen && (
