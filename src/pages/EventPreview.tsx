@@ -250,16 +250,6 @@ const EventPreview: React.FC = () => {
   const nextLoteDays = 5;
   const loteSavings = minPrice ? Math.round(minPrice * 0.12) : 0;
 
-  // CTA dinâmico baseado em contexto
-  const dynamicCta = useMemo(() => {
-    if (cartCount > 0) return { label: 'Finalizar compra', micro: 'Garanta antes que esgote' };
-    if (countdown.d <= 2) return { label: 'Garantir meu ingresso', micro: 'Últimas horas · evento se aproxima' };
-    if (sectorsForSale.some((s) => s.available <= 20)) return { label: 'Últimos ingressos', micro: 'Setores quase esgotados' };
-    if (nextLoteDays <= 7) return { label: 'Comprar antes da virada de lote', micro: `Lote sobe em ${nextLoteDays} dias` };
-    return { label: 'Comprar ingresso', micro: 'Compra 100% segura' };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sectorsForSale, countdown.d, cartCount]);
-
   const addToCart = (s: { id: string; name: string; price: number; color: string }) => {
     setCart((prev) => {
       const found = prev.find((i) => i.sectorId === s.id);
