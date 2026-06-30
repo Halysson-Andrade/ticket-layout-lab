@@ -826,40 +826,24 @@ const EventPreview: React.FC = () => {
             </div>
           </footer>
 
-          {/* Mobile sticky CTA — sempre visível */}
-          {isMobile && (
-            <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 shadow-2xl z-40">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] font-bold rounded-full px-2 py-0.5 flex items-center gap-1" style={{ background: `${BRAND.yellow}33`, color: '#7a5b00' }}>
-                  <Timer className="h-3 w-3" /> {countdown.d}d {String(countdown.h).padStart(2, '0')}:{String(countdown.m).padStart(2, '0')}:{String(countdown.s).padStart(2, '0')}
-                </span>
-                <span className="text-[10px] font-semibold text-slate-500 flex items-center gap-1">
-                  <Eye className="h-3 w-3" /> {viewers} agora
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <p className="text-[10px] text-slate-500">A partir de</p>
-                  <p className="text-base font-black text-slate-900 leading-tight">{minPrice ? brl(minPrice) : '—'}</p>
-                  <p className="text-[10px] text-slate-500">10x de {brl((minPrice || 0) / 10)}</p>
+          {/* ============ Mobile bottom bar (fixed, always visible) ============ */}
+          {isMobile && !salesOpen && !cartOpen && (
+            <div className="fixed bottom-0 left-0 right-0 z-[60] animate-slide-in-bottom">
+              <div className="mx-2 mb-2 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200 shadow-[0_-8px_30px_rgb(0,0,0,0.12)] p-2.5 flex items-center gap-2.5">
+                <div className="flex-1 min-w-0 pl-1">
+                  <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold leading-none">A partir de</p>
+                  <p className="text-lg font-black text-slate-900 leading-tight mt-0.5">{minPrice ? brl(minPrice) : '—'}</p>
+                  <p className="text-[10px] text-slate-500 leading-none mt-0.5">10x sem juros</p>
                 </div>
                 <Button
-                  variant="outline"
-                  className="h-11 px-3"
-                  style={{ borderColor: `${BRAND.green}66`, color: BRAND.green }}
-                  onClick={handleRemindMe}
-                  aria-label="Lembre-me"
-                >
-                  <Bell className="h-4 w-4" />
-                </Button>
-                <Button
-                  className="flex-1 font-bold h-11 text-white relative"
+                  className="h-12 px-5 font-bold text-white rounded-xl shadow-md relative"
                   style={{ background: BRAND.green }}
                   onClick={() => setSalesOpen(true)}
                 >
+                  <ShoppingCart className="h-4 w-4 mr-2" />
                   Comprar
                   {cartCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-white text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center shadow" style={{ color: BRAND.green }}>
+                    <span className="absolute -top-1.5 -right-1.5 bg-white text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center shadow ring-2 ring-white" style={{ color: BRAND.green }}>
                       {cartCount}
                     </span>
                   )}
@@ -868,44 +852,45 @@ const EventPreview: React.FC = () => {
             </div>
           )}
 
-          {/* FAB de carrinho (desktop) — aparece quando há itens */}
-          {!isMobile && cartCount > 0 && (
-            <button
-              onClick={() => setCartOpen(true)}
-              className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full text-white shadow-2xl flex items-center justify-center hover:scale-105 transition-transform animate-scale-in"
-              style={{ background: BRAND.green }}
-              aria-label="Abrir carrinho"
-            >
-              <ShoppingCart className="h-6 w-6" />
-              <span className="absolute -top-1 -right-1 bg-white rounded-full h-6 min-w-6 px-1 text-xs font-bold flex items-center justify-center shadow" style={{ color: BRAND.green }}>
-                {cartCount}
-              </span>
-            </button>
-          )}
-
-          {/* Prova social rotativa (toast discreto) */}
-          {showProof && !salesOpen && !cartOpen && (
-            <div className={cn('fixed z-40 animate-fade-in', isMobile ? 'bottom-24 left-3 right-3' : 'bottom-6 left-6 max-w-xs')}>
-              <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-3 flex items-center gap-3 relative">
-                <div className="h-9 w-9 rounded-full flex items-center justify-center shrink-0" style={{ background: `${BRAND.green}1a` }}>
-                  <CheckCircle2 className="h-5 w-5" style={{ color: BRAND.green }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-slate-900 truncate">{socialProofs[proofIdx].name}</p>
-                  <p className="text-[11px] text-slate-500 truncate">
-                    comprou <span className="font-medium text-slate-700">{socialProofs[proofIdx].sector}</span> {socialProofs[proofIdx].ago}
-                  </p>
-                </div>
+          {/* ============ Desktop floating CTA — sempre visível ============ */}
+          {!isMobile && !salesOpen && !cartOpen && (
+            <div className="fixed bottom-6 right-6 z-[60] flex flex-col items-end gap-2 animate-fade-in">
+              {cartCount > 0 && (
                 <button
-                  onClick={() => setShowProof(false)}
-                  className="absolute top-1.5 right-1.5 h-5 w-5 rounded-full text-slate-400 hover:bg-slate-100 flex items-center justify-center"
-                  aria-label="Dispensar"
+                  onClick={() => setCartOpen(true)}
+                  className="group bg-white border border-slate-200 rounded-full shadow-xl pl-3 pr-4 py-2 flex items-center gap-2 hover:shadow-2xl transition-all hover:-translate-y-0.5"
+                  aria-label="Abrir carrinho"
                 >
-                  <X className="h-3 w-3" />
+                  <span className="h-7 w-7 rounded-full flex items-center justify-center" style={{ background: `${BRAND.green}1a` }}>
+                    <ShoppingCart className="h-4 w-4" style={{ color: BRAND.green }} />
+                  </span>
+                  <span className="text-xs font-bold text-slate-700">
+                    {cartCount} {cartCount === 1 ? 'ingresso' : 'ingressos'}
+                  </span>
+                  <span className="text-xs font-black tabular-nums" style={{ color: BRAND.green }}>
+                    {brl(cartTotal)}
+                  </span>
                 </button>
-              </div>
+              )}
+              <button
+                onClick={() => setSalesOpen(true)}
+                className="group relative overflow-hidden h-14 pl-5 pr-6 rounded-full text-white font-bold shadow-2xl flex items-center gap-3 hover:scale-[1.03] active:scale-[0.98] transition-transform"
+                style={{ background: BRAND.green, boxShadow: `0 12px 40px -8px ${BRAND.green}80` }}
+                aria-label="Comprar ingresso"
+              >
+                <span className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <span className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
+                  <ShoppingCart className="h-4 w-4" />
+                </span>
+                <span className="flex flex-col items-start leading-tight">
+                  <span className="text-[10px] uppercase tracking-wider opacity-90 font-semibold">Garanta o seu</span>
+                  <span className="text-sm">Comprar ingresso</span>
+                </span>
+              </button>
             </div>
           )}
+
+
 
 
 
