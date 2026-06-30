@@ -624,7 +624,7 @@ const EventPreview: React.FC = () => {
                       <span className="h-1.5 w-1.5 rounded-full" style={{ background: BRAND.green }} />
                       Festival · Rodeio
                     </span>
-                    <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">Setembro · 2026</span>
+                    <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">Julho · 2026</span>
                   </div>
 
                   <h1 className={cn('font-black text-slate-900 leading-[1.02] tracking-tight gw-rise', isMobile ? 'text-3xl' : 'text-[3.4rem]')}>
