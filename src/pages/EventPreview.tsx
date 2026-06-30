@@ -615,11 +615,12 @@ const EventPreview: React.FC = () => {
 
                   {/* Meta cards */}
                   <div className={cn('mt-6 grid gap-3', isMobile ? 'grid-cols-1' : 'grid-cols-2')}>
-                    <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-300 transition">
-                      <div className="rounded-lg p-2.5 shrink-0" style={{ background: `${BRAND.green}1a`, color: BRAND.green }}>
+                    <div className="gw-card-hover flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 relative overflow-hidden">
+                      <div className="absolute -top-10 -right-10 w-28 h-28 rounded-full opacity-[0.08]" style={{ background: BRAND.green }} />
+                      <div className="rounded-xl p-2.5 shrink-0" style={{ background: `${BRAND.green}1a`, color: BRAND.green }}>
                         <Calendar className="h-5 w-5" />
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 relative">
                         <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Data</p>
                         <p className="text-sm font-semibold text-slate-900 leading-tight mt-0.5">{eventInfo.date}</p>
                         <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
@@ -627,11 +628,12 @@ const EventPreview: React.FC = () => {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-300 transition">
-                      <div className="rounded-lg p-2.5 shrink-0" style={{ background: `${BRAND.cyan}1a`, color: BRAND.cyan }}>
+                    <div className="gw-card-hover flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 relative overflow-hidden">
+                      <div className="absolute -top-10 -right-10 w-28 h-28 rounded-full opacity-[0.08]" style={{ background: BRAND.cyan }} />
+                      <div className="rounded-xl p-2.5 shrink-0" style={{ background: `${BRAND.cyan}1a`, color: BRAND.cyan }}>
                         <MapPin className="h-5 w-5" />
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 relative">
                         <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Local</p>
                         <p className="text-sm font-semibold text-slate-900 leading-tight mt-0.5 truncate">{eventInfo.venue}</p>
                         <p className="text-xs text-slate-500 mt-1">{eventInfo.city}</p>
