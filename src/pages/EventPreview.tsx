@@ -279,7 +279,7 @@ const EventPreview: React.FC = () => {
 
               {/* Desktop nav */}
               {!isMobile && (
-                <nav className="flex items-center gap-5 text-sm text-slate-700">
+                <nav className="flex items-center gap-5 text-sm text-white/90">
                   <button className="hover:text-[color:var(--brand-green)] flex items-center gap-1" style={{ ['--brand-green' as never]: BRAND.green }}>
                     <Search className="h-4 w-4" /> Buscar evento
                   </button>
@@ -288,14 +288,14 @@ const EventPreview: React.FC = () => {
                   </button>
                   <Button
                     variant="outline"
-                    className="rounded-full border-2 font-semibold"
+                    className="rounded-full border-2 font-semibold bg-transparent hover:bg-white/10"
                     style={{ borderColor: BRAND.green, color: BRAND.green }}
                   >
                     Crie seu evento
                   </Button>
-                  <div className="flex items-center gap-2 pl-3 border-l border-slate-200">
-                    <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center">
-                      <User className="h-4 w-4 text-slate-500" />
+                  <div className="flex items-center gap-2 pl-3 border-l border-white/20">
+                    <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center">
+                      <User className="h-4 w-4 text-white/80" />
                     </div>
                     <button className="text-sm font-medium hover:underline">Conta</button>
                   </div>
