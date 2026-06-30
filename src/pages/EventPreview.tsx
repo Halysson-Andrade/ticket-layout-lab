@@ -1018,7 +1018,10 @@ const EventPreview: React.FC = () => {
                 <div className="flex-1 min-w-0 pl-1">
                   <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold leading-none">A partir de</p>
                   <p className="text-lg font-black text-slate-900 leading-tight mt-0.5">{minPrice ? brl(minPrice) : '—'}</p>
-                  <p className="text-[10px] text-slate-500 leading-none mt-0.5">10x sem juros</p>
+                  <p className="text-[10px] text-slate-500 leading-none mt-0.5 flex items-center gap-1">
+                    <ShieldCheck className="h-2.5 w-2.5" style={{ color: BRAND.green }} />
+                    {dynamicCta.micro}
+                  </p>
                 </div>
                 <Button
                   className="h-12 px-5 font-bold text-white rounded-xl shadow-md relative"
@@ -1026,7 +1029,7 @@ const EventPreview: React.FC = () => {
                   onClick={() => setSalesOpen(true)}
                 >
                   <ShoppingCart className="h-4 w-4 mr-2" />
-                  Comprar
+                  {cartCount > 0 ? 'Finalizar' : 'Comprar'}
                   {cartCount > 0 && (
                     <span className="absolute -top-1.5 -right-1.5 bg-white text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center shadow ring-2 ring-white" style={{ color: BRAND.green }}>
                       {cartCount}
@@ -1036,6 +1039,60 @@ const EventPreview: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* ============ Desktop floating CTA bar (fixed, always visible) ============ */}
+          {!isMobile && !salesOpen && !cartOpen && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] animate-fade-in">
+              <div className="flex items-center gap-4 rounded-full bg-white/95 backdrop-blur-xl border border-slate-200 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)] pl-5 pr-2 py-2">
+                {/* Identidade compacta */}
+                <div className="flex items-center gap-3 pr-4 border-r border-slate-200">
+                  <div className="h-9 w-9 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
+                    <Sparkles className="h-4 w-4" style={{ color: BRAND.green }} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold text-slate-900 leading-tight truncate max-w-[220px]">{eventInfo.title}</p>
+                    <p className="text-[10px] text-slate-500 leading-tight flex items-center gap-1">
+                      <Calendar className="h-2.5 w-2.5" /> {eventInfo.date}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Preço */}
+                <div className="hidden md:block">
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400 leading-none">A partir de</p>
+                  <p className="text-base font-black text-slate-900 leading-tight tabular-nums">{minPrice ? brl(minPrice) : '—'}</p>
+                </div>
+
+                {/* Cart pill se houver itens */}
+                {cartCount > 0 && (
+                  <button
+                    onClick={() => setCartOpen(true)}
+                    className="hidden lg:flex items-center gap-1.5 px-3 h-9 rounded-full border border-slate-200 hover:border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
+                  >
+                    <ShoppingCart className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
+                    {cartCount} · {brl(subtotal)}
+                  </button>
+                )}
+
+                {/* CTA dinâmico */}
+                <div className="flex flex-col items-stretch">
+                  <Button
+                    className="gw-cta-glow h-11 px-6 font-bold text-white rounded-full border-0 shadow-lg"
+                    style={{ background: `linear-gradient(120deg, ${BRAND.green}, #0fb02e)` }}
+                    onClick={() => setSalesOpen(true)}
+                  >
+                    <Zap className="h-4 w-4 mr-2" />
+                    {dynamicCta.label}
+                  </Button>
+                  <p className="text-[9px] text-center text-slate-500 mt-0.5 flex items-center justify-center gap-1 font-medium">
+                    <ShieldCheck className="h-2.5 w-2.5" style={{ color: BRAND.green }} />
+                    {dynamicCta.micro}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
 
           {/* ============ Floating helpers (WhatsApp + carrinho compacto) ============ */}
           {!salesOpen && !cartOpen && (
