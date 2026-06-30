@@ -45,6 +45,10 @@ import {
   Bell,
   Flame,
   Timer,
+  Zap,
+  TrendingUp,
+  Sparkles,
+  Award,
 } from 'lucide-react';
 import { MapPreviewSVG } from '@/components/MapStudio/MapPreviewSVG';
 import type { Sector, VenueElement, TextElement } from '@/types/mapStudio';
@@ -229,6 +233,22 @@ const EventPreview: React.FC = () => {
   }, [snapshot]);
 
   const minPrice = sectorsForSale.length ? Math.min(...sectorsForSale.map((s) => s.price)) : 0;
+  const maxPrice = sectorsForSale.length ? Math.max(...sectorsForSale.map((s) => s.price)) : 0;
+
+  // === Inteligência de conversão ===
+  // Melhor custo-benefício: setor com >=15 disponíveis mais próximo da mediana de preço
+  const bestValueSectorId = useMemo(() => {
+    if (!sectorsForSale.length) return null;
+    const candidates = sectorsForSale.filter((s) => s.available >= 10);
+    const pool = candidates.length ? candidates : sectorsForSale;
+    const sorted = [...pool].sort((a, b) => a.price - b.price);
+    // pega o do "meio-baixo" — bom equilíbrio entre preço e experiência
+    return sorted[Math.min(Math.floor(sorted.length / 3), sorted.length - 1)]?.id ?? null;
+  }, [sectorsForSale]);
+
+  // Próxima virada de lote simulada (em 5 dias) e desconto estimado de 12%
+  const nextLoteDays = 5;
+  const loteSavings = minPrice ? Math.round(minPrice * 0.12) : 0;
 
   const addToCart = (s: { id: string; name: string; price: number; color: string }) => {
     setCart((prev) => {
@@ -248,6 +268,15 @@ const EventPreview: React.FC = () => {
   const subtotal = cart.reduce((a, b) => a + b.qty * b.price, 0);
   const fee = subtotal * 0.1;
   const total = subtotal + fee;
+
+  // CTA dinâmico baseado em contexto (declarado depois de cartCount)
+  const dynamicCta = useMemo(() => {
+    if (cartCount > 0) return { label: 'Finalizar compra', micro: 'Garanta antes que esgote' };
+    if (countdown.d <= 2) return { label: 'Garantir meu ingresso', micro: 'Últimas horas · evento se aproxima' };
+    if (sectorsForSale.some((s) => s.available <= 20)) return { label: 'Últimos ingressos', micro: 'Setores quase esgotados' };
+    if (nextLoteDays <= 7) return { label: 'Comprar antes da virada de lote', micro: `Lote sobe em ${nextLoteDays} dias` };
+    return { label: 'Comprar ingresso', micro: 'Compra 100% segura' };
+  }, [sectorsForSale, countdown.d, cartCount]);
 
   const isMobile = device === 'mobile';
 
@@ -595,7 +624,7 @@ const EventPreview: React.FC = () => {
                       <span className="h-1.5 w-1.5 rounded-full" style={{ background: BRAND.green }} />
                       Festival · Rodeio
                     </span>
-                    <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">Setembro · 2026</span>
+                    <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">Julho · 2026</span>
                   </div>
 
                   <h1 className={cn('font-black text-slate-900 leading-[1.02] tracking-tight gw-rise', isMobile ? 'text-3xl' : 'text-[3.4rem]')}>
@@ -667,37 +696,65 @@ const EventPreview: React.FC = () => {
                     </div>
                     <div className="flex items-baseline gap-2 mt-1">
                       <p className="text-4xl font-black text-slate-900 leading-none tracking-tight">{minPrice ? brl(minPrice) : '—'}</p>
+                      {maxPrice > minPrice && (
+                        <p className="text-xs text-slate-400 line-through tabular-nums">{brl(maxPrice)}</p>
+                      )}
                     </div>
                     <p className="text-xs text-slate-500 mt-2">
                       ou <span className="font-semibold text-slate-700">10x de {brl((minPrice || 0) / 10)}</span> sem juros
                     </p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">+ taxa de serviço</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">Lote atual · + taxa de serviço</p>
+
+                    {/* Ancoragem: economia antes da virada de lote */}
+                    {loteSavings > 0 && (
+                      <div className="mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold"
+                        style={{ background: `${BRAND.yellow}1f`, color: '#7a5b00' }}>
+                        <TrendingUp className="h-3.5 w-3.5 shrink-0" />
+                        <span>Economize <span className="font-black">{brl(loteSavings)}</span> comprando antes do próximo lote ({nextLoteDays} dias)</span>
+                      </div>
+                    )}
 
                     <Button
-                      className="gw-cta-glow w-full font-bold h-12 text-white mt-5 rounded-xl border-0"
+                      className="gw-cta-glow w-full font-bold h-12 text-white mt-4 rounded-xl border-0"
                       style={{ background: `linear-gradient(120deg, ${BRAND.green}, #0fb02e)` }}
                       onClick={() => setSalesOpen(true)}
                     >
                       <ShoppingCart className="h-4 w-4 mr-2" />
-                      Comprar Ingresso
+                      {dynamicCta.label}
                     </Button>
+                    <p className="text-[11px] text-center text-slate-500 mt-1.5 flex items-center justify-center gap-1">
+                      <ShieldCheck className="h-3 w-3" style={{ color: BRAND.green }} />
+                      {dynamicCta.micro}
+                    </p>
                     <Button
                       variant="ghost"
-                      className="w-full mt-2 h-10 font-semibold text-slate-600 hover:text-slate-900"
+                      className="w-full mt-1 h-9 text-xs font-semibold text-slate-500 hover:text-slate-900"
                       onClick={handleRemindMe}
                     >
-                      <Bell className="h-4 w-4 mr-2" /> Lembre-me deste evento
+                      <Bell className="h-3.5 w-3.5 mr-1.5" /> Lembre-me deste evento
                     </Button>
 
-                  <div className="mt-5 pt-5 border-t border-slate-100 space-y-2.5">
+                  <div className="mt-4 pt-4 border-t border-slate-100 space-y-2">
                     <div className="flex items-center gap-2.5 text-xs text-slate-600">
-                      <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> Compra 100% segura
+                      <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> Compra 100% segura · SSL
                     </div>
                     <div className="flex items-center gap-2.5 text-xs text-slate-600">
-                      <CreditCard className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> Parcele em até 10x sem juros
+                      <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> Ingresso digital no e-mail
                     </div>
                     <div className="flex items-center gap-2.5 text-xs text-slate-600">
-                      <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> Ingresso digital imediato
+                      <Info className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> Cancelamento grátis em até 7 dias
+                    </div>
+                  </div>
+
+                  {/* Formas de pagamento */}
+                  <div className="mt-4 pt-4 border-t border-slate-100">
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-2">Formas de pagamento</p>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {['Visa', 'Master', 'Elo', 'Amex', 'Pix', 'Boleto'].map((m) => (
+                        <span key={m} className="px-2 py-1 rounded-md border border-slate-200 bg-slate-50 text-[10px] font-bold text-slate-600 tracking-wide">
+                          {m}
+                        </span>
+                      ))}
                     </div>
                   </div>
                   </div>
@@ -961,7 +1018,10 @@ const EventPreview: React.FC = () => {
                 <div className="flex-1 min-w-0 pl-1">
                   <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold leading-none">A partir de</p>
                   <p className="text-lg font-black text-slate-900 leading-tight mt-0.5">{minPrice ? brl(minPrice) : '—'}</p>
-                  <p className="text-[10px] text-slate-500 leading-none mt-0.5">10x sem juros</p>
+                  <p className="text-[10px] text-slate-500 leading-none mt-0.5 flex items-center gap-1">
+                    <ShieldCheck className="h-2.5 w-2.5" style={{ color: BRAND.green }} />
+                    {dynamicCta.micro}
+                  </p>
                 </div>
                 <Button
                   className="h-12 px-5 font-bold text-white rounded-xl shadow-md relative"
@@ -969,7 +1029,7 @@ const EventPreview: React.FC = () => {
                   onClick={() => setSalesOpen(true)}
                 >
                   <ShoppingCart className="h-4 w-4 mr-2" />
-                  Comprar
+                  {cartCount > 0 ? 'Finalizar' : 'Comprar'}
                   {cartCount > 0 && (
                     <span className="absolute -top-1.5 -right-1.5 bg-white text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center shadow ring-2 ring-white" style={{ color: BRAND.green }}>
                       {cartCount}
@@ -980,44 +1040,78 @@ const EventPreview: React.FC = () => {
             </div>
           )}
 
-          {/* ============ Floating helpers (WhatsApp + carrinho compacto) ============ */}
-          {!salesOpen && !cartOpen && (
-            <div className={cn('fixed z-[60] flex flex-col items-end gap-3 animate-fade-in', isMobile ? 'bottom-24 right-3' : 'bottom-6 right-6')}>
-              {/* Cart pill — só quando há itens */}
-              {!isMobile && cartCount > 0 && (
-                <button
-                  onClick={() => setCartOpen(true)}
-                  className="group bg-white border border-slate-200 rounded-full shadow-xl pl-3 pr-4 py-2 flex items-center gap-2 hover:shadow-2xl transition-all hover:-translate-y-0.5"
-                  aria-label="Abrir carrinho"
-                >
-                  <span className="h-7 w-7 rounded-full flex items-center justify-center" style={{ background: `${BRAND.green}1a` }}>
-                    <ShoppingCart className="h-4 w-4" style={{ color: BRAND.green }} />
-                  </span>
-                  <span className="text-xs font-bold text-slate-700">
-                    {cartCount} {cartCount === 1 ? 'ingresso' : 'ingressos'}
-                  </span>
-                  <span className="text-xs font-black tabular-nums" style={{ color: BRAND.green }}>
-                    {brl(subtotal)}
-                  </span>
-                </button>
-              )}
+          {/* ============ Desktop floating CTA bar (fixed, always visible) ============ */}
+          {!isMobile && !salesOpen && !cartOpen && (
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] animate-fade-in">
+              <div className="flex items-center gap-4 rounded-full bg-white/95 backdrop-blur-xl border border-slate-200 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.25)] pl-5 pr-2 py-2">
+                {/* Identidade compacta */}
+                <div className="flex items-center gap-3 pr-4 border-r border-slate-200">
+                  <div className="h-9 w-9 rounded-lg bg-slate-900 flex items-center justify-center shrink-0">
+                    <Sparkles className="h-4 w-4" style={{ color: BRAND.green }} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold text-slate-900 leading-tight truncate max-w-[220px]">{eventInfo.title}</p>
+                    <p className="text-[10px] text-slate-500 leading-tight flex items-center gap-1">
+                      <Calendar className="h-2.5 w-2.5" /> {eventInfo.date}
+                    </p>
+                  </div>
+                </div>
 
-              {/* WhatsApp FAB — padrão Guichê, sempre visível */}
-              <a
-                href="https://wa.me/553132267272"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Fale conosco no WhatsApp"
-                className="group relative h-14 w-14 rounded-full flex items-center justify-center text-white shadow-2xl hover:scale-105 active:scale-95 transition-transform"
-                style={{ background: '#25D366', boxShadow: '0 12px 32px -8px rgba(37,211,102,0.55)' }}
-              >
-                <span className="absolute inset-0 rounded-full animate-ping opacity-40" style={{ background: '#25D366' }} />
-                <svg viewBox="0 0 24 24" className="relative h-7 w-7 fill-current" aria-hidden="true">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.198-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-                </svg>
-              </a>
+                {/* Preço */}
+                <div className="hidden md:block">
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400 leading-none">A partir de</p>
+                  <p className="text-base font-black text-slate-900 leading-tight tabular-nums">{minPrice ? brl(minPrice) : '—'}</p>
+                </div>
+
+                {/* Cart pill se houver itens */}
+                {cartCount > 0 && (
+                  <button
+                    onClick={() => setCartOpen(true)}
+                    className="hidden lg:flex items-center gap-1.5 px-3 h-9 rounded-full border border-slate-200 hover:border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
+                  >
+                    <ShoppingCart className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
+                    {cartCount} · {brl(subtotal)}
+                  </button>
+                )}
+
+                {/* CTA dinâmico */}
+                <div className="flex flex-col items-stretch">
+                  <Button
+                    className="gw-cta-glow h-11 px-6 font-bold text-white rounded-full border-0 shadow-lg"
+                    style={{ background: `linear-gradient(120deg, ${BRAND.green}, #0fb02e)` }}
+                    onClick={() => setSalesOpen(true)}
+                  >
+                    <Zap className="h-4 w-4 mr-2" />
+                    {dynamicCta.label}
+                  </Button>
+                  <p className="text-[9px] text-center text-slate-500 mt-0.5 flex items-center justify-center gap-1 font-medium">
+                    <ShieldCheck className="h-2.5 w-2.5" style={{ color: BRAND.green }} />
+                    {dynamicCta.micro}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
+
+
+          {/* ============ WhatsApp FAB — sempre visível ============ */}
+          {!salesOpen && !cartOpen && (
+            <a
+              href="https://wa.me/553132267272"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Fale conosco no WhatsApp"
+              className={cn('group fixed z-[60] h-14 w-14 rounded-full flex items-center justify-center text-white shadow-2xl hover:scale-105 active:scale-95 transition-transform animate-fade-in',
+                isMobile ? 'bottom-24 right-3' : 'bottom-6 right-6')}
+              style={{ background: '#25D366', boxShadow: '0 12px 32px -8px rgba(37,211,102,0.55)' }}
+            >
+              <span className="absolute inset-0 rounded-full animate-ping opacity-40" style={{ background: '#25D366' }} />
+              <svg viewBox="0 0 24 24" className="relative h-7 w-7 fill-current" aria-hidden="true">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.198-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+              </svg>
+            </a>
+          )}
+
 
 
 
@@ -1120,6 +1214,7 @@ const EventPreview: React.FC = () => {
                       {sectorsForSale.map((s) => {
                         const isActive = (selectedSectorId || hoveredSectorId) === s.id;
                         const inCart = cart.find((i) => i.sectorId === s.id);
+                        const isBest = s.id === bestValueSectorId;
                         return (
                           <div
                             key={s.id}
@@ -1127,11 +1222,24 @@ const EventPreview: React.FC = () => {
                             onMouseLeave={() => setHoveredSectorId(null)}
                             onClick={() => setSelectedSectorId(s.id)}
                             className={cn(
-                              'flex items-center gap-3 border rounded-xl p-3 cursor-pointer transition',
+                              'relative flex items-center gap-3 border rounded-xl p-3 cursor-pointer transition',
                               isActive ? 'shadow-md' : 'border-slate-200 hover:border-slate-300',
+                              isBest && !isActive && 'border-transparent',
                             )}
-                            style={isActive ? { borderColor: BRAND.green, boxShadow: `0 0 0 3px ${BRAND.green}26` } : undefined}
+                            style={
+                              isActive
+                                ? { borderColor: BRAND.green, boxShadow: `0 0 0 3px ${BRAND.green}26` }
+                                : isBest
+                                ? { background: `linear-gradient(180deg, ${BRAND.green}08, #fff)`, boxShadow: `0 0 0 1.5px ${BRAND.green}55` }
+                                : undefined
+                            }
                           >
+                            {isBest && (
+                              <span className="absolute -top-2 left-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-white shadow"
+                                style={{ background: BRAND.green }}>
+                                <Award className="h-2.5 w-2.5" /> Melhor escolha
+                              </span>
+                            )}
                             <div
                               className="h-10 w-10 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0"
                               style={{ background: s.color }}
