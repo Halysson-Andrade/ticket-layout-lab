@@ -166,19 +166,10 @@ const EventPreview: React.FC = () => {
 
   // === Conversion boosters ===
   const [viewers, setViewers] = useState(() => 87 + Math.floor(Math.random() * 60));
-  const [proofIdx, setProofIdx] = useState(0);
-  const [showProof, setShowProof] = useState(true);
   const [now, setNow] = useState(Date.now());
   // Deadline: data simulada do evento (09/Jul/2026 18:00 BRT)
   const deadline = useMemo(() => new Date('2026-07-09T18:00:00-03:00').getTime(), []);
 
-  const socialProofs = useMemo(() => ([
-    { name: 'Maria, BH/MG', sector: 'Camarote Nasala', ago: 'há 2 min' },
-    { name: 'João, Sete Lagoas/MG', sector: 'Arquibancada', ago: 'há 4 min' },
-    { name: 'Ana, Contagem/MG', sector: 'Gramado', ago: 'há 6 min' },
-    { name: 'Pedro, BH/MG', sector: 'Última Saudade', ago: 'há 8 min' },
-    { name: 'Camila, Betim/MG', sector: 'Camarote Nasala', ago: 'há 11 min' },
-  ]), []);
 
   useEffect(() => {
     try {
