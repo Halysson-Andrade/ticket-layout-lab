@@ -206,52 +206,47 @@ const EventPreview: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#eef0f3] flex flex-col">
-      {/* Toolbar superior */}
-      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-2.5 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(-1)}
-            className="shrink-0"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar ao mapa
-          </Button>
-          <Separator orientation="vertical" className="h-6" />
-          <span className="text-sm font-semibold text-slate-900 truncate">
-            Preview — Página do Evento
-          </span>
-          <Badge variant="outline" className="text-xs font-normal hidden sm:inline-flex">
-            {snapshot.mapName}
-          </Badge>
-        </div>
-        <div className="flex items-center bg-muted rounded-md p-0.5">
+      {/* Botão flutuante: voltar ao mapa + toggle device */}
+      <div className="fixed top-3 left-3 z-50 flex items-center gap-2">
+        <Button
+          variant="default"
+          size="sm"
+          onClick={() => navigate(-1)}
+          className="shadow-lg bg-slate-900 hover:bg-slate-800 text-white"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Voltar ao mapa
+        </Button>
+        <div className="flex items-center bg-white/95 backdrop-blur rounded-md p-0.5 shadow-lg border border-slate-200">
           <Button
             variant={device === 'desktop' ? 'default' : 'ghost'}
             size="sm"
-            className="h-7 px-3"
+            className="h-7 px-2"
             onClick={() => setDevice('desktop')}
+            title="Desktop"
           >
-            <Monitor className="h-3.5 w-3.5 mr-1.5" /> Desktop
+            <Monitor className="h-3.5 w-3.5" />
           </Button>
           <Button
             variant={device === 'mobile' ? 'default' : 'ghost'}
             size="sm"
-            className="h-7 px-3"
+            className="h-7 px-2"
             onClick={() => setDevice('mobile')}
+            title="Mobile"
           >
-            <Smartphone className="h-3.5 w-3.5 mr-1.5" /> Mobile
+            <Smartphone className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
 
       {/* Conteúdo da preview */}
-      <div className="flex-1 flex justify-center py-6 px-4">
+      <div className={cn('flex-1 flex justify-center', isMobile && 'py-6 px-4')}>
         <div
           className={cn(
-            'bg-white shadow-2xl rounded-xl overflow-hidden transition-all duration-300 relative',
-            isMobile ? 'w-[390px]' : 'w-full max-w-[1280px]',
+            'bg-white transition-all duration-300 relative',
+            isMobile
+              ? 'w-[390px] shadow-2xl rounded-xl overflow-hidden'
+              : 'w-full min-h-screen',
           )}
         >
           {/* Top nav */}
