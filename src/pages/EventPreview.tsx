@@ -54,18 +54,43 @@ const SNAPSHOT_KEY = 'mapstudio.preview.snapshot';
 const brl = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+// Real assets pulled from guicheweb.com.br (CDN s3.guicheweb.com.br)
+const GW_LOGO = 'https://s3.guicheweb.com.br/nova_marca/logogw.png';
+
 const eventInfo = {
-  title: 'Expoingá 2024',
-  subtitle: '50ª Exposição Feira Agropecuária e Industrial de Maringá',
-  date: '09/05/2024 a 19/05/2024',
+  title: '54ª Exposete Rodeio Festival',
+  subtitle: 'Circuito Brahma apresenta — a maior festa do interior',
+  date: '09/07/2026 a 19/07/2026',
   doors: '19:00h',
-  venue: 'Parque Internacional de Exposições Francisco Feio Ribeiro',
-  city: 'Maringá / PR',
+  venue: 'Parque de Exposições João Alves Nunes',
+  city: 'Sete Lagoas / MG',
   rating: 4.8,
   reviews: 1284,
-  heroGradient:
-    'linear-gradient(135deg,#7a1d1d 0%,#b32626 35%,#e63946 65%,#f4a261 100%)',
+  heroBanner: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-25-56.png',
+  heroThumb: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-26-01.png',
 };
+
+const heroCarousel = [
+  { src: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-25-56.png', alt: '54ª Exposete Rodeio Festival' },
+  { src: 'https://s3.guicheweb.com.br/banners/20-01-2026_11-45-26.jpg', alt: 'Turnê Manifesto Musical 2026' },
+  { src: 'https://s3.guicheweb.com.br/banners/16-06-2026_15-59-44.png', alt: 'No Pelo' },
+  { src: 'https://s3.guicheweb.com.br/banners/27-05-2026_16-27-07.png', alt: 'Henrique e Juliano Em Casa' },
+];
+
+const upcomingEvents = [
+  { title: '54ª Exposete Rodeio Festival', city: 'Sete Lagoas / MG', date: '09 a 19 JUL',
+    img: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-26-01.png' },
+  { title: 'Turnê Manifesto Musical 2026', city: 'São Paulo / SP', date: '15 FEV',
+    img: 'https://s3.guicheweb.com.br/banners/20-01-2026_11-45-24.jpg' },
+  { title: 'Festa do Peão de Salto de Pirapora', city: 'Salto de Pirapora / SP', date: '20 a 28 JUN',
+    img: 'https://s3.guicheweb.com.br/banners/20-05-2026_10-41-16.png' },
+  { title: 'Henrique e Juliano Em Casa', city: 'Palmas / TO', date: '12 SET',
+    img: 'https://s3.guicheweb.com.br/banners/27-05-2026_16-27-13.jpg' },
+  { title: 'Oba Festival 2027', city: 'Goiânia / GO', date: '03 a 05 JAN',
+    img: 'https://s3.guicheweb.com.br/banners/17-06-2026_14-19-42.png' },
+  { title: 'Tangará Festival Music', city: 'Tangará da Serra / MT', date: '22 AGO',
+    img: 'https://s3.guicheweb.com.br/banners/19-06-2026_10-39-35.png' },
+];
 
 const faqs = [
   { q: 'Há estacionamento no local?', a: 'Sim, terceirizado.' },
@@ -85,10 +110,10 @@ const rules = [
 ];
 
 const pointsOfSale = [
-  { city: 'Maringá/PR', name: 'Loja Centro', address: 'Av. Brasil, 1502', phone: '(44) 3033-1622' },
-  { city: 'Maringá/PR', name: 'Shopping Catuaí', address: 'Av. Colombo, 9161 - L. 232', phone: '(44) 3033-2210' },
-  { city: 'Sarandi/PR', name: 'Loja Sarandi', address: 'Av. Londrina, 540', phone: '(44) 3035-9080' },
-  { city: 'Paiçandu/PR', name: 'Mercado Central', address: 'R. Bandeirantes, 80', phone: '(44) 3244-1199' },
+  { city: 'Sete Lagoas/MG', name: 'Loja Centro', address: 'Av. Brasil, 1502', phone: '(31) 3033-1622' },
+  { city: 'Belo Horizonte/MG', name: 'Shopping Diamond', address: 'Av. Olegário Maciel, 1600', phone: '(31) 3033-2210' },
+  { city: 'Sete Lagoas/MG', name: 'Loja Iguatemi', address: 'Av. Prefeito Alberto Moura, 540', phone: '(31) 3035-9080' },
+  { city: 'Contagem/MG', name: 'Mercado Central', address: 'R. Bandeirantes, 80', phone: '(31) 3244-1199' },
 ];
 
 // Mock price ladder for sectors that don't carry price info
