@@ -868,7 +868,7 @@ const EventPreview: React.FC = () => {
                     {cartCount} {cartCount === 1 ? 'ingresso' : 'ingressos'}
                   </span>
                   <span className="text-xs font-black tabular-nums" style={{ color: BRAND.green }}>
-                    {brl(cartTotal)}
+                    {brl(subtotal)}
                   </span>
                 </button>
               )}
