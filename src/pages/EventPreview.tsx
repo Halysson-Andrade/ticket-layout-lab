@@ -10,6 +10,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import {
   ArrowLeft,
   Monitor,
@@ -40,6 +41,10 @@ import {
   LifeBuoy,
   Ticket,
   UserCircle,
+  Eye,
+  Bell,
+  Flame,
+  Timer,
 } from 'lucide-react';
 import { MapPreviewSVG } from '@/components/MapStudio/MapPreviewSVG';
 import type { Sector, VenueElement, TextElement } from '@/types/mapStudio';
@@ -159,6 +164,22 @@ const EventPreview: React.FC = () => {
   const [selectedSectorId, setSelectedSectorId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // === Conversion boosters ===
+  const [viewers, setViewers] = useState(() => 87 + Math.floor(Math.random() * 60));
+  const [proofIdx, setProofIdx] = useState(0);
+  const [showProof, setShowProof] = useState(true);
+  const [now, setNow] = useState(Date.now());
+  // Deadline: data simulada do evento (09/Jul/2026 18:00 BRT)
+  const deadline = useMemo(() => new Date('2026-07-09T18:00:00-03:00').getTime(), []);
+
+  const socialProofs = useMemo(() => ([
+    { name: 'Maria, BH/MG', sector: 'Camarote Nasala', ago: 'há 2 min' },
+    { name: 'João, Sete Lagoas/MG', sector: 'Arquibancada', ago: 'há 4 min' },
+    { name: 'Ana, Contagem/MG', sector: 'Gramado', ago: 'há 6 min' },
+    { name: 'Pedro, BH/MG', sector: 'Última Saudade', ago: 'há 8 min' },
+    { name: 'Camila, Betim/MG', sector: 'Camarote Nasala', ago: 'há 11 min' },
+  ]), []);
+
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(SNAPSHOT_KEY);
@@ -168,8 +189,43 @@ const EventPreview: React.FC = () => {
     }
   }, []);
 
+  // Tick do contador (1s)
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Variação suave de viewers
+  useEffect(() => {
+    const t = setInterval(() => {
+      setViewers((v) => Math.max(60, Math.min(180, v + (Math.random() > 0.5 ? 1 : -1) * (Math.random() > 0.7 ? 2 : 1))));
+    }, 4000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Rotação de prova social
+  useEffect(() => {
+    const t = setInterval(() => setProofIdx((i) => (i + 1) % socialProofs.length), 6000);
+    return () => clearInterval(t);
+  }, [socialProofs.length]);
+
   // Fecha menu mobile ao mudar rota
   useEffect(() => { setMobileMenuOpen(false); }, [location.pathname]);
+
+  const countdown = useMemo(() => {
+    const diff = Math.max(0, deadline - now);
+    const d = Math.floor(diff / 86_400_000);
+    const h = Math.floor((diff % 86_400_000) / 3_600_000);
+    const m = Math.floor((diff % 3_600_000) / 60_000);
+    const s = Math.floor((diff % 60_000) / 1000);
+    return { d, h, m, s };
+  }, [deadline, now]);
+
+  const handleRemindMe = () => {
+    toast.success('Pronto! Vamos te avisar', {
+      description: 'Você receberá um alerta antes do evento esgotar.',
+    });
+  };
 
   const sectorsForSale = useMemo(() => {
     if (!snapshot) return [] as Array<{ id: string; name: string; color: string; price: number; available: number }>;
@@ -417,6 +473,35 @@ const EventPreview: React.FC = () => {
               </div>
             </section>
 
+            {/* URGÊNCIA & PROVA SOCIAL (strip discreta) */}
+            <section className="bg-white border-y border-slate-200">
+              <div className={cn('mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-2', isMobile ? 'px-4 py-3 text-[11px]' : 'px-8 py-3 text-xs max-w-6xl')}>
+                <div className="flex items-center gap-2 text-slate-700">
+                  <Timer className="h-4 w-4" style={{ color: BRAND.green }} />
+                  <span>Faltam</span>
+                  <span className="font-bold text-slate-900 tabular-nums">
+                    {countdown.d}d {String(countdown.h).padStart(2, '0')}h {String(countdown.m).padStart(2, '0')}m {String(countdown.s).padStart(2, '0')}s
+                  </span>
+                </div>
+                <div className="hidden sm:block h-3 w-px bg-slate-200" />
+                <div className="flex items-center gap-2 text-slate-700">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: BRAND.green }} />
+                    <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: BRAND.green }} />
+                  </span>
+                  <Eye className="h-4 w-4 text-slate-500" />
+                  <span><span className="font-bold text-slate-900 tabular-nums">{viewers}</span> pessoas vendo este evento</span>
+                </div>
+                <div className="hidden sm:block h-3 w-px bg-slate-200" />
+                <div className="flex items-center gap-2 text-slate-700">
+                  <Flame className="h-4 w-4" style={{ color: BRAND.yellow, fill: BRAND.yellow }} />
+                  <span>Camarote com <span className="font-bold text-slate-900">poucas unidades</span></span>
+                </div>
+              </div>
+            </section>
+
+
+
             {/* Info do evento + card de preço */}
             <section className={cn('container mx-auto', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-5xl')}>
               <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-[1fr_320px]')}>
@@ -472,9 +557,17 @@ const EventPreview: React.FC = () => {
                   className="rounded-2xl p-5 h-fit sticky top-20 border"
                   style={{ background: `linear-gradient(180deg, ${BRAND.green}10, #ffffff)`, borderColor: `${BRAND.green}40` }}
                 >
-                  <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: BRAND.green }}>A partir de</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: BRAND.green }}>A partir de</p>
+                    <span className="text-[10px] font-semibold rounded-full px-2 py-0.5 flex items-center gap-1" style={{ background: `${BRAND.cyan}1a`, color: BRAND.cyan }}>
+                      <Eye className="h-3 w-3" /> {viewers} agora
+                    </span>
+                  </div>
                   <p className="text-3xl font-black text-slate-900 mt-1">{minPrice ? brl(minPrice) : '—'}</p>
-                  <p className="text-xs text-slate-500 mb-4">+ taxa de serviço</p>
+                  <p className="text-xs text-slate-500">
+                    em até <span className="font-semibold text-slate-700">10x de {brl((minPrice || 0) / 10)}</span> sem juros
+                  </p>
+                  <p className="text-[11px] text-slate-500 mb-4">+ taxa de serviço</p>
                   <Button
                     className="w-full font-bold h-11 text-white"
                     style={{ background: BRAND.green }}
@@ -482,11 +575,22 @@ const EventPreview: React.FC = () => {
                   >
                     Comprar Ingresso
                   </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full mt-2 h-10 font-semibold"
+                    style={{ borderColor: `${BRAND.green}66`, color: BRAND.green }}
+                    onClick={handleRemindMe}
+                  >
+                    <Bell className="h-4 w-4 mr-2" /> Lembre-me deste evento
+                  </Button>
                   <div className="mt-4 flex items-center gap-2 text-xs text-slate-600">
                     <ShieldCheck className="h-4 w-4" style={{ color: BRAND.green }} /> Compra 100% segura
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-xs text-slate-600">
                     <CreditCard className="h-4 w-4" style={{ color: BRAND.green }} /> Parcele em até 10x sem juros
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-slate-200/70 flex items-center gap-2 text-[11px] text-slate-500">
+                    <Flame className="h-3.5 w-3.5" style={{ color: BRAND.yellow }} /> Procura alta — preço pode subir
                   </div>
                 </aside>
               </div>
@@ -734,22 +838,88 @@ const EventPreview: React.FC = () => {
             </div>
           </footer>
 
-          {/* Mobile sticky CTA */}
+          {/* Mobile sticky CTA — sempre visível */}
           {isMobile && (
-            <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 flex items-center gap-3 shadow-2xl z-40">
-              <div className="flex-1">
-                <p className="text-[10px] text-slate-500">A partir de</p>
-                <p className="text-base font-black text-slate-900">{minPrice ? brl(minPrice) : '—'}</p>
+            <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 shadow-2xl z-40">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-bold rounded-full px-2 py-0.5 flex items-center gap-1" style={{ background: `${BRAND.yellow}33`, color: '#7a5b00' }}>
+                  <Timer className="h-3 w-3" /> {countdown.d}d {String(countdown.h).padStart(2, '0')}:{String(countdown.m).padStart(2, '0')}:{String(countdown.s).padStart(2, '0')}
+                </span>
+                <span className="text-[10px] font-semibold text-slate-500 flex items-center gap-1">
+                  <Eye className="h-3 w-3" /> {viewers} agora
+                </span>
               </div>
-              <Button
-                className="flex-1 font-bold h-11 text-white"
-                style={{ background: BRAND.green }}
-                onClick={() => setSalesOpen(true)}
-              >
-                Comprar
-              </Button>
+              <div className="flex items-center gap-3">
+                <div className="flex-1">
+                  <p className="text-[10px] text-slate-500">A partir de</p>
+                  <p className="text-base font-black text-slate-900 leading-tight">{minPrice ? brl(minPrice) : '—'}</p>
+                  <p className="text-[10px] text-slate-500">10x de {brl((minPrice || 0) / 10)}</p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="h-11 px-3"
+                  style={{ borderColor: `${BRAND.green}66`, color: BRAND.green }}
+                  onClick={handleRemindMe}
+                  aria-label="Lembre-me"
+                >
+                  <Bell className="h-4 w-4" />
+                </Button>
+                <Button
+                  className="flex-1 font-bold h-11 text-white relative"
+                  style={{ background: BRAND.green }}
+                  onClick={() => setSalesOpen(true)}
+                >
+                  Comprar
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-white text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center shadow" style={{ color: BRAND.green }}>
+                      {cartCount}
+                    </span>
+                  )}
+                </Button>
+              </div>
             </div>
           )}
+
+          {/* FAB de carrinho (desktop) — aparece quando há itens */}
+          {!isMobile && cartCount > 0 && (
+            <button
+              onClick={() => setCartOpen(true)}
+              className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full text-white shadow-2xl flex items-center justify-center hover:scale-105 transition-transform animate-scale-in"
+              style={{ background: BRAND.green }}
+              aria-label="Abrir carrinho"
+            >
+              <ShoppingCart className="h-6 w-6" />
+              <span className="absolute -top-1 -right-1 bg-white rounded-full h-6 min-w-6 px-1 text-xs font-bold flex items-center justify-center shadow" style={{ color: BRAND.green }}>
+                {cartCount}
+              </span>
+            </button>
+          )}
+
+          {/* Prova social rotativa (toast discreto) */}
+          {showProof && !salesOpen && !cartOpen && (
+            <div className={cn('fixed z-40 animate-fade-in', isMobile ? 'bottom-24 left-3 right-3' : 'bottom-6 left-6 max-w-xs')}>
+              <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-3 flex items-center gap-3 relative">
+                <div className="h-9 w-9 rounded-full flex items-center justify-center shrink-0" style={{ background: `${BRAND.green}1a` }}>
+                  <CheckCircle2 className="h-5 w-5" style={{ color: BRAND.green }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-slate-900 truncate">{socialProofs[proofIdx].name}</p>
+                  <p className="text-[11px] text-slate-500 truncate">
+                    comprou <span className="font-medium text-slate-700">{socialProofs[proofIdx].sector}</span> {socialProofs[proofIdx].ago}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowProof(false)}
+                  className="absolute top-1.5 right-1.5 h-5 w-5 rounded-full text-slate-400 hover:bg-slate-100 flex items-center justify-center"
+                  aria-label="Dispensar"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          )}
+
+
 
           {/* ============ SALES MODAL ============ */}
           {salesOpen && (
@@ -758,15 +928,52 @@ const EventPreview: React.FC = () => {
                 className="bg-white w-full max-w-6xl rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b bg-slate-50">
-                  <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: BRAND.green }}>Escolha seu lugar</p>
-                    <h4 className="font-bold text-slate-900 text-sm sm:text-base truncate">{eventInfo.title}</h4>
+                <div className="border-b bg-slate-50">
+                  <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: BRAND.green }}>Escolha seu lugar</p>
+                      <h4 className="font-bold text-slate-900 text-sm sm:text-base truncate">{eventInfo.title}</h4>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSalesOpen(false)}>
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSalesOpen(false)}>
-                    <X className="h-4 w-4" />
-                  </Button>
+                  {/* Stepper de progresso */}
+                  <div className="px-4 sm:px-6 pb-3 flex items-center gap-2 text-[11px] font-semibold">
+                    {[
+                      { n: 1, label: 'Setor', done: !!selectedSectorId || cartCount > 0 },
+                      { n: 2, label: 'Quantidade', done: cartCount > 0 },
+                      { n: 3, label: 'Pagamento', done: false },
+                    ].map((step, i, arr) => {
+                      const active = step.done || (i > 0 && arr[i - 1].done && !step.done);
+                      return (
+                        <React.Fragment key={step.n}>
+                          <div className="flex items-center gap-1.5">
+                            <div
+                              className="h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold transition"
+                              style={
+                                step.done
+                                  ? { background: BRAND.green, color: '#fff' }
+                                  : active
+                                  ? { background: '#fff', color: BRAND.green, border: `1.5px solid ${BRAND.green}` }
+                                  : { background: '#e5e7eb', color: '#94a3b8' }
+                              }
+                            >
+                              {step.done ? <CheckCircle2 className="h-3 w-3" /> : step.n}
+                            </div>
+                            <span className={cn('uppercase tracking-wider', step.done || active ? 'text-slate-900' : 'text-slate-400')}>
+                              {step.label}
+                            </span>
+                          </div>
+                          {i < arr.length - 1 && (
+                            <div className="flex-1 h-px" style={{ background: step.done ? BRAND.green : '#e5e7eb' }} />
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
                 </div>
+
 
                 <div className={cn('flex-1 grid overflow-hidden', isMobile ? 'grid-cols-1' : 'grid-cols-[1.4fr_1fr]')}>
                   <div className="relative bg-slate-50 border-r border-slate-200 min-h-[300px]">
@@ -828,8 +1035,15 @@ const EventPreview: React.FC = () => {
                               {s.name.slice(0, 2).toUpperCase()}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-slate-900 truncate">{s.name}</p>
-                              <p className="text-xs text-slate-500">{s.available} disponíveis</p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-sm font-semibold text-slate-900 truncate">{s.name}</p>
+                                {s.available > 0 && s.available <= 20 && (
+                                  <span className="text-[9px] font-bold rounded px-1.5 py-0.5 uppercase tracking-wider flex items-center gap-0.5" style={{ background: `${BRAND.yellow}33`, color: '#7a5b00' }}>
+                                    <Flame className="h-2.5 w-2.5" /> Últimas
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-slate-500">{s.available} disponíveis · 10x de {brl(s.price / 10)}</p>
                             </div>
                             <div className="text-right mr-2">
                               <p className="text-[10px] text-slate-400">a partir de</p>
