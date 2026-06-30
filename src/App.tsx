@@ -19,6 +19,7 @@ const MapasPage = lazy(() => import("./pages/portal/MapasPage"));
 const SimulacaoPage = lazy(() => import("./pages/portal/SimulacaoPage"));
 const ManualPage = lazy(() => import("./pages/portal/ManualPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const EventPreview = lazy(() => import("./pages/EventPreview"));
 
 const queryClient = new QueryClient();
 
@@ -74,6 +75,7 @@ const App = () => (
               {/* MapStudio - funciona independente como antes */}
               <Route path="/" element={<Index />} />
               <Route path="/mapstudio" element={<Index />} />
+              <Route path="/preview-evento" element={<EventPreview />} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>

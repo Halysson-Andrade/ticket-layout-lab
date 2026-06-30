@@ -19,7 +19,7 @@ import { BackgroundImagePanel, BackgroundImageConfig } from './BackgroundImagePa
 import { SeatPlacementPopup, SeatPlacementConfig } from './SeatPlacementPopup';
 import { TextToolbar } from './TextToolbar';
 import { AIMapAssistant } from './AIMapAssistant';
-import { EventPreviewModal } from './EventPreviewModal';
+
 import { buildSectorsAndElementsFromPlan, AIMapPlan } from '@/lib/aiMapPlan';
 import { 
   VenueMap, 
@@ -101,7 +101,7 @@ export const MapStudio: React.FC = () => {
   // Modals
   const [showGridGenerator, setShowGridGenerator] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showEventPreview, setShowEventPreview] = useState(false);
+  
   const [showExport, setShowExport] = useState(false);
   const [editingRow, setEditingRow] = useState<{ sectorId: string; rowLabel: string } | null>(null);
 
@@ -2285,7 +2285,26 @@ export const MapStudio: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowEventPreview(true)}
+            onClick={() => {
+              try {
+                sessionStorage.setItem(
+                  'mapstudio.preview.snapshot',
+                  JSON.stringify({
+                    mapName: mapData.name,
+                    width: mapData.width,
+                    height: mapData.height,
+                    sectors,
+                    elements,
+                    textElements,
+                    backgroundImage,
+                    bgConfig,
+                  }),
+                );
+              } catch (e) {
+                console.error('Falha ao salvar snapshot do mapa', e);
+              }
+              window.open('/preview-evento', '_blank');
+            }}
             title="Pré-visualizar página do evento e carrinho"
           >
             <Eye className="h-4 w-4 mr-2" />
@@ -2602,11 +2621,8 @@ export const MapStudio: React.FC = () => {
         sector={selectedSector}
       />
 
-      <EventPreviewModal
-        open={showEventPreview}
-        onClose={() => setShowEventPreview(false)}
-        mapName={mapData.name}
-      />
+
+
 
       <OnboardingWizard
         open={showOnboarding}
