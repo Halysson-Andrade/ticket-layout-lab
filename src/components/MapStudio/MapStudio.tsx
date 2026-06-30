@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { LayoutGrid, FileJson, Plus, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ChevronUp, ChevronDown, Save, Loader2, Cloud, ArrowLeft, ShieldAlert } from 'lucide-react';
+import { LayoutGrid, FileJson, Plus, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ChevronUp, ChevronDown, Save, Loader2, Cloud, ArrowLeft, ShieldAlert, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useIntegrationMode } from '@/hooks/useIntegrationMode';
 import { usePortalMapLoader } from '@/hooks/usePortalMapLoader';
@@ -19,6 +19,7 @@ import { BackgroundImagePanel, BackgroundImageConfig } from './BackgroundImagePa
 import { SeatPlacementPopup, SeatPlacementConfig } from './SeatPlacementPopup';
 import { TextToolbar } from './TextToolbar';
 import { AIMapAssistant } from './AIMapAssistant';
+import { EventPreviewModal } from './EventPreviewModal';
 import { buildSectorsAndElementsFromPlan, AIMapPlan } from '@/lib/aiMapPlan';
 import { 
   VenueMap, 
@@ -2279,6 +2280,15 @@ export const MapStudio: React.FC = () => {
           >
             <Plus className="h-4 w-4 mr-2" />
             Templates
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowEventPreview(true)}
+            title="Pré-visualizar página do evento e carrinho"
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            Preview Página do Evento
           </Button>
           {integrationState.isIntegration && (
             <Button 
