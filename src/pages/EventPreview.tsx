@@ -233,6 +233,32 @@ const EventPreview: React.FC = () => {
   }, [snapshot]);
 
   const minPrice = sectorsForSale.length ? Math.min(...sectorsForSale.map((s) => s.price)) : 0;
+  const maxPrice = sectorsForSale.length ? Math.max(...sectorsForSale.map((s) => s.price)) : 0;
+
+  // === Inteligência de conversão ===
+  // Melhor custo-benefício: setor com >=15 disponíveis mais próximo da mediana de preço
+  const bestValueSectorId = useMemo(() => {
+    if (!sectorsForSale.length) return null;
+    const candidates = sectorsForSale.filter((s) => s.available >= 10);
+    const pool = candidates.length ? candidates : sectorsForSale;
+    const sorted = [...pool].sort((a, b) => a.price - b.price);
+    // pega o do "meio-baixo" — bom equilíbrio entre preço e experiência
+    return sorted[Math.min(Math.floor(sorted.length / 3), sorted.length - 1)]?.id ?? null;
+  }, [sectorsForSale]);
+
+  // Próxima virada de lote simulada (em 5 dias) e desconto estimado de 12%
+  const nextLoteDays = 5;
+  const loteSavings = minPrice ? Math.round(minPrice * 0.12) : 0;
+
+  // CTA dinâmico baseado em contexto
+  const dynamicCta = useMemo(() => {
+    if (cartCount > 0) return { label: 'Finalizar compra', micro: 'Garanta antes que esgote' };
+    if (countdown.d <= 2) return { label: 'Garantir meu ingresso', micro: 'Últimas horas · evento se aproxima' };
+    if (sectorsForSale.some((s) => s.available <= 20)) return { label: 'Últimos ingressos', micro: 'Setores quase esgotados' };
+    if (nextLoteDays <= 7) return { label: 'Comprar antes da virada de lote', micro: `Lote sobe em ${nextLoteDays} dias` };
+    return { label: 'Comprar ingresso', micro: 'Compra 100% segura' };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sectorsForSale, countdown.d, cartCount]);
 
   const addToCart = (s: { id: string; name: string; price: number; color: string }) => {
     setCart((prev) => {
