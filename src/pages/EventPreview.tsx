@@ -194,11 +194,8 @@ const EventPreview: React.FC = () => {
     return () => clearInterval(t);
   }, []);
 
-  // Rotação de prova social
-  useEffect(() => {
-    const t = setInterval(() => setProofIdx((i) => (i + 1) % socialProofs.length), 6000);
-    return () => clearInterval(t);
-  }, [socialProofs.length]);
+
+
 
   // Fecha menu mobile ao mudar rota
   useEffect(() => { setMobileMenuOpen(false); }, [location.pathname]);
