@@ -84,7 +84,7 @@ const eventInfo = {
   city: 'SETE LAGOAS / MG',
   rating: 4.9,
   reviews: 4820,
-  heroBanner: 'https://s3.guicheweb.com.br/imagenseventos/19-06-2026_10-39-35.png',
+  heroBanner: 'https://s3.guicheweb.com.br/banners/19-06-2026_10-39-35.png',
   description: `A Exposete chega à sua 54ª edição como uma das maiores festas agropecuárias do país, reunindo rodeio profissional, shows nacionais, parque de diversões, praça de alimentação e leilões.
 
 Durante 11 dias de programação, o Parque de Exposições Edgar Maffei recebe mais de 300 mil visitantes e atrações de primeira linha do sertanejo, pagode e piseiro.
