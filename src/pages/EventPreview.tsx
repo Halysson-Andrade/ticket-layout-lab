@@ -600,8 +600,7 @@ const EventPreview: React.FC = () => {
               <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-4')}>
                 <div>
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="bg-emerald-500 rounded p-1"><Ticket className="h-4 w-4 text-white" /></div>
-                    <span className="font-bold text-slate-900">guichê<span className="text-emerald-500">web</span></span>
+                    <img src={GW_LOGO} alt="Guichê Web" className="h-6 w-auto object-contain" />
                   </div>
                   <div className="flex gap-3 text-slate-500">
                     <Instagram className="h-4 w-4" />
