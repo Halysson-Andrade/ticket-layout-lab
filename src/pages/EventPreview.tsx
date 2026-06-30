@@ -58,63 +58,80 @@ const brl = (v: number) =>
 const GW_LOGO = 'https://s3.guicheweb.com.br/nova_marca/logogw.png';
 
 const eventInfo = {
-  title: '54ª Exposete Rodeio Festival',
-  subtitle: 'Circuito Brahma apresenta — a maior festa do interior',
-  date: '09/07/2026 a 19/07/2026',
-  doors: '19:00h',
-  venue: 'Parque de Exposições João Alves Nunes',
-  city: 'Sete Lagoas / MG',
-  rating: 4.8,
-  reviews: 1284,
-  heroBanner: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-25-56.png',
-  heroThumb: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-26-01.png',
+  title: 'Manifesto Musical - Belo Horizonte',
+  subtitle: 'Henrique & Juliano • Turnê Exclusiva 2026',
+  date: '18/07/2026',
+  doors: '14:00h',
+  venue: 'Mineirão',
+  city: 'BELO HORIZONTE / MG',
+  rating: 4.9,
+  reviews: 3120,
+  heroBanner: 'https://s3.guicheweb.com.br/imagenseventos/20-01-2026_17-54-36.png',
+  heroThumb: 'https://s3.guicheweb.com.br/imagenseventos/19-01-2026_08-55-27.jpg',
+  description: `A primeira dupla sertaneja a esgotar ingressos no Maracanã/RJ, Henrique & Juliano se apresentaram para mais de 60 mil pessoas, no dia 03 de Janeiro, no maior estádio do país. O show também marcou o início da turnê Manifesto Musical, com 11 cidades confirmadas em 2026.
+
+A turnê nasceu após três apresentações com ingressos, também esgotados no Allianz Parque, em São Paulo, mostrando que o Manifesto Musical se consolidou como uma celebração da trajetória da dupla, construída com autenticidade, consistência e uma conexão rara com o público.
+
+Prepare-se para uma apresentação histórica, com um espetáculo inédito que promete emocionar o público. Não perca essa oportunidade única de vivenciar uma experiência inesquecível!`,
 };
 
 const heroCarousel = [
-  { src: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-25-56.png', alt: '54ª Exposete Rodeio Festival' },
+  { src: 'https://s3.guicheweb.com.br/imagenseventos/20-01-2026_17-54-36.png', alt: 'Manifesto Musical - Belo Horizonte' },
   { src: 'https://s3.guicheweb.com.br/banners/20-01-2026_11-45-26.jpg', alt: 'Turnê Manifesto Musical 2026' },
-  { src: 'https://s3.guicheweb.com.br/banners/16-06-2026_15-59-44.png', alt: 'No Pelo' },
   { src: 'https://s3.guicheweb.com.br/banners/27-05-2026_16-27-07.png', alt: 'Henrique e Juliano Em Casa' },
+  { src: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-25-56.png', alt: 'Exposete Rodeio Festival' },
 ];
 
 const upcomingEvents = [
-  { title: '54ª Exposete Rodeio Festival', city: 'Sete Lagoas / MG', date: '09 a 19 JUL',
-    img: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-26-01.png' },
-  { title: 'Turnê Manifesto Musical 2026', city: 'São Paulo / SP', date: '15 FEV',
+  { title: 'Turnê Manifesto Musical 2026 - SP', city: 'São Paulo / SP', date: '15 FEV',
     img: 'https://s3.guicheweb.com.br/banners/20-01-2026_11-45-24.jpg' },
-  { title: 'Festa do Peão de Salto de Pirapora', city: 'Salto de Pirapora / SP', date: '20 a 28 JUN',
-    img: 'https://s3.guicheweb.com.br/banners/20-05-2026_10-41-16.png' },
   { title: 'Henrique e Juliano Em Casa', city: 'Palmas / TO', date: '12 SET',
     img: 'https://s3.guicheweb.com.br/banners/27-05-2026_16-27-13.jpg' },
+  { title: '54ª Exposete Rodeio Festival', city: 'Sete Lagoas / MG', date: '09 a 19 JUL',
+    img: 'https://s3.guicheweb.com.br/banners/30-06-2026_08-26-01.png' },
+  { title: 'Festa do Peão de Salto de Pirapora', city: 'Salto de Pirapora / SP', date: '20 a 28 JUN',
+    img: 'https://s3.guicheweb.com.br/banners/20-05-2026_10-41-16.png' },
   { title: 'Oba Festival 2027', city: 'Goiânia / GO', date: '03 a 05 JAN',
     img: 'https://s3.guicheweb.com.br/banners/17-06-2026_14-19-42.png' },
   { title: 'Tangará Festival Music', city: 'Tangará da Serra / MT', date: '22 AGO',
     img: 'https://s3.guicheweb.com.br/banners/19-06-2026_10-39-35.png' },
 ];
 
+const sectorDescriptions = [
+  { name: 'CAMAROTE NASALA', age: '18 anos', notes: ['Open bar: cerveja, vodka, gin, whisky, refrigerante, tônica e água', 'Acesso exclusivo e vista privilegiada', 'Área elevada • Experiências exclusivas'] },
+  { name: 'ESPAÇO ÚLTIMA SAUDADE', age: '18 anos', notes: ['Open bar: cerveja, água e refrigerante', 'Haverá venda de destilados'] },
+  { name: 'GRAMADO', age: '16 anos', notes: ['Área localizada no gramado do estádio', 'Venda de bebidas', 'Área de alimentação'] },
+  { name: 'ARQUIBANCADA', age: '16 anos', notes: ['Venda de bebidas', 'Área de alimentação'] },
+];
+
 const faqs = [
-  { q: 'Há estacionamento no local?', a: 'Sim, terceirizado.' },
-  { q: 'É permitido acesso com câmera fotográfica?', a: 'Sim.' },
-  { q: 'Há acesso para pessoas com deficiência?', a: 'Sim, com acessibilidade total.' },
-  { q: 'Há espaço para fumantes?', a: 'Sim, áreas designadas.' },
-  { q: 'Existe venda de alimentos no local?', a: 'Sim.' },
-  { q: 'Formas de pagamento aceitas no local?', a: 'Crédito, Débito, Dinheiro e PIX.' },
+  { q: 'Será permitida a entrada de menores acompanhados e com autorização?',
+    a: 'Menores com 16 e 17 anos devem estar acompanhados do responsável legal nos setores Gramado e Arquibancada. Não serão aceitos menores sozinhos. Nos setores open bar (Camarote naSala e Espaço Última Saudade) não serão permitidos menores de 18 anos mesmo que acompanhados.' },
+  { q: 'Quais alimentos serão aceitos na portaria com ingresso solidário?',
+    a: 'Apenas alimentos não perecíveis, embalados de fábrica, dentro do prazo de validade e que não sejam sal, cuscuz ou milharina.' },
+  { q: 'Qual horário de abertura dos portões do evento?', a: 'Abertura dos portões prevista para 14 horas.' },
+  { q: 'Terá estacionamento?', a: 'Sim, terceirizado. A produção não se responsabiliza pelos veículos. Aconselhamos ir de transporte por aplicativo ou táxi.' },
+  { q: 'É permitido a entrada com copos ou canecas?', a: 'Não será permitida a entrada.' },
+  { q: 'Terá área PCD?', a: 'Sim, haverá área exclusiva para PCD e seus acompanhantes.' },
+  { q: 'Haverá a possibilidade de acessar outros setores?', a: 'Não. Não haverá transição de um setor para outro.' },
 ];
 
 const rules = [
-  'Apresentação obrigatória do ingresso impresso ou digital com documento oficial com foto.',
-  'O não comparecimento ao evento não dá direito a reembolso.',
-  'Meia-entrada apenas com comprovação no local.',
-  'Menores de 16 anos somente acompanhados dos pais ou responsáveis legais.',
-  'Não é permitida a entrada com alimentos e bebidas externas.',
+  'Apresentação obrigatória do ingresso impresso ou digital, juntamente com documento oficial com foto.',
+  'O não comparecimento ao evento invalidará o ingresso e não permitirá reembolso.',
+  'Meia-entrada apenas mediante comprovação no local conforme legislação vigente.',
+  'Proibida a entrada com copos, latas, objetos pontiagudos, guarda-chuvas, drones e armas.',
+  'O evento poderá ser gravado, filmado ou fotografado; ao participar, o portador autoriza o uso de sua imagem.',
+  'Solicitações de cancelamento podem ser feitas em até 7 dias da compra, com no mínimo 48h de antecedência do evento.',
 ];
 
 const pointsOfSale = [
-  { city: 'Sete Lagoas/MG', name: 'Loja Centro', address: 'Av. Brasil, 1502', phone: '(31) 3033-1622' },
-  { city: 'Belo Horizonte/MG', name: 'Shopping Diamond', address: 'Av. Olegário Maciel, 1600', phone: '(31) 3033-2210' },
-  { city: 'Sete Lagoas/MG', name: 'Loja Iguatemi', address: 'Av. Prefeito Alberto Moura, 540', phone: '(31) 3035-9080' },
-  { city: 'Contagem/MG', name: 'Mercado Central', address: 'R. Bandeirantes, 80', phone: '(31) 3244-1199' },
+  { city: 'Belo Horizonte/MG', name: 'Shopping Diamond Mall', address: 'Av. Olegário Maciel, 1600', phone: '(31) 3033-2210' },
+  { city: 'Belo Horizonte/MG', name: 'BH Shopping', address: 'BR-356, 3049 - Belvedere', phone: '(31) 3033-1622' },
+  { city: 'Contagem/MG', name: 'ItaúPower Shopping', address: 'Av. João César de Oliveira, 1275', phone: '(31) 3244-1199' },
+  { city: 'Sete Lagoas/MG', name: 'Loja Centro', address: 'Av. Brasil, 1502', phone: '(31) 3035-9080' },
 ];
+
 
 // Mock price ladder for sectors that don't carry price info
 const MOCK_PRICES = [480, 280, 220, 180, 150, 120, 90, 380, 650, 420];
