@@ -501,55 +501,72 @@ const EventPreview: React.FC = () => {
 
 
             {/* Info do evento + card de preço */}
-            <section className={cn('container mx-auto', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-5xl')}>
-              <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-[1fr_320px]')}>
+            <section className={cn('container mx-auto', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-6xl')}>
+              <div className={cn('grid gap-8', isMobile ? 'grid-cols-1' : 'grid-cols-[1fr_360px]')}>
                 <div>
-                  <h1 className={cn('font-black text-slate-900 leading-tight', isMobile ? 'text-2xl' : 'text-4xl')}>
+                  {/* Badge de categoria */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <span
+                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider"
+                      style={{ background: `${BRAND.green}14`, color: BRAND.green }}
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: BRAND.green }} />
+                      Festival · Rodeio
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">Setembro · 2026</span>
+                  </div>
+
+                  <h1 className={cn('font-black text-slate-900 leading-[1.05] tracking-tight', isMobile ? 'text-3xl' : 'text-5xl')}>
                     {eventInfo.title}
                   </h1>
-                  <p className="text-sm text-slate-500 mt-1">{eventInfo.subtitle}</p>
+                  <p className="text-base text-slate-500 mt-2 max-w-2xl">{eventInfo.subtitle}</p>
 
-                  <div className="flex items-center gap-1 mt-3 text-amber-500">
+                  <div className="flex items-center gap-1 mt-4 text-amber-500">
                     {[1, 2, 3, 4, 5].map((i) => (
                       <Star key={i} className={cn('h-4 w-4', i <= Math.round(eventInfo.rating) ? 'fill-amber-500' : '')} />
                     ))}
                     <span className="text-xs text-slate-600 ml-2">
-                      {eventInfo.rating} • {eventInfo.reviews.toLocaleString('pt-BR')} avaliações
+                      <span className="font-bold text-slate-900">{eventInfo.rating}</span> · {eventInfo.reviews.toLocaleString('pt-BR')} avaliações
                     </span>
                   </div>
 
-                  <div className="mt-5 space-y-3">
-                    <div className="flex items-start gap-3">
-                      <div className="rounded-lg p-2" style={{ background: `${BRAND.green}1a`, color: BRAND.green }}>
-                        <Calendar className="h-4 w-4" />
+                  {/* Meta cards */}
+                  <div className={cn('mt-6 grid gap-3', isMobile ? 'grid-cols-1' : 'grid-cols-2')}>
+                    <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-300 transition">
+                      <div className="rounded-lg p-2.5 shrink-0" style={{ background: `${BRAND.green}1a`, color: BRAND.green }}>
+                        <Calendar className="h-5 w-5" />
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{eventInfo.date}</p>
-                        <p className="text-xs text-slate-500 flex items-center gap-1">
+                      <div className="min-w-0">
+                        <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Data</p>
+                        <p className="text-sm font-semibold text-slate-900 leading-tight mt-0.5">{eventInfo.date}</p>
+                        <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
                           <Clock className="h-3 w-3" /> Abertura {eventInfo.doors}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3">
-                      <div className="rounded-lg p-2" style={{ background: `${BRAND.cyan}1a`, color: BRAND.cyan }}>
-                        <MapPin className="h-4 w-4" />
+                    <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-300 transition">
+                      <div className="rounded-lg p-2.5 shrink-0" style={{ background: `${BRAND.cyan}1a`, color: BRAND.cyan }}>
+                        <MapPin className="h-5 w-5" />
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{eventInfo.venue}</p>
-                        <p className="text-xs text-slate-500">{eventInfo.city}</p>
+                      <div className="min-w-0">
+                        <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Local</p>
+                        <p className="text-sm font-semibold text-slate-900 leading-tight mt-0.5 truncate">{eventInfo.venue}</p>
+                        <p className="text-xs text-slate-500 mt-1">{eventInfo.city}</p>
                       </div>
                     </div>
                   </div>
 
                   <div className="mt-5 flex items-center gap-2">
-                    <button className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center text-rose-500 hover:bg-rose-50">
-                      <Heart className="h-4 w-4" />
+                    <button className="h-10 px-4 rounded-full border border-slate-200 flex items-center gap-2 text-sm font-medium text-slate-700 hover:border-rose-300 hover:text-rose-500 hover:bg-rose-50 transition">
+                      <Heart className="h-4 w-4" /> Favoritar
                     </button>
-                    <button className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50">
-                      <Share2 className="h-4 w-4" />
+                    <button className="h-10 px-4 rounded-full border border-slate-200 flex items-center gap-2 text-sm font-medium text-slate-700 hover:border-slate-400 hover:bg-slate-50 transition">
+                      <Share2 className="h-4 w-4" /> Compartilhar
                     </button>
                   </div>
                 </div>
+
+
 
                 <aside
                   className="rounded-2xl p-6 h-fit sticky top-20 border border-slate-200 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)]"
