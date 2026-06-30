@@ -662,6 +662,140 @@ const EventPreview: React.FC = () => {
             </div>
           )}
 
+          {/* Sales modal: mapa interativo + lista de setores (navegação bidirecional) */}
+          {salesOpen && (
+            <div className="absolute inset-0 z-40 bg-slate-900/60 backdrop-blur-sm flex items-stretch justify-center p-0 sm:p-4" onClick={() => setSalesOpen(false)}>
+              <div
+                className="bg-white w-full max-w-6xl rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b bg-slate-50">
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-emerald-600 font-bold">Escolha seu lugar</p>
+                    <h4 className="font-bold text-slate-900 text-sm sm:text-base truncate">{eventInfo.title}</h4>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSalesOpen(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <div className={cn('flex-1 grid overflow-hidden', isMobile ? 'grid-cols-1' : 'grid-cols-[1.4fr_1fr]')}>
+                  {/* Mapa interativo */}
+                  <div className="relative bg-slate-50 border-r border-slate-200 min-h-[300px]">
+                    {sectorsForSale.length === 0 ? (
+                      <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500 text-center p-6">
+                        Nenhum setor disponível no mapa.
+                      </div>
+                    ) : (
+                      <MapPreviewSVG
+                        sectors={snapshot.sectors}
+                        elements={snapshot.elements}
+                        textElements={snapshot.textElements}
+                        width={snapshot.width}
+                        height={snapshot.height}
+                        backgroundImage={snapshot.backgroundImage}
+                        bgConfig={snapshot.bgConfig}
+                        hoveredSectorId={hoveredSectorId}
+                        selectedSectorId={selectedSectorId}
+                        onHoverSector={setHoveredSectorId}
+                        onClickSector={(id) => setSelectedSectorId(id)}
+                      />
+                    )}
+                    {(hoveredSectorId || selectedSectorId) && (
+                      <div className="absolute bottom-3 left-3 right-3 bg-slate-900/90 text-white text-xs rounded-md px-3 py-2 flex items-center justify-between pointer-events-none">
+                        <span className="font-semibold truncate">
+                          {sectorsForSale.find((s) => s.id === (hoveredSectorId || selectedSectorId))?.name}
+                        </span>
+                        <span className="font-bold text-emerald-300">
+                          {brl(sectorsForSale.find((s) => s.id === (hoveredSectorId || selectedSectorId))?.price ?? 0)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Lista de setores (sincronizada) */}
+                  <ScrollArea className="bg-white">
+                    <div className="p-4 space-y-2">
+                      <p className="text-xs text-slate-500 mb-2">
+                        Clique em um setor — no mapa ou na lista — para destacar e adicionar ao carrinho.
+                      </p>
+                      {sectorsForSale.map((s) => {
+                        const isActive = (selectedSectorId || hoveredSectorId) === s.id;
+                        const inCart = cart.find((i) => i.sectorId === s.id);
+                        return (
+                          <div
+                            key={s.id}
+                            onMouseEnter={() => setHoveredSectorId(s.id)}
+                            onMouseLeave={() => setHoveredSectorId(null)}
+                            onClick={() => setSelectedSectorId(s.id)}
+                            className={cn(
+                              'flex items-center gap-3 border rounded-xl p-3 cursor-pointer transition',
+                              isActive ? 'border-emerald-500 shadow-md ring-2 ring-emerald-100' : 'border-slate-200 hover:border-emerald-400',
+                            )}
+                          >
+                            <div
+                              className="h-10 w-10 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0"
+                              style={{ background: s.color }}
+                            >
+                              {s.name.slice(0, 2).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-slate-900 truncate">{s.name}</p>
+                              <p className="text-xs text-slate-500">{s.available} disponíveis</p>
+                            </div>
+                            <div className="text-right mr-2">
+                              <p className="text-[10px] text-slate-400">a partir de</p>
+                              <p className="text-sm font-bold text-emerald-600">{brl(s.price)}</p>
+                            </div>
+                            {inCart ? (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); updateQty(s.id, -1); }}
+                                  className="h-7 w-7 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50"
+                                ><Minus className="h-3 w-3" /></button>
+                                <span className="text-sm font-semibold w-5 text-center">{inCart.qty}</span>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); addToCart(s); }}
+                                  className="h-7 w-7 rounded border border-emerald-300 bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-100"
+                                ><Plus className="h-3 w-3" /></button>
+                              </div>
+                            ) : (
+                              <Button
+                                size="sm"
+                                className="bg-emerald-500 hover:bg-emerald-600 text-white h-8"
+                                onClick={(e) => { e.stopPropagation(); addToCart(s); }}
+                              >
+                                <Plus className="h-3 w-3 mr-1" /> Adicionar
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </div>
+
+                {/* Resumo do modal */}
+                <div className="border-t bg-slate-50 px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] text-slate-500">{cartCount} {cartCount === 1 ? 'ingresso' : 'ingressos'}</p>
+                    <p className="text-base font-black text-slate-900">{brl(total)}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setSalesOpen(false)}>Continuar olhando</Button>
+                    <Button
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold"
+                      disabled={cartCount === 0}
+                      onClick={() => { setSalesOpen(false); setCartOpen(true); }}
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-2" /> Ver carrinho
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Cart drawer */}
           {cartOpen && (
             <div className="absolute inset-0 z-50 flex" onClick={() => setCartOpen(false)}>
