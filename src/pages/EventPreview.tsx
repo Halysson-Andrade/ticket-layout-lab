@@ -557,9 +557,17 @@ const EventPreview: React.FC = () => {
                   className="rounded-2xl p-5 h-fit sticky top-20 border"
                   style={{ background: `linear-gradient(180deg, ${BRAND.green}10, #ffffff)`, borderColor: `${BRAND.green}40` }}
                 >
-                  <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: BRAND.green }}>A partir de</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: BRAND.green }}>A partir de</p>
+                    <span className="text-[10px] font-semibold rounded-full px-2 py-0.5 flex items-center gap-1" style={{ background: `${BRAND.cyan}1a`, color: BRAND.cyan }}>
+                      <Eye className="h-3 w-3" /> {viewers} agora
+                    </span>
+                  </div>
                   <p className="text-3xl font-black text-slate-900 mt-1">{minPrice ? brl(minPrice) : '—'}</p>
-                  <p className="text-xs text-slate-500 mb-4">+ taxa de serviço</p>
+                  <p className="text-xs text-slate-500">
+                    em até <span className="font-semibold text-slate-700">10x de {brl((minPrice || 0) / 10)}</span> sem juros
+                  </p>
+                  <p className="text-[11px] text-slate-500 mb-4">+ taxa de serviço</p>
                   <Button
                     className="w-full font-bold h-11 text-white"
                     style={{ background: BRAND.green }}
@@ -567,11 +575,22 @@ const EventPreview: React.FC = () => {
                   >
                     Comprar Ingresso
                   </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full mt-2 h-10 font-semibold"
+                    style={{ borderColor: `${BRAND.green}66`, color: BRAND.green }}
+                    onClick={handleRemindMe}
+                  >
+                    <Bell className="h-4 w-4 mr-2" /> Lembre-me deste evento
+                  </Button>
                   <div className="mt-4 flex items-center gap-2 text-xs text-slate-600">
                     <ShieldCheck className="h-4 w-4" style={{ color: BRAND.green }} /> Compra 100% segura
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-xs text-slate-600">
                     <CreditCard className="h-4 w-4" style={{ color: BRAND.green }} /> Parcele em até 10x sem juros
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-slate-200/70 flex items-center gap-2 text-[11px] text-slate-500">
+                    <Flame className="h-3.5 w-3.5" style={{ color: BRAND.yellow }} /> Procura alta — preço pode subir
                   </div>
                 </aside>
               </div>
