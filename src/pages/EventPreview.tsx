@@ -662,7 +662,7 @@ const EventPreview: React.FC = () => {
           </main>
 
           {/* ============ FOOTER ============ */}
-          <footer className="bg-slate-900 text-slate-200">
+          <footer className="bg-black text-[#B3B3B3]">
             <div className={cn('mx-auto', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-6xl')}>
               {/* Topo: logo + sociais + badges */}
               <div className={cn('flex gap-6 pb-6 border-b border-white/10', isMobile ? 'flex-col' : 'flex-row items-center justify-between')}>
