@@ -558,6 +558,42 @@ const EventPreview: React.FC = () => {
             </div>
           </section>
 
+          {/* Você também pode gostar */}
+          <section className="bg-white">
+            <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl')}>
+              <div className="flex items-end justify-between mb-5">
+                <div>
+                  <p className="text-xs text-emerald-600 font-bold tracking-widest uppercase">Outros eventos</p>
+                  <h3 className={cn('font-black text-slate-900', isMobile ? 'text-xl' : 'text-2xl')}>
+                    Você também pode gostar
+                  </h3>
+                </div>
+                <button className="text-xs font-semibold text-emerald-600 hover:underline hidden sm:block">
+                  Ver todos →
+                </button>
+              </div>
+              <div className={cn('grid gap-4', isMobile ? 'grid-cols-2' : 'grid-cols-3 lg:grid-cols-6')}>
+                {upcomingEvents.map((e) => (
+                  <div key={e.title} className="group cursor-pointer">
+                    <div className="aspect-[800/400] rounded-xl overflow-hidden bg-slate-200 ring-1 ring-slate-200 group-hover:ring-emerald-400 transition shadow-sm">
+                      <img
+                        src={e.img}
+                        alt={e.title}
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                      />
+                    </div>
+                    <p className="mt-2 text-[11px] font-bold text-emerald-600">{e.date}</p>
+                    <p className="text-xs font-semibold text-slate-900 leading-tight line-clamp-2">{e.title}</p>
+                    <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                      <MapPin className="h-3 w-3" /> {e.city}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
           {/* Footer */}
           <footer className="bg-slate-100 border-t border-slate-200">
             <div className={cn('mx-auto', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-5xl')}>
