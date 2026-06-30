@@ -1035,8 +1035,15 @@ const EventPreview: React.FC = () => {
                               {s.name.slice(0, 2).toUpperCase()}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-slate-900 truncate">{s.name}</p>
-                              <p className="text-xs text-slate-500">{s.available} disponíveis</p>
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-sm font-semibold text-slate-900 truncate">{s.name}</p>
+                                {s.available > 0 && s.available <= 20 && (
+                                  <span className="text-[9px] font-bold rounded px-1.5 py-0.5 uppercase tracking-wider flex items-center gap-0.5" style={{ background: `${BRAND.yellow}33`, color: '#7a5b00' }}>
+                                    <Flame className="h-2.5 w-2.5" /> Últimas
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-slate-500">{s.available} disponíveis · 10x de {brl(s.price / 10)}</p>
                             </div>
                             <div className="text-right mr-2">
                               <p className="text-[10px] text-slate-400">a partir de</p>
