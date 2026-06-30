@@ -447,19 +447,32 @@ const EventPreview: React.FC = () => {
 
           {/* ============ MAIN ============ */}
           <main className="flex-1 flex flex-col">
-            {/* HERO: APENAS A FOTO DO EVENTO */}
-            <section className="bg-slate-100">
-              <div className={cn('mx-auto w-full', isMobile ? 'px-0' : 'px-8 py-6 max-w-6xl')}>
-                <div className={cn('overflow-hidden bg-slate-200', isMobile ? 'aspect-[16/9]' : 'rounded-2xl shadow-lg aspect-[1920/600]')}>
+            {/* HERO: banner do evento sobre fundo escuro (estilo Guichê) */}
+            <section className="relative bg-black">
+              {/* glow ambient */}
+              <div className="pointer-events-none absolute inset-0 opacity-60"
+                style={{
+                  background: `radial-gradient(ellipse 60% 70% at 50% 0%, ${BRAND.green}22, transparent 70%)`,
+                }}
+              />
+              <div className={cn('relative mx-auto w-full', isMobile ? 'px-0 pb-0' : 'px-8 pt-8 pb-10 max-w-6xl')}>
+                <div className={cn('relative overflow-hidden bg-black', isMobile ? 'aspect-[16/10]' : 'rounded-3xl shadow-2xl ring-1 ring-white/10 aspect-[1920/720]')}>
                   <img
                     src={eventInfo.heroBanner}
                     alt={eventInfo.title}
                     className="w-full h-full object-cover"
                     loading="eager"
                   />
+                  {/* leve gradiente inferior para legibilidade caso queira sobrepor algo */}
+                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent" />
                 </div>
               </div>
+              {/* recorte ondulado estilo Guichê separando o hero do conteúdo */}
+              <svg className="block w-full h-6 -mb-px text-white" viewBox="0 0 1440 24" preserveAspectRatio="none" aria-hidden="true">
+                <path fill="currentColor" d="M0,24 L0,12 Q30,0 60,12 T120,12 T180,12 T240,12 T300,12 T360,12 T420,12 T480,12 T540,12 T600,12 T660,12 T720,12 T780,12 T840,12 T900,12 T960,12 T1020,12 T1080,12 T1140,12 T1200,12 T1260,12 T1320,12 T1380,12 T1440,12 L1440,24 Z"/>
+              </svg>
             </section>
+
 
             {/* URGÊNCIA & PROVA SOCIAL (strip discreta) */}
             <section className="bg-white border-b border-slate-200">
@@ -488,55 +501,72 @@ const EventPreview: React.FC = () => {
 
 
             {/* Info do evento + card de preço */}
-            <section className={cn('container mx-auto', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-5xl')}>
-              <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-[1fr_320px]')}>
+            <section className={cn('container mx-auto', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-6xl')}>
+              <div className={cn('grid gap-8', isMobile ? 'grid-cols-1' : 'grid-cols-[1fr_360px]')}>
                 <div>
-                  <h1 className={cn('font-black text-slate-900 leading-tight', isMobile ? 'text-2xl' : 'text-4xl')}>
+                  {/* Badge de categoria */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <span
+                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider"
+                      style={{ background: `${BRAND.green}14`, color: BRAND.green }}
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: BRAND.green }} />
+                      Festival · Rodeio
+                    </span>
+                    <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">Setembro · 2026</span>
+                  </div>
+
+                  <h1 className={cn('font-black text-slate-900 leading-[1.05] tracking-tight', isMobile ? 'text-3xl' : 'text-5xl')}>
                     {eventInfo.title}
                   </h1>
-                  <p className="text-sm text-slate-500 mt-1">{eventInfo.subtitle}</p>
+                  <p className="text-base text-slate-500 mt-2 max-w-2xl">{eventInfo.subtitle}</p>
 
-                  <div className="flex items-center gap-1 mt-3 text-amber-500">
+                  <div className="flex items-center gap-1 mt-4 text-amber-500">
                     {[1, 2, 3, 4, 5].map((i) => (
                       <Star key={i} className={cn('h-4 w-4', i <= Math.round(eventInfo.rating) ? 'fill-amber-500' : '')} />
                     ))}
                     <span className="text-xs text-slate-600 ml-2">
-                      {eventInfo.rating} • {eventInfo.reviews.toLocaleString('pt-BR')} avaliações
+                      <span className="font-bold text-slate-900">{eventInfo.rating}</span> · {eventInfo.reviews.toLocaleString('pt-BR')} avaliações
                     </span>
                   </div>
 
-                  <div className="mt-5 space-y-3">
-                    <div className="flex items-start gap-3">
-                      <div className="rounded-lg p-2" style={{ background: `${BRAND.green}1a`, color: BRAND.green }}>
-                        <Calendar className="h-4 w-4" />
+                  {/* Meta cards */}
+                  <div className={cn('mt-6 grid gap-3', isMobile ? 'grid-cols-1' : 'grid-cols-2')}>
+                    <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-300 transition">
+                      <div className="rounded-lg p-2.5 shrink-0" style={{ background: `${BRAND.green}1a`, color: BRAND.green }}>
+                        <Calendar className="h-5 w-5" />
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{eventInfo.date}</p>
-                        <p className="text-xs text-slate-500 flex items-center gap-1">
+                      <div className="min-w-0">
+                        <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Data</p>
+                        <p className="text-sm font-semibold text-slate-900 leading-tight mt-0.5">{eventInfo.date}</p>
+                        <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
                           <Clock className="h-3 w-3" /> Abertura {eventInfo.doors}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3">
-                      <div className="rounded-lg p-2" style={{ background: `${BRAND.cyan}1a`, color: BRAND.cyan }}>
-                        <MapPin className="h-4 w-4" />
+                    <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-300 transition">
+                      <div className="rounded-lg p-2.5 shrink-0" style={{ background: `${BRAND.cyan}1a`, color: BRAND.cyan }}>
+                        <MapPin className="h-5 w-5" />
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{eventInfo.venue}</p>
-                        <p className="text-xs text-slate-500">{eventInfo.city}</p>
+                      <div className="min-w-0">
+                        <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Local</p>
+                        <p className="text-sm font-semibold text-slate-900 leading-tight mt-0.5 truncate">{eventInfo.venue}</p>
+                        <p className="text-xs text-slate-500 mt-1">{eventInfo.city}</p>
                       </div>
                     </div>
                   </div>
 
                   <div className="mt-5 flex items-center gap-2">
-                    <button className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center text-rose-500 hover:bg-rose-50">
-                      <Heart className="h-4 w-4" />
+                    <button className="h-10 px-4 rounded-full border border-slate-200 flex items-center gap-2 text-sm font-medium text-slate-700 hover:border-rose-300 hover:text-rose-500 hover:bg-rose-50 transition">
+                      <Heart className="h-4 w-4" /> Favoritar
                     </button>
-                    <button className="h-9 w-9 rounded-full border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50">
-                      <Share2 className="h-4 w-4" />
+                    <button className="h-10 px-4 rounded-full border border-slate-200 flex items-center gap-2 text-sm font-medium text-slate-700 hover:border-slate-400 hover:bg-slate-50 transition">
+                      <Share2 className="h-4 w-4" /> Compartilhar
                     </button>
                   </div>
                 </div>
+
+
 
                 <aside
                   className="rounded-2xl p-6 h-fit sticky top-20 border border-slate-200 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)]"
@@ -850,10 +880,11 @@ const EventPreview: React.FC = () => {
             </div>
           )}
 
-          {/* ============ Desktop floating CTA — sempre visível ============ */}
-          {!isMobile && !salesOpen && !cartOpen && (
-            <div className="fixed bottom-6 right-6 z-[60] flex flex-col items-end gap-2 animate-fade-in">
-              {cartCount > 0 && (
+          {/* ============ Floating helpers (WhatsApp + carrinho compacto) ============ */}
+          {!salesOpen && !cartOpen && (
+            <div className={cn('fixed z-[60] flex flex-col items-end gap-3 animate-fade-in', isMobile ? 'bottom-24 right-3' : 'bottom-6 right-6')}>
+              {/* Cart pill — só quando há itens */}
+              {!isMobile && cartCount > 0 && (
                 <button
                   onClick={() => setCartOpen(true)}
                   className="group bg-white border border-slate-200 rounded-full shadow-xl pl-3 pr-4 py-2 flex items-center gap-2 hover:shadow-2xl transition-all hover:-translate-y-0.5"
@@ -870,23 +901,25 @@ const EventPreview: React.FC = () => {
                   </span>
                 </button>
               )}
-              <button
-                onClick={() => setSalesOpen(true)}
-                className="group relative overflow-hidden h-14 pl-5 pr-6 rounded-full text-white font-bold shadow-2xl flex items-center gap-3 hover:scale-[1.03] active:scale-[0.98] transition-transform"
-                style={{ background: BRAND.green, boxShadow: `0 12px 40px -8px ${BRAND.green}80` }}
-                aria-label="Comprar ingresso"
+
+              {/* WhatsApp FAB — padrão Guichê, sempre visível */}
+              <a
+                href="https://wa.me/553132267272"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Fale conosco no WhatsApp"
+                className="group relative h-14 w-14 rounded-full flex items-center justify-center text-white shadow-2xl hover:scale-105 active:scale-95 transition-transform"
+                style={{ background: '#25D366', boxShadow: '0 12px 32px -8px rgba(37,211,102,0.55)' }}
               >
-                <span className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <span className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
-                  <ShoppingCart className="h-4 w-4" />
-                </span>
-                <span className="flex flex-col items-start leading-tight">
-                  <span className="text-[10px] uppercase tracking-wider opacity-90 font-semibold">Garanta o seu</span>
-                  <span className="text-sm">Comprar ingresso</span>
-                </span>
-              </button>
+                <span className="absolute inset-0 rounded-full animate-ping opacity-40" style={{ background: '#25D366' }} />
+                <svg viewBox="0 0 24 24" className="relative h-7 w-7 fill-current" aria-hidden="true">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.198-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                </svg>
+              </a>
             </div>
           )}
+
+
 
 
 
