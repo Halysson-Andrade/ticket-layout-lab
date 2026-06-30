@@ -166,19 +166,10 @@ const EventPreview: React.FC = () => {
 
   // === Conversion boosters ===
   const [viewers, setViewers] = useState(() => 87 + Math.floor(Math.random() * 60));
-  const [proofIdx, setProofIdx] = useState(0);
-  const [showProof, setShowProof] = useState(true);
   const [now, setNow] = useState(Date.now());
   // Deadline: data simulada do evento (09/Jul/2026 18:00 BRT)
   const deadline = useMemo(() => new Date('2026-07-09T18:00:00-03:00').getTime(), []);
 
-  const socialProofs = useMemo(() => ([
-    { name: 'Maria, BH/MG', sector: 'Camarote Nasala', ago: 'há 2 min' },
-    { name: 'João, Sete Lagoas/MG', sector: 'Arquibancada', ago: 'há 4 min' },
-    { name: 'Ana, Contagem/MG', sector: 'Gramado', ago: 'há 6 min' },
-    { name: 'Pedro, BH/MG', sector: 'Última Saudade', ago: 'há 8 min' },
-    { name: 'Camila, Betim/MG', sector: 'Camarote Nasala', ago: 'há 11 min' },
-  ]), []);
 
   useEffect(() => {
     try {
@@ -203,11 +194,8 @@ const EventPreview: React.FC = () => {
     return () => clearInterval(t);
   }, []);
 
-  // Rotação de prova social
-  useEffect(() => {
-    const t = setInterval(() => setProofIdx((i) => (i + 1) % socialProofs.length), 6000);
-    return () => clearInterval(t);
-  }, [socialProofs.length]);
+
+
 
   // Fecha menu mobile ao mudar rota
   useEffect(() => { setMobileMenuOpen(false); }, [location.pathname]);
@@ -474,31 +462,28 @@ const EventPreview: React.FC = () => {
             </section>
 
             {/* URGÊNCIA & PROVA SOCIAL (strip discreta) */}
-            <section className="bg-white border-y border-slate-200">
-              <div className={cn('mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-2', isMobile ? 'px-4 py-3 text-[11px]' : 'px-8 py-3 text-xs max-w-6xl')}>
-                <div className="flex items-center gap-2 text-slate-700">
-                  <Timer className="h-4 w-4" style={{ color: BRAND.green }} />
-                  <span>Faltam</span>
+            <section className="bg-white border-b border-slate-200">
+              <div className={cn('mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-2', isMobile ? 'px-4 py-3 text-[11px]' : 'px-8 py-3.5 text-xs max-w-6xl')}>
+                <div className="flex items-center gap-2 text-slate-600">
+                  <Timer className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
+                  <span className="font-medium">Faltam</span>
                   <span className="font-bold text-slate-900 tabular-nums">
-                    {countdown.d}d {String(countdown.h).padStart(2, '0')}h {String(countdown.m).padStart(2, '0')}m {String(countdown.s).padStart(2, '0')}s
+                    {countdown.d}d {String(countdown.h).padStart(2, '0')}:{String(countdown.m).padStart(2, '0')}:{String(countdown.s).padStart(2, '0')}
                   </span>
                 </div>
                 <div className="hidden sm:block h-3 w-px bg-slate-200" />
-                <div className="flex items-center gap-2 text-slate-700">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: BRAND.green }} />
-                    <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: BRAND.green }} />
-                  </span>
-                  <Eye className="h-4 w-4 text-slate-500" />
-                  <span><span className="font-bold text-slate-900 tabular-nums">{viewers}</span> pessoas vendo este evento</span>
+                <div className="flex items-center gap-2 text-slate-600">
+                  <ShieldCheck className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
+                  <span>Compra <span className="font-semibold text-slate-900">100% segura</span></span>
                 </div>
                 <div className="hidden sm:block h-3 w-px bg-slate-200" />
-                <div className="flex items-center gap-2 text-slate-700">
-                  <Flame className="h-4 w-4" style={{ color: BRAND.yellow, fill: BRAND.yellow }} />
-                  <span>Camarote com <span className="font-bold text-slate-900">poucas unidades</span></span>
+                <div className="flex items-center gap-2 text-slate-600">
+                  <CreditCard className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
+                  <span>Em até <span className="font-semibold text-slate-900">10x sem juros</span></span>
                 </div>
               </div>
             </section>
+
 
 
 
@@ -554,45 +539,46 @@ const EventPreview: React.FC = () => {
                 </div>
 
                 <aside
-                  className="rounded-2xl p-5 h-fit sticky top-20 border"
-                  style={{ background: `linear-gradient(180deg, ${BRAND.green}10, #ffffff)`, borderColor: `${BRAND.green}40` }}
+                  className="rounded-2xl p-6 h-fit sticky top-20 border border-slate-200 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)]"
                 >
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs uppercase tracking-wider font-semibold" style={{ color: BRAND.green }}>A partir de</p>
-                    <span className="text-[10px] font-semibold rounded-full px-2 py-0.5 flex items-center gap-1" style={{ background: `${BRAND.cyan}1a`, color: BRAND.cyan }}>
-                      <Eye className="h-3 w-3" /> {viewers} agora
-                    </span>
+                  <p className="text-[10px] uppercase tracking-[0.15em] font-bold text-slate-400">A partir de</p>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <p className="text-4xl font-black text-slate-900 leading-none">{minPrice ? brl(minPrice) : '—'}</p>
                   </div>
-                  <p className="text-3xl font-black text-slate-900 mt-1">{minPrice ? brl(minPrice) : '—'}</p>
-                  <p className="text-xs text-slate-500">
-                    em até <span className="font-semibold text-slate-700">10x de {brl((minPrice || 0) / 10)}</span> sem juros
+                  <p className="text-xs text-slate-500 mt-2">
+                    ou <span className="font-semibold text-slate-700">10x de {brl((minPrice || 0) / 10)}</span> sem juros
                   </p>
-                  <p className="text-[11px] text-slate-500 mb-4">+ taxa de serviço</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">+ taxa de serviço</p>
+
                   <Button
-                    className="w-full font-bold h-11 text-white"
+                    className="w-full font-bold h-12 text-white mt-5 rounded-xl shadow-sm hover:shadow-md transition-shadow"
                     style={{ background: BRAND.green }}
                     onClick={() => setSalesOpen(true)}
                   >
+                    <ShoppingCart className="h-4 w-4 mr-2" />
                     Comprar Ingresso
                   </Button>
                   <Button
-                    variant="outline"
-                    className="w-full mt-2 h-10 font-semibold"
-                    style={{ borderColor: `${BRAND.green}66`, color: BRAND.green }}
+                    variant="ghost"
+                    className="w-full mt-2 h-10 font-semibold text-slate-600 hover:text-slate-900"
                     onClick={handleRemindMe}
                   >
                     <Bell className="h-4 w-4 mr-2" /> Lembre-me deste evento
                   </Button>
-                  <div className="mt-4 flex items-center gap-2 text-xs text-slate-600">
-                    <ShieldCheck className="h-4 w-4" style={{ color: BRAND.green }} /> Compra 100% segura
-                  </div>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-slate-600">
-                    <CreditCard className="h-4 w-4" style={{ color: BRAND.green }} /> Parcele em até 10x sem juros
-                  </div>
-                  <div className="mt-3 pt-3 border-t border-slate-200/70 flex items-center gap-2 text-[11px] text-slate-500">
-                    <Flame className="h-3.5 w-3.5" style={{ color: BRAND.yellow }} /> Procura alta — preço pode subir
+
+                  <div className="mt-5 pt-5 border-t border-slate-100 space-y-2.5">
+                    <div className="flex items-center gap-2.5 text-xs text-slate-600">
+                      <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> Compra 100% segura
+                    </div>
+                    <div className="flex items-center gap-2.5 text-xs text-slate-600">
+                      <CreditCard className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> Parcele em até 10x sem juros
+                    </div>
+                    <div className="flex items-center gap-2.5 text-xs text-slate-600">
+                      <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> Ingresso digital imediato
+                    </div>
                   </div>
                 </aside>
+
               </div>
             </section>
 
@@ -838,40 +824,24 @@ const EventPreview: React.FC = () => {
             </div>
           </footer>
 
-          {/* Mobile sticky CTA — sempre visível */}
-          {isMobile && (
-            <div className="sticky bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 shadow-2xl z-40">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] font-bold rounded-full px-2 py-0.5 flex items-center gap-1" style={{ background: `${BRAND.yellow}33`, color: '#7a5b00' }}>
-                  <Timer className="h-3 w-3" /> {countdown.d}d {String(countdown.h).padStart(2, '0')}:{String(countdown.m).padStart(2, '0')}:{String(countdown.s).padStart(2, '0')}
-                </span>
-                <span className="text-[10px] font-semibold text-slate-500 flex items-center gap-1">
-                  <Eye className="h-3 w-3" /> {viewers} agora
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex-1">
-                  <p className="text-[10px] text-slate-500">A partir de</p>
-                  <p className="text-base font-black text-slate-900 leading-tight">{minPrice ? brl(minPrice) : '—'}</p>
-                  <p className="text-[10px] text-slate-500">10x de {brl((minPrice || 0) / 10)}</p>
+          {/* ============ Mobile bottom bar (fixed, always visible) ============ */}
+          {isMobile && !salesOpen && !cartOpen && (
+            <div className="fixed bottom-0 left-0 right-0 z-[60] animate-slide-in-bottom">
+              <div className="mx-2 mb-2 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200 shadow-[0_-8px_30px_rgb(0,0,0,0.12)] p-2.5 flex items-center gap-2.5">
+                <div className="flex-1 min-w-0 pl-1">
+                  <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold leading-none">A partir de</p>
+                  <p className="text-lg font-black text-slate-900 leading-tight mt-0.5">{minPrice ? brl(minPrice) : '—'}</p>
+                  <p className="text-[10px] text-slate-500 leading-none mt-0.5">10x sem juros</p>
                 </div>
                 <Button
-                  variant="outline"
-                  className="h-11 px-3"
-                  style={{ borderColor: `${BRAND.green}66`, color: BRAND.green }}
-                  onClick={handleRemindMe}
-                  aria-label="Lembre-me"
-                >
-                  <Bell className="h-4 w-4" />
-                </Button>
-                <Button
-                  className="flex-1 font-bold h-11 text-white relative"
+                  className="h-12 px-5 font-bold text-white rounded-xl shadow-md relative"
                   style={{ background: BRAND.green }}
                   onClick={() => setSalesOpen(true)}
                 >
+                  <ShoppingCart className="h-4 w-4 mr-2" />
                   Comprar
                   {cartCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-white text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center shadow" style={{ color: BRAND.green }}>
+                    <span className="absolute -top-1.5 -right-1.5 bg-white text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center shadow ring-2 ring-white" style={{ color: BRAND.green }}>
                       {cartCount}
                     </span>
                   )}
@@ -880,44 +850,45 @@ const EventPreview: React.FC = () => {
             </div>
           )}
 
-          {/* FAB de carrinho (desktop) — aparece quando há itens */}
-          {!isMobile && cartCount > 0 && (
-            <button
-              onClick={() => setCartOpen(true)}
-              className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full text-white shadow-2xl flex items-center justify-center hover:scale-105 transition-transform animate-scale-in"
-              style={{ background: BRAND.green }}
-              aria-label="Abrir carrinho"
-            >
-              <ShoppingCart className="h-6 w-6" />
-              <span className="absolute -top-1 -right-1 bg-white rounded-full h-6 min-w-6 px-1 text-xs font-bold flex items-center justify-center shadow" style={{ color: BRAND.green }}>
-                {cartCount}
-              </span>
-            </button>
-          )}
-
-          {/* Prova social rotativa (toast discreto) */}
-          {showProof && !salesOpen && !cartOpen && (
-            <div className={cn('fixed z-40 animate-fade-in', isMobile ? 'bottom-24 left-3 right-3' : 'bottom-6 left-6 max-w-xs')}>
-              <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-3 flex items-center gap-3 relative">
-                <div className="h-9 w-9 rounded-full flex items-center justify-center shrink-0" style={{ background: `${BRAND.green}1a` }}>
-                  <CheckCircle2 className="h-5 w-5" style={{ color: BRAND.green }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-slate-900 truncate">{socialProofs[proofIdx].name}</p>
-                  <p className="text-[11px] text-slate-500 truncate">
-                    comprou <span className="font-medium text-slate-700">{socialProofs[proofIdx].sector}</span> {socialProofs[proofIdx].ago}
-                  </p>
-                </div>
+          {/* ============ Desktop floating CTA — sempre visível ============ */}
+          {!isMobile && !salesOpen && !cartOpen && (
+            <div className="fixed bottom-6 right-6 z-[60] flex flex-col items-end gap-2 animate-fade-in">
+              {cartCount > 0 && (
                 <button
-                  onClick={() => setShowProof(false)}
-                  className="absolute top-1.5 right-1.5 h-5 w-5 rounded-full text-slate-400 hover:bg-slate-100 flex items-center justify-center"
-                  aria-label="Dispensar"
+                  onClick={() => setCartOpen(true)}
+                  className="group bg-white border border-slate-200 rounded-full shadow-xl pl-3 pr-4 py-2 flex items-center gap-2 hover:shadow-2xl transition-all hover:-translate-y-0.5"
+                  aria-label="Abrir carrinho"
                 >
-                  <X className="h-3 w-3" />
+                  <span className="h-7 w-7 rounded-full flex items-center justify-center" style={{ background: `${BRAND.green}1a` }}>
+                    <ShoppingCart className="h-4 w-4" style={{ color: BRAND.green }} />
+                  </span>
+                  <span className="text-xs font-bold text-slate-700">
+                    {cartCount} {cartCount === 1 ? 'ingresso' : 'ingressos'}
+                  </span>
+                  <span className="text-xs font-black tabular-nums" style={{ color: BRAND.green }}>
+                    {brl(subtotal)}
+                  </span>
                 </button>
-              </div>
+              )}
+              <button
+                onClick={() => setSalesOpen(true)}
+                className="group relative overflow-hidden h-14 pl-5 pr-6 rounded-full text-white font-bold shadow-2xl flex items-center gap-3 hover:scale-[1.03] active:scale-[0.98] transition-transform"
+                style={{ background: BRAND.green, boxShadow: `0 12px 40px -8px ${BRAND.green}80` }}
+                aria-label="Comprar ingresso"
+              >
+                <span className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <span className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
+                  <ShoppingCart className="h-4 w-4" />
+                </span>
+                <span className="flex flex-col items-start leading-tight">
+                  <span className="text-[10px] uppercase tracking-wider opacity-90 font-semibold">Garanta o seu</span>
+                  <span className="text-sm">Comprar ingresso</span>
+                </span>
+              </button>
             </div>
           )}
+
+
 
 
 
