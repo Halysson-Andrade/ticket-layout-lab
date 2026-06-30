@@ -325,7 +325,7 @@ const EventPreview: React.FC = () => {
                   {!isMobile && (
                     <Button
                       className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-full px-6 h-11 shadow-xl shrink-0"
-                      onClick={() => document.getElementById('preview-sectors')?.scrollIntoView({ behavior: 'smooth' })}
+                      onClick={() => setSalesOpen(true)}
                     >
                       COMPRAR INGRESSO
                     </Button>
@@ -355,7 +355,7 @@ const EventPreview: React.FC = () => {
                 {isMobile && (
                   <Button
                     className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-full px-8 h-11 shadow-xl"
-                    onClick={() => document.getElementById('preview-sectors')?.scrollIntoView({ behavior: 'smooth' })}
+                    onClick={() => setSalesOpen(true)}
                   >
                     COMPRAR INGRESSO
                   </Button>
@@ -408,7 +408,7 @@ const EventPreview: React.FC = () => {
                 <p className="text-xs text-slate-500 mb-4">+ taxa de serviço</p>
                 <Button
                   className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold h-11"
-                  onClick={() => document.getElementById('preview-sectors')?.scrollIntoView({ behavior: 'smooth' })}
+                  onClick={() => setSalesOpen(true)}
                 >
                   Escolher ingressos
                 </Button>
@@ -655,7 +655,7 @@ const EventPreview: React.FC = () => {
               </div>
               <Button
                 className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold h-11"
-                onClick={() => document.getElementById('preview-sectors')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => setSalesOpen(true)}
               >
                 Comprar
               </Button>
