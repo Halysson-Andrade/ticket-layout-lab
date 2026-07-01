@@ -581,22 +581,7 @@ const EventPreview: React.FC = () => {
               </svg>
             </section>
 
-              {/* Marquee kinética */}
-              <div className="gw-ticker-strip py-2 overflow-hidden border-y-2 border-black select-none">
-                <div className="gw-marquee-track whitespace-nowrap">
-                  {Array.from({ length: 2 }).map((_, k) => (
-                    <span key={k} className="flex items-center text-black font-black uppercase italic text-[11px] sm:text-xs tracking-wide">
-                      {['09 a 19 de Julho · 2026', 'Sete Lagoas · MG', 'Open Bar Premium', 'Os Maiores Shows do Sertanejo', 'Vendas Liberadas', 'Parcele em 10x', 'Ingresso digital imediato', '54ª Edição'].map((t, i) => (
-                        <span key={i} className="flex items-center mx-6">
-                          {t}
-                          <svg className="ml-6 h-3 w-3 opacity-70" viewBox="0 0 12 12"><circle cx="6" cy="6" r="3" fill="currentColor"/></svg>
-                        </span>
-                      ))}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </section>
+
 
             {/* URGÊNCIA & PROVA SOCIAL (strip discreta) */}
             <section className="bg-white border-b border-slate-200">
