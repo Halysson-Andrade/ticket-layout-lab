@@ -526,7 +526,7 @@ const EventPreview: React.FC = () => {
           <main className="flex-1 flex flex-col">
             {/* HERO — estilo Guichê Web: fundo blur da mesma imagem + banner nítido + borda serrilhada */}
             <section className="relative overflow-hidden">
-              {/* Fundo: mesma imagem em blur + overlay escuro */}
+              {/* Fundo: mesma imagem em blur escuro (estilo Guichê Web) */}
               <div
                 aria-hidden
                 className="absolute inset-0 bg-center bg-cover scale-110"
@@ -536,28 +536,30 @@ const EventPreview: React.FC = () => {
                 }}
               />
               <div aria-hidden className="absolute inset-0 bg-black/55" />
-              <div
-                aria-hidden
-                className="absolute inset-0"
-                style={{
-                  background:
-                    'radial-gradient(ellipse 80% 60% at 50% 40%, transparent 0%, rgba(0,0,0,0.35) 60%, rgba(0,0,0,0.75) 100%)',
-                }}
-              />
 
-              <div className={cn('relative mx-auto w-full', isMobile ? 'px-3 pt-4 pb-10' : 'px-6 pt-10 pb-16 max-w-[1400px]')}>
-                {/* Banner nítido centralizado */}
+              <div className={cn('relative mx-auto w-full', isMobile ? 'px-0 pt-0 pb-0' : 'px-8 pt-8 pb-8 max-w-6xl')}>
+                {!isMobile && (
+                  <div className="flex items-center gap-3 mb-5">
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur border border-white/15 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/90">
+                      <span className="h-1.5 w-1.5 rounded-full gw-dot-pulse" style={{ background: BRAND.green }} />
+                      Vendas abertas
+                    </span>
+                    <span className="text-[11px] text-white/60 font-medium uppercase tracking-[0.16em]">
+                      Sete Lagoas · MG · Julho 2026
+                    </span>
+                  </div>
+                )}
+
                 <div className={cn(
-                  'relative mx-auto overflow-hidden',
-                  isMobile ? 'w-full aspect-[16/10] rounded-xl' : 'aspect-[1920/720] rounded-2xl',
+                  'relative overflow-hidden bg-slate-100 group',
+                  isMobile ? 'aspect-[16/10]' : 'rounded-2xl shadow-[0_30px_80px_-30px_rgba(0,0,0,0.55)] ring-1 ring-white/10 aspect-[1920/720]'
                 )}>
                   <img
                     src={eventInfo.heroBanner}
                     alt={eventInfo.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-[1.03]"
                     loading="eager"
                   />
-                  {/* badge sutil */}
                   <div className="absolute top-4 left-4 sm:top-5 sm:left-5">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 backdrop-blur px-3 py-1.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-900 shadow-sm ring-1 ring-black/5">
                       <span className="h-1.5 w-1.5 rounded-full" style={{ background: BRAND.green }} />
@@ -566,19 +568,6 @@ const EventPreview: React.FC = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Borda inferior serrilhada (scalloped), igual ao Guichê Web */}
-              <svg
-                aria-hidden
-                viewBox="0 0 1440 24"
-                preserveAspectRatio="none"
-                className="absolute bottom-0 left-0 w-full h-4 sm:h-5 block"
-              >
-                <path
-                  d="M0,24 L0,12 Q10,0 20,12 T40,12 T60,12 T80,12 T100,12 T120,12 T140,12 T160,12 T180,12 T200,12 T220,12 T240,12 T260,12 T280,12 T300,12 T320,12 T340,12 T360,12 T380,12 T400,12 T420,12 T440,12 T460,12 T480,12 T500,12 T520,12 T540,12 T560,12 T580,12 T600,12 T620,12 T640,12 T660,12 T680,12 T700,12 T720,12 T740,12 T760,12 T780,12 T800,12 T820,12 T840,12 T860,12 T880,12 T900,12 T920,12 T940,12 T960,12 T980,12 T1000,12 T1020,12 T1040,12 T1060,12 T1080,12 T1100,12 T1120,12 T1140,12 T1160,12 T1180,12 T1200,12 T1220,12 T1240,12 T1260,12 T1280,12 T1300,12 T1320,12 T1340,12 T1360,12 T1380,12 T1400,12 T1420,12 T1440,12 L1440,24 Z"
-                  fill="#eef0f3"
-                />
-              </svg>
             </section>
 
 
