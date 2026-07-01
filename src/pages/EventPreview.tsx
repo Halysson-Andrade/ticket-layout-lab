@@ -345,14 +345,11 @@ const EventPreview: React.FC = () => {
         .gw-event-card:hover { transform: translateY(-6px); }
         .gw-event-card:hover .gw-event-img { transform: scale(1.08); }
         .gw-event-img { transition: transform .8s cubic-bezier(.22,.61,.36,1); }
-        .gw-blob { position:absolute; border-radius:9999px; filter: blur(60px); opacity:.35; pointer-events:none; }
-        .gw-blob-g { background: ${BRAND.green}; animation: gw-blob 14s ease-in-out infinite; }
-        .gw-blob-m { background: ${BRAND.magenta}; animation: gw-blob 18s ease-in-out infinite reverse; }
-        .gw-blob-c { background: ${BRAND.cyan}; animation: gw-blob 16s ease-in-out infinite; }
         .gw-noise { background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px); background-size: 3px 3px; }
         .gw-ticker-strip { background: linear-gradient(90deg, ${BRAND.green}, #0fb02e); }
-        .gw-skew { transform: skewX(-10deg); display:inline-block; }
         .gw-section-title-bar { display:inline-block; width:34px; height:3px; background: ${BRAND.green}; border-radius: 2px; vertical-align: middle; margin-right: 10px; }
+        .gw-display { font-family: 'Bricolage Grotesque', 'DM Sans', system-ui, sans-serif; font-weight: 700; letter-spacing: -0.025em; font-variation-settings: "opsz" 96; }
+        .gw-display-md { font-family: 'Bricolage Grotesque', 'DM Sans', system-ui, sans-serif; font-weight: 700; letter-spacing: -0.02em; font-variation-settings: "opsz" 48; }
       `}</style>
       {/* Botão flutuante: voltar ao mapa + toggle device */}
       <div className="fixed top-3 left-3 z-[100] flex items-center gap-2">
@@ -527,60 +524,39 @@ const EventPreview: React.FC = () => {
 
           {/* ============ MAIN ============ */}
           <main className="flex-1 flex flex-col">
-            {/* HERO cinematográfico */}
-            <section className="relative bg-black overflow-hidden">
-              {/* Blobs animados de fundo */}
-              <div className="gw-blob gw-blob-g" style={{ width: 380, height: 380, top: -120, left: -80 }} />
-              <div className="gw-blob gw-blob-m" style={{ width: 320, height: 320, top: 40, right: -80 }} />
-              <div className="gw-blob gw-blob-c" style={{ width: 260, height: 260, bottom: -80, left: '40%' }} />
-              <div className="pointer-events-none absolute inset-0 gw-noise opacity-40" />
-              <div className="pointer-events-none absolute inset-0"
-                style={{ background: `radial-gradient(ellipse 70% 80% at 50% 0%, ${BRAND.green}26, transparent 70%)` }}
-              />
-
-              <div className={cn('relative mx-auto w-full', isMobile ? 'px-0 pb-0' : 'px-8 pt-10 pb-12 max-w-6xl')}>
-                {/* mini badge superior */}
+            {/* HERO — banner limpo, sem overlays coloridos */}
+            <section className="relative bg-white">
+              <div className={cn('relative mx-auto w-full', isMobile ? 'px-0 pt-0 pb-0' : 'px-8 pt-8 pb-8 max-w-6xl')}>
                 {!isMobile && (
-                  <div className="flex items-center gap-3 mb-5 gw-rise">
-                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 backdrop-blur border border-white/10 text-[11px] font-bold uppercase tracking-[0.18em] text-white/80">
+                  <div className="flex items-center gap-3 mb-5">
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">
                       <span className="h-1.5 w-1.5 rounded-full gw-dot-pulse" style={{ background: BRAND.green }} />
                       Vendas abertas
                     </span>
-                    <span className="text-[11px] text-white/40 font-medium uppercase tracking-[0.18em]">
+                    <span className="text-[11px] text-slate-400 font-medium uppercase tracking-[0.16em]">
                       Sete Lagoas · MG · Julho 2026
                     </span>
                   </div>
                 )}
 
-                <div className={cn('relative overflow-hidden bg-black group',
-                  isMobile ? 'aspect-[16/10]' : 'rounded-[28px] shadow-2xl ring-1 ring-white/10 aspect-[1920/720]'
+                <div className={cn(
+                  'relative overflow-hidden bg-slate-100 group',
+                  isMobile ? 'aspect-[16/10]' : 'rounded-2xl shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)] ring-1 ring-slate-200 aspect-[1920/720]'
                 )}>
                   <img
                     src={eventInfo.heroBanner}
                     alt={eventInfo.title}
-                    className="w-full h-full object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-[1.04]"
+                    className="w-full h-full object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-[1.03]"
                     loading="eager"
                   />
-                  {/* gradiente neon overlay */}
-                  <div className="absolute inset-0 mix-blend-overlay opacity-50"
-                    style={{ background: `linear-gradient(120deg, ${BRAND.magenta}33, transparent 35%, ${BRAND.cyan}22 70%, ${BRAND.green}33)` }} />
-                  <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/60 to-transparent" />
 
-                  {/* badge 54ª Edição (skewed) */}
-                  <div className="absolute top-4 left-4 sm:top-6 sm:left-6 gw-rise">
-                    <span className="gw-skew bg-[#ffce00] text-black text-[10px] sm:text-xs font-black uppercase tracking-widest px-3 py-1 shadow-lg">
+                  {/* Badge 54ª Edição — clean, sem skew */}
+                  <div className="absolute top-4 left-4 sm:top-5 sm:left-5">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 backdrop-blur px-3 py-1.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-900 shadow-sm ring-1 ring-black/5">
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: BRAND.green }} />
                       54ª Edição · Confirmado
                     </span>
                   </div>
-
-                  {/* título sobreposto (apenas desktop, p/ não competir com a info abaixo) */}
-                  {!isMobile && (
-                    <div className="absolute bottom-6 left-6 right-6 gw-rise gw-rise-delay-2">
-                      <h2 className="text-white font-black uppercase italic leading-[0.95] text-3xl md:text-5xl tracking-tight drop-shadow-2xl">
-                        Exposete <span className="gw-grad-text">Rodeio Festival</span>
-                      </h2>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -644,9 +620,12 @@ const EventPreview: React.FC = () => {
                     <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">Julho · 2026</span>
                   </div>
 
-                  <h1 className={cn('font-black text-slate-900 leading-[1.02] tracking-tight gw-rise', isMobile ? 'text-3xl' : 'text-[3.4rem]')}>
-                    54ª Exposete <br className="hidden sm:block" />
-                    <span className="gw-grad-text italic">Rodeio Festival</span>
+                  <h1 className={cn(
+                    'gw-display text-slate-900 leading-[1.02] gw-rise break-words',
+                    isMobile ? 'text-[2rem]' : 'text-[3rem] lg:text-[3.5rem]'
+                  )}>
+                    54ª Exposete{' '}
+                    <span className="text-slate-900">Rodeio Festival</span>
                   </h1>
                   <p className="text-base text-slate-500 mt-2 max-w-2xl">{eventInfo.subtitle}</p>
 
@@ -785,7 +764,7 @@ const EventPreview: React.FC = () => {
               <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl')}>
                 <div className="text-center mb-6">
                   <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Mapa do evento</p>
-                  <h3 className={cn('font-black text-slate-900', isMobile ? 'text-2xl' : 'text-4xl')}>{snapshot.mapName}</h3>
+                  <h3 className={cn('gw-display-md text-slate-900', isMobile ? 'text-2xl' : 'text-4xl')}>{snapshot.mapName}</h3>
                   <p className="text-sm text-slate-500 mt-2">
                     Confira a distribuição dos setores. Clique em "Comprar ingresso" para escolher seu lugar.
                   </p>
@@ -927,7 +906,7 @@ const EventPreview: React.FC = () => {
                 <div className="flex items-end justify-between mb-5">
                   <div>
                     <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Outros eventos</p>
-                    <h3 className={cn('font-black text-slate-900', isMobile ? 'text-xl' : 'text-2xl')}>Você também pode gostar</h3>
+                    <h3 className={cn('gw-display-md text-slate-900', isMobile ? 'text-xl' : 'text-2xl')}>Você também pode gostar</h3>
                   </div>
                   <button className="text-xs font-semibold hover:underline hidden sm:block" style={{ color: BRAND.green }}>Ver todos →</button>
                 </div>
