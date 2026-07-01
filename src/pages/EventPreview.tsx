@@ -524,60 +524,39 @@ const EventPreview: React.FC = () => {
 
           {/* ============ MAIN ============ */}
           <main className="flex-1 flex flex-col">
-            {/* HERO cinematográfico */}
-            <section className="relative bg-black overflow-hidden">
-              {/* Blobs animados de fundo */}
-              <div className="gw-blob gw-blob-g" style={{ width: 380, height: 380, top: -120, left: -80 }} />
-              <div className="gw-blob gw-blob-m" style={{ width: 320, height: 320, top: 40, right: -80 }} />
-              <div className="gw-blob gw-blob-c" style={{ width: 260, height: 260, bottom: -80, left: '40%' }} />
-              <div className="pointer-events-none absolute inset-0 gw-noise opacity-40" />
-              <div className="pointer-events-none absolute inset-0"
-                style={{ background: `radial-gradient(ellipse 70% 80% at 50% 0%, ${BRAND.green}26, transparent 70%)` }}
-              />
-
-              <div className={cn('relative mx-auto w-full', isMobile ? 'px-0 pb-0' : 'px-8 pt-10 pb-12 max-w-6xl')}>
-                {/* mini badge superior */}
+            {/* HERO — banner limpo, sem overlays coloridos */}
+            <section className="relative bg-white">
+              <div className={cn('relative mx-auto w-full', isMobile ? 'px-0 pt-0 pb-0' : 'px-8 pt-8 pb-8 max-w-6xl')}>
                 {!isMobile && (
-                  <div className="flex items-center gap-3 mb-5 gw-rise">
-                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 backdrop-blur border border-white/10 text-[11px] font-bold uppercase tracking-[0.18em] text-white/80">
+                  <div className="flex items-center gap-3 mb-5">
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">
                       <span className="h-1.5 w-1.5 rounded-full gw-dot-pulse" style={{ background: BRAND.green }} />
                       Vendas abertas
                     </span>
-                    <span className="text-[11px] text-white/40 font-medium uppercase tracking-[0.18em]">
+                    <span className="text-[11px] text-slate-400 font-medium uppercase tracking-[0.16em]">
                       Sete Lagoas · MG · Julho 2026
                     </span>
                   </div>
                 )}
 
-                <div className={cn('relative overflow-hidden bg-black group',
-                  isMobile ? 'aspect-[16/10]' : 'rounded-[28px] shadow-2xl ring-1 ring-white/10 aspect-[1920/720]'
+                <div className={cn(
+                  'relative overflow-hidden bg-slate-100 group',
+                  isMobile ? 'aspect-[16/10]' : 'rounded-2xl shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)] ring-1 ring-slate-200 aspect-[1920/720]'
                 )}>
                   <img
                     src={eventInfo.heroBanner}
                     alt={eventInfo.title}
-                    className="w-full h-full object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-[1.04]"
+                    className="w-full h-full object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-[1.03]"
                     loading="eager"
                   />
-                  {/* gradiente neon overlay */}
-                  <div className="absolute inset-0 mix-blend-overlay opacity-50"
-                    style={{ background: `linear-gradient(120deg, ${BRAND.magenta}33, transparent 35%, ${BRAND.cyan}22 70%, ${BRAND.green}33)` }} />
-                  <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/60 to-transparent" />
 
-                  {/* badge 54ª Edição (skewed) */}
-                  <div className="absolute top-4 left-4 sm:top-6 sm:left-6 gw-rise">
-                    <span className="gw-skew bg-[#ffce00] text-black text-[10px] sm:text-xs font-black uppercase tracking-widest px-3 py-1 shadow-lg">
+                  {/* Badge 54ª Edição — clean, sem skew */}
+                  <div className="absolute top-4 left-4 sm:top-5 sm:left-5">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 backdrop-blur px-3 py-1.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-900 shadow-sm ring-1 ring-black/5">
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: BRAND.green }} />
                       54ª Edição · Confirmado
                     </span>
                   </div>
-
-                  {/* título sobreposto (apenas desktop, p/ não competir com a info abaixo) */}
-                  {!isMobile && (
-                    <div className="absolute bottom-6 left-6 right-6 gw-rise gw-rise-delay-2">
-                      <h2 className="text-white font-black uppercase italic leading-[0.95] text-3xl md:text-5xl tracking-tight drop-shadow-2xl">
-                        Exposete <span className="gw-grad-text">Rodeio Festival</span>
-                      </h2>
-                    </div>
-                  )}
                 </div>
               </div>
 
