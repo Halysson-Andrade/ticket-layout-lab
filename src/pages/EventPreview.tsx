@@ -345,14 +345,11 @@ const EventPreview: React.FC = () => {
         .gw-event-card:hover { transform: translateY(-6px); }
         .gw-event-card:hover .gw-event-img { transform: scale(1.08); }
         .gw-event-img { transition: transform .8s cubic-bezier(.22,.61,.36,1); }
-        .gw-blob { position:absolute; border-radius:9999px; filter: blur(60px); opacity:.35; pointer-events:none; }
-        .gw-blob-g { background: ${BRAND.green}; animation: gw-blob 14s ease-in-out infinite; }
-        .gw-blob-m { background: ${BRAND.magenta}; animation: gw-blob 18s ease-in-out infinite reverse; }
-        .gw-blob-c { background: ${BRAND.cyan}; animation: gw-blob 16s ease-in-out infinite; }
         .gw-noise { background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px); background-size: 3px 3px; }
         .gw-ticker-strip { background: linear-gradient(90deg, ${BRAND.green}, #0fb02e); }
-        .gw-skew { transform: skewX(-10deg); display:inline-block; }
         .gw-section-title-bar { display:inline-block; width:34px; height:3px; background: ${BRAND.green}; border-radius: 2px; vertical-align: middle; margin-right: 10px; }
+        .gw-display { font-family: 'Bricolage Grotesque', 'DM Sans', system-ui, sans-serif; font-weight: 700; letter-spacing: -0.025em; font-variation-settings: "opsz" 96; }
+        .gw-display-md { font-family: 'Bricolage Grotesque', 'DM Sans', system-ui, sans-serif; font-weight: 700; letter-spacing: -0.02em; font-variation-settings: "opsz" 48; }
       `}</style>
       {/* Botão flutuante: voltar ao mapa + toggle device */}
       <div className="fixed top-3 left-3 z-[100] flex items-center gap-2">
