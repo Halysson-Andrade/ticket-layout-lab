@@ -170,6 +170,10 @@ const EventPreview: React.FC = () => {
   const [showStickyCTA, setShowStickyCTA] = useState(false);
   const [mapFocusId, setMapFocusId] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<Array<{ id: string; sectorId: string; row: string; number: string; price: number; sectorName: string; color: string }>>([]);
+  // Zoom/pan do mapa dentro do modal
+  const [mapView, setMapView] = useState<{ scale: number; panX: number; panY: number }>({ scale: 1, panX: 0, panY: 0 });
+  const mapWrapperRef = React.useRef<HTMLDivElement>(null);
+  const dragRef = React.useRef<{ x: number; y: number; panX: number; panY: number; moved: boolean } | null>(null);
 
   // === Conversion boosters ===
   const [viewers, setViewers] = useState(() => 87 + Math.floor(Math.random() * 60));
@@ -291,6 +295,66 @@ const EventPreview: React.FC = () => {
     const pad = Math.max(w, h) * 0.15;
     return { x: minX - pad, y: minY - pad, w: w + pad * 2, h: h + pad * 2 };
   }, [snapshot, selectedSectorId]);
+
+  // Bounds do mapa inteiro (fallback quando não há setor selecionado)
+  const wholeMapBounds = useMemo(() => {
+    if (!snapshot) return null;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    snapshot.sectors.forEach((s) => {
+      if (s.visible === false) return;
+      s.vertices.forEach((v) => {
+        if (v.x < minX) minX = v.x;
+        if (v.y < minY) minY = v.y;
+        if (v.x > maxX) maxX = v.x;
+        if (v.y > maxY) maxY = v.y;
+      });
+    });
+    if (!isFinite(minX)) return { x: 0, y: 0, w: snapshot.width, h: snapshot.height };
+    const pad = Math.max(maxX - minX, maxY - minY) * 0.08;
+    return { x: minX - pad, y: minY - pad, w: (maxX - minX) + pad * 2, h: (maxY - minY) + pad * 2 };
+  }, [snapshot]);
+
+  // Bounds base (setor focado ou mapa inteiro) + zoom/pan aplicados
+  const effectiveMapBounds = useMemo(() => {
+    const base = salesFocusBounds ?? wholeMapBounds;
+    if (!base) return null;
+    const scale = mapView.scale;
+    const w = base.w / scale;
+    const h = base.h / scale;
+    const cx = base.x + base.w / 2 - mapView.panX;
+    const cy = base.y + base.h / 2 - mapView.panY;
+    return { x: cx - w / 2, y: cy - h / 2, w, h };
+  }, [salesFocusBounds, wholeMapBounds, mapView]);
+
+  // Reset do zoom/pan ao trocar seleção ou fechar modal
+  useEffect(() => {
+    setMapView({ scale: 1, panX: 0, panY: 0 });
+  }, [selectedSectorId, salesOpen]);
+
+  const zoomBy = (factor: number) => {
+    setMapView((v) => ({ ...v, scale: Math.max(1, Math.min(8, v.scale * factor)) }));
+  };
+  const resetView = () => setMapView({ scale: 1, panX: 0, panY: 0 });
+
+  const onMapWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+    setMapView((v) => ({ ...v, scale: Math.max(1, Math.min(8, v.scale * factor)) }));
+  };
+  const onMapMouseDown = (e: React.MouseEvent) => {
+    // pan somente com botão do meio ou quando já em zoom (>1). Deixa clique normal para setores/assentos.
+    if (mapView.scale <= 1 && e.button !== 1) return;
+    dragRef.current = { x: e.clientX, y: e.clientY, panX: mapView.panX, panY: mapView.panY, moved: false };
+  };
+  const onMapMouseMove = (e: React.MouseEvent) => {
+    if (!dragRef.current || !effectiveMapBounds || !mapWrapperRef.current) return;
+    const rect = mapWrapperRef.current.getBoundingClientRect();
+    const dx = (e.clientX - dragRef.current.x) * (effectiveMapBounds.w / rect.width);
+    const dy = (e.clientY - dragRef.current.y) * (effectiveMapBounds.h / rect.height);
+    if (Math.abs(e.clientX - dragRef.current.x) + Math.abs(e.clientY - dragRef.current.y) > 4) dragRef.current.moved = true;
+    setMapView((v) => ({ ...v, panX: dragRef.current!.panX + dx, panY: dragRef.current!.panY + dy }));
+  };
+  const onMapMouseUp = () => { dragRef.current = null; };
 
   const selectedSeatIds = useMemo(() => selectedSeats.map((s) => s.id), [selectedSeats]);
   const selectedSeatsTotal = selectedSeats.reduce((sum, s) => sum + s.price, 0);
@@ -1206,7 +1270,7 @@ const EventPreview: React.FC = () => {
           {salesOpen && (
             <div className="absolute inset-0 z-[70] bg-slate-900/60 backdrop-blur-sm flex items-stretch justify-center p-0 sm:p-4" onClick={() => setSalesOpen(false)}>
               <div
-                className="bg-white w-full max-w-6xl rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                className="bg-white w-full max-w-6xl rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[100dvh] sm:max-h-[92vh] my-auto"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="border-b bg-slate-50">
@@ -1256,46 +1320,102 @@ const EventPreview: React.FC = () => {
                 </div>
 
 
-                <div className={cn('flex-1 grid overflow-hidden', isMobile ? 'grid-cols-1' : 'grid-cols-[1.4fr_1fr]')}>
-                  <div className="relative bg-slate-50 border-r border-slate-200 min-h-[300px]">
+                <div className={cn('flex-1 grid overflow-hidden min-h-0', isMobile ? 'grid-cols-1 grid-rows-[minmax(260px,45vh)_1fr]' : 'grid-cols-[1.4fr_1fr]')}>
+                  <div
+                    ref={mapWrapperRef}
+                    className="relative bg-slate-50 border-r border-b sm:border-b-0 border-slate-200 overflow-hidden select-none"
+                    onWheel={onMapWheel}
+                    onMouseDown={onMapMouseDown}
+                    onMouseMove={onMapMouseMove}
+                    onMouseUp={onMapMouseUp}
+                    onMouseLeave={onMapMouseUp}
+                    style={{ cursor: mapView.scale > 1 ? (dragRef.current ? 'grabbing' : 'grab') : 'default' }}
+                  >
                     {sectorsForSale.length === 0 ? (
                       <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500 text-center p-6">
                         Nenhum setor disponível no mapa.
                       </div>
                     ) : (
-                      <MapPreviewSVG
-                        sectors={snapshot.sectors}
-                        elements={snapshot.elements}
-                        textElements={snapshot.textElements}
-                        width={snapshot.width}
-                        height={snapshot.height}
-                        backgroundImage={snapshot.backgroundImage}
-                        bgConfig={snapshot.bgConfig}
-                        hoveredSectorId={hoveredSectorId}
-                        selectedSectorId={selectedSectorId}
-                        onHoverSector={setHoveredSectorId}
-                        onClickSector={(id) => setSelectedSectorId((prev) => (prev === id ? null : id))}
-                        focusBounds={salesFocusBounds}
-                        showSeatLabels={!!selectedSectorId}
-                        selectedSeatIds={selectedSeatIds}
-                        onClickSeat={(seat, sector) => toggleSeat(seat, sector)}
-                      />
+                      <div className="absolute inset-0">
+                        <MapPreviewSVG
+                          sectors={snapshot.sectors}
+                          elements={snapshot.elements}
+                          textElements={snapshot.textElements}
+                          width={snapshot.width}
+                          height={snapshot.height}
+                          backgroundImage={snapshot.backgroundImage}
+                          bgConfig={snapshot.bgConfig}
+                          hoveredSectorId={hoveredSectorId}
+                          selectedSectorId={selectedSectorId}
+                          onHoverSector={setHoveredSectorId}
+                          onClickSector={(id) => {
+                            if (dragRef.current?.moved) return;
+                            setSelectedSectorId((prev) => (prev === id ? null : id));
+                          }}
+                          focusBounds={effectiveMapBounds}
+                          showSeatLabels={!!selectedSectorId || mapView.scale >= 2.5}
+                          selectedSeatIds={selectedSeatIds}
+                          onClickSeat={(seat, sector) => {
+                            if (dragRef.current?.moved) return;
+                            toggleSeat(seat, sector);
+                          }}
+                        />
+                      </div>
                     )}
                     {/* Controle: voltar do zoom */}
                     {selectedSectorId && (
                       <button
                         onClick={() => setSelectedSectorId(null)}
-                        className="absolute top-3 left-3 bg-white/95 border border-slate-200 rounded-full px-3 py-1 text-[11px] font-bold text-slate-700 shadow hover:bg-white"
+                        className="absolute top-3 left-3 bg-white/95 border border-slate-200 rounded-full px-3 py-1 text-[11px] font-bold text-slate-700 shadow hover:bg-white z-10"
                       >
                         ← Ver mapa completo
                       </button>
                     )}
+                    {/* Zoom controls */}
+                    <div className="absolute bottom-3 right-3 z-10 flex flex-col gap-1 bg-white/95 backdrop-blur border border-slate-200 rounded-full shadow p-1">
+                      <button
+                        onClick={() => zoomBy(1.4)}
+                        className="h-8 w-8 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100"
+                        aria-label="Aproximar"
+                        title="Aproximar"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => zoomBy(1 / 1.4)}
+                        className="h-8 w-8 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                        disabled={mapView.scale <= 1.001}
+                        aria-label="Afastar"
+                        title="Afastar"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={resetView}
+                        className="h-8 w-8 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100 text-[10px] font-bold disabled:opacity-40"
+                        disabled={mapView.scale === 1 && mapView.panX === 0 && mapView.panY === 0}
+                        aria-label="Reenquadrar"
+                        title="Reenquadrar"
+                      >
+                        ⤢
+                      </button>
+                    </div>
+                    {/* Indicador de zoom */}
+                    {mapView.scale > 1.01 && (
+                      <div className="absolute bottom-3 left-3 z-10 bg-slate-900/85 text-white text-[10px] font-bold rounded-full px-2.5 py-1 shadow">
+                        {Math.round(mapView.scale * 100)}%
+                      </div>
+                    )}
                     {/* Instrução flutuante */}
-                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-[10px] uppercase tracking-wider text-slate-600 font-bold rounded-full px-3 py-1 shadow">
-                      {selectedSectorId ? 'Clique nos assentos para selecionar' : 'Clique em um setor'}
+                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-[10px] uppercase tracking-wider text-slate-600 font-bold rounded-full px-3 py-1 shadow z-10">
+                      {selectedSectorId
+                        ? 'Clique nos assentos • arraste para mover'
+                        : mapView.scale > 1
+                        ? 'Arraste para mover • scroll para zoom'
+                        : 'Clique em um setor • scroll para zoom'}
                     </div>
                     {(hoveredSectorId || selectedSectorId) && (
-                      <div className="absolute bottom-3 left-3 right-3 bg-slate-900/90 text-white text-xs rounded-md px-3 py-2 flex items-center justify-between pointer-events-none">
+                      <div className="absolute bottom-14 left-3 right-3 bg-slate-900/90 text-white text-xs rounded-md px-3 py-2 flex items-center justify-between pointer-events-none z-10">
                         <span className="font-semibold truncate">
                           {sectorsForSale.find((s) => s.id === (hoveredSectorId || selectedSectorId))?.name}
                         </span>
@@ -1305,6 +1425,7 @@ const EventPreview: React.FC = () => {
                       </div>
                     )}
                   </div>
+
 
                   <ScrollArea className="bg-white">
                     <div className="p-4 space-y-2">
