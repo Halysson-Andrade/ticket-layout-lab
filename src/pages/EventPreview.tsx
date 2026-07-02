@@ -170,6 +170,10 @@ const EventPreview: React.FC = () => {
   const [showStickyCTA, setShowStickyCTA] = useState(false);
   const [mapFocusId, setMapFocusId] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<Array<{ id: string; sectorId: string; row: string; number: string; price: number; sectorName: string; color: string }>>([]);
+  // Zoom/pan do mapa dentro do modal
+  const [mapView, setMapView] = useState<{ scale: number; panX: number; panY: number }>({ scale: 1, panX: 0, panY: 0 });
+  const mapWrapperRef = React.useRef<HTMLDivElement>(null);
+  const dragRef = React.useRef<{ x: number; y: number; panX: number; panY: number; moved: boolean } | null>(null);
 
   // === Conversion boosters ===
   const [viewers, setViewers] = useState(() => 87 + Math.floor(Math.random() * 60));
