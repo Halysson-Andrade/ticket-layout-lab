@@ -893,8 +893,8 @@ const EventPreview: React.FC = () => {
                 <div className="relative bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                   <div className="aspect-[16/9] relative">
                     <img
-                      src={EVENT.heroBanner}
-                      alt={`Imagem do evento ${EVENT.title}`}
+                      src={eventInfo.heroBanner}
+                      alt={`Imagem do evento ${eventInfo.title}`}
                       className="absolute inset-0 w-full h-full object-cover"
                       loading="lazy"
                     />
