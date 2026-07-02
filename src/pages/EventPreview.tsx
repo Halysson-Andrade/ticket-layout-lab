@@ -331,6 +331,14 @@ const EventPreview: React.FC = () => {
     setMapView({ scale: 1, panX: 0, panY: 0 });
   }, [selectedSectorId, salesOpen]);
 
+  // Lock body scroll enquanto o modal de vendas está aberto
+  useEffect(() => {
+    if (!salesOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [salesOpen]);
+
   const zoomBy = (factor: number) => {
     setMapView((v) => ({ ...v, scale: Math.max(1, Math.min(8, v.scale * factor)) }));
   };
