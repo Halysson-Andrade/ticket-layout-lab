@@ -273,6 +273,38 @@ const EventPreview: React.FC = () => {
     return { x: minX - pad, y: minY - pad, w: w + pad * 2, h: h + pad * 2 };
   }, [snapshot, mapFocusId]);
 
+  // Focus bounds do modal — quando um setor é selecionado, dá zoom pra ver os assentos
+  const salesFocusBounds = useMemo(() => {
+    if (!snapshot || !selectedSectorId) return null;
+    const s = snapshot.sectors.find((x) => x.id === selectedSectorId);
+    if (!s) return null;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    s.vertices.forEach((v) => {
+      if (v.x < minX) minX = v.x;
+      if (v.y < minY) minY = v.y;
+      if (v.x > maxX) maxX = v.x;
+      if (v.y > maxY) maxY = v.y;
+    });
+    if (!isFinite(minX)) return null;
+    const w = maxX - minX;
+    const h = maxY - minY;
+    const pad = Math.max(w, h) * 0.15;
+    return { x: minX - pad, y: minY - pad, w: w + pad * 2, h: h + pad * 2 };
+  }, [snapshot, selectedSectorId]);
+
+  const selectedSeatIds = useMemo(() => selectedSeats.map((s) => s.id), [selectedSeats]);
+  const selectedSeatsTotal = selectedSeats.reduce((sum, s) => sum + s.price, 0);
+
+  const toggleSeat = (seat: { id: string; row: string; number: string }, sector: { id: string; name: string; color: string }) => {
+    setSelectedSeats((prev) => {
+      const exists = prev.find((s) => s.id === seat.id);
+      if (exists) return prev.filter((s) => s.id !== seat.id);
+      const price = sectorsForSale.find((s) => s.id === sector.id)?.price ?? 0;
+      return [...prev, { id: seat.id, sectorId: sector.id, row: seat.row, number: seat.number, price, sectorName: sector.name, color: sector.color }];
+    });
+  };
+
+
   // === Inteligência de conversão ===
   // Melhor custo-benefício: setor com >=15 disponíveis mais próximo da mediana de preço
   const bestValueSectorId = useMemo(() => {
