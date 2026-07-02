@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import type { Sector, VenueElement, TextElement } from '@/types/mapStudio';
+import type { Sector, VenueElement, TextElement, Seat } from '@/types/mapStudio';
 
 interface MapPreviewSVGProps {
   sectors: Sector[];
@@ -16,7 +16,12 @@ interface MapPreviewSVGProps {
   onClickSector?: (id: string) => void;
   className?: string;
   focusBounds?: { x: number; y: number; w: number; h: number } | null;
+  selectedSeatIds?: string[];
+  onClickSeat?: (seat: Seat, sector: Sector) => void;
+  showSeatLabels?: boolean;
+  interactive?: boolean;
 }
+
 
 const verticesToPath = (vertices: { x: number; y: number }[]) => {
   if (!vertices.length) return '';
