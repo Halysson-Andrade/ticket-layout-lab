@@ -774,26 +774,26 @@ const EventPreview: React.FC = () => {
               </div>
             </section>
 
-            {/* Mapa do evento (display-only) + descrições */}
+            {/* Mapa do evento — imagem estática + CTA para abrir seleção */}
             <section id="preview-sectors" className="bg-slate-50">
               <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl')}>
                 <div className="text-center mb-6">
                   <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Mapa do evento</p>
                   <h3 className={cn('gw-display-md text-slate-900', isMobile ? 'text-2xl' : 'text-4xl')}>{snapshot.mapName}</h3>
                   <p className="text-sm text-slate-500 mt-2">
-                    Explore o mapa e escolha o setor. Clique em um setor para dar zoom, ou selecione pela lista ao lado.
+                    Veja abaixo a distribuição dos setores. Clique em "Comprar ingresso" para escolher setor, fila e assento.
                   </p>
                 </div>
 
-                <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-[1.4fr_1fr]')}>
-                  <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden aspect-[4/3] relative group">
+                <div className="relative bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                  <div className="aspect-[16/9] relative">
                     {sectorsForSale.length === 0 ? (
                       <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500 text-center p-6">
                         Nenhum setor criado no mapa ainda.
                       </div>
                     ) : (
                       <>
-                        <div className="absolute inset-0">
+                        <div className="absolute inset-0 pointer-events-none">
                           <MapPreviewSVG
                             sectors={snapshot.sectors}
                             elements={snapshot.elements}
@@ -802,150 +802,51 @@ const EventPreview: React.FC = () => {
                             height={snapshot.height}
                             backgroundImage={snapshot.backgroundImage}
                             bgConfig={snapshot.bgConfig}
-                            hoveredSectorId={hoveredSectorId}
-                            selectedSectorId={mapFocusId}
-                            onHoverSector={setHoveredSectorId}
-                            onClickSector={(id) => setMapFocusId((prev) => (prev === id ? null : id))}
-                            focusBounds={mapFocusBounds}
+                            interactive={false}
                           />
                         </div>
-
-                        {/* Tooltip flutuante do setor em foco/hover */}
-                        {(hoveredSectorId || mapFocusId) && (() => {
-                          const active = sectorsForSale.find((s) => s.id === (hoveredSectorId || mapFocusId));
-                          if (!active) return null;
-                          return (
-                            <div className="absolute left-3 bottom-3 bg-white/95 backdrop-blur border border-slate-200 rounded-xl shadow-lg px-3 py-2 flex items-center gap-3 max-w-[70%]">
-                              <span className="h-3 w-3 rounded-full shrink-0" style={{ background: active.color }} />
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold text-slate-900 truncate">{active.name}</p>
-                                <p className="text-[11px] text-slate-500">A partir de <span className="font-bold" style={{ color: BRAND.green }}>{brl(active.price)}</span></p>
-                              </div>
-                              <Button
-                                size="sm"
-                                className="h-8 px-3 text-xs text-white shrink-0"
-                                style={{ background: BRAND.green }}
-                                onClick={() => addToCart(active)}
-                              >
-                                <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
-                              </Button>
-                            </div>
-                          );
-                        })()}
-
-                        {/* Controles do mapa */}
-                        <div className="absolute top-3 right-3 flex items-center gap-2">
-                          {mapFocusId && (
-                            <button
-                              onClick={() => setMapFocusId(null)}
-                              className="bg-white/95 backdrop-blur border border-slate-200 rounded-full px-3 py-1 text-[11px] font-bold text-slate-700 shadow hover:bg-white"
-                            >
-                              ← Ver mapa completo
-                            </button>
-                          )}
-                          <div className="bg-white/90 backdrop-blur text-[10px] uppercase tracking-wider text-slate-600 font-bold rounded-full px-3 py-1 shadow">
-                            {mapFocusId ? 'Zoom no setor' : 'Clique em um setor'}
+                        <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/0 to-white/0" />
+                        <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+                          <div className="text-center sm:text-left">
+                            <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500">Ingressos disponíveis</p>
+                            <p className="text-lg font-black text-slate-900">
+                              A partir de <span style={{ color: BRAND.green }}>{brl(minPrice)}</span>
+                            </p>
                           </div>
+                          <Button
+                            size="lg"
+                            className="text-white font-bold shadow-lg"
+                            style={{ background: BRAND.green }}
+                            onClick={() => setSalesOpen(true)}
+                          >
+                            <Ticket className="h-4 w-4 mr-2" />
+                            Comprar ingresso
+                          </Button>
                         </div>
                       </>
                     )}
                   </div>
+                </div>
 
-                  {/* Lista de setores dinâmica */}
-                  <div className="space-y-2.5 max-h-[560px] overflow-y-auto pr-1">
-                    {sectorsForSale.map((s) => {
-                      const isActive = (mapFocusId || hoveredSectorId) === s.id;
-                      const inCart = cart.find((c) => c.sectorId === s.id)?.qty ?? 0;
-                      const scarce = s.available <= 20;
-                      return (
-                        <div
-                          key={s.id}
-                          onMouseEnter={() => setHoveredSectorId(s.id)}
-                          onMouseLeave={() => setHoveredSectorId(null)}
-                          onClick={() => setMapFocusId(s.id)}
-                          className={cn(
-                            'bg-white border rounded-xl p-3 cursor-pointer transition-all',
-                            isActive ? 'shadow-lg -translate-y-0.5' : 'border-slate-200 hover:border-slate-300 hover:shadow-sm',
-                          )}
-                          style={isActive ? { borderColor: s.color, boxShadow: `0 8px 24px -12px ${s.color}66` } : undefined}
-                        >
-                          <div className="flex items-start gap-3">
-                            <span className="h-10 w-1.5 rounded-full shrink-0 mt-0.5" style={{ background: s.color }} />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="text-sm font-bold text-slate-900 truncate">{s.name}</p>
-                                {scarce && (
-                                  <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: '#fee2e2', color: '#b91c1c' }}>
-                                    Últimos
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-baseline gap-1.5 mt-1">
-                                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">A partir de</span>
-                                <span className="text-base font-black text-slate-900 tabular-nums">{brl(s.price)}</span>
-                              </div>
-                              <p className="text-[11px] text-slate-500 mt-0.5">
-                                {s.available} disponíveis · 10x de {brl(s.price / 10)}
-                              </p>
-                              <div className="flex items-center gap-2 mt-2">
-                                <Button
-                                  size="sm"
-                                  className="h-8 px-3 text-xs text-white flex-1"
-                                  style={{ background: BRAND.green }}
-                                  onClick={(e) => { e.stopPropagation(); addToCart(s); }}
-                                >
-                                  <Plus className="h-3.5 w-3.5 mr-1" />
-                                  {inCart > 0 ? `Adicionar (${inCart})` : 'Adicionar'}
-                                </Button>
-                                {inCart > 0 && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 px-2 text-xs"
-                                    onClick={(e) => { e.stopPropagation(); updateQty(s.id, -1); }}
-                                  >
-                                    <Minus className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {/* Resumo dinâmico do carrinho */}
-                    {cartCount > 0 && (
-                      <div className="sticky bottom-0 bg-white border-2 rounded-xl p-3 shadow-lg mt-2" style={{ borderColor: BRAND.green }}>
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Subtotal ({cartCount} {cartCount === 1 ? 'ingresso' : 'ingressos'})</p>
-                            <p className="text-lg font-black text-slate-900 tabular-nums">{brl(subtotal)}</p>
-                          </div>
-                          <Button
-                            className="h-10 px-4 font-bold text-white"
-                            style={{ background: BRAND.green }}
-                            onClick={() => setCartOpen(true)}
-                          >
-                            <ShoppingCart className="h-4 w-4 mr-2" /> Ver carrinho
-                          </Button>
-                        </div>
+                {/* Chips com resumo dos setores (não interativo, só informativo) */}
+                {sectorsForSale.length > 0 && (
+                  <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    {sectorsForSale.map((s) => (
+                      <div
+                        key={s.id}
+                        className="flex items-center gap-2 bg-white border border-slate-200 rounded-full pl-2 pr-3 py-1.5 text-xs"
+                      >
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
+                        <span className="font-semibold text-slate-800">{s.name}</span>
+                        <span className="text-slate-400">·</span>
+                        <span className="font-bold" style={{ color: BRAND.green }}>{brl(s.price)}</span>
                       </div>
-                    )}
+                    ))}
                   </div>
-                </div>
-
-
-                <div className="mt-10 max-w-4xl mx-auto">
-                  <h4 className="font-bold text-lg mb-3 flex items-center gap-2" style={{ color: BRAND.green }}>
-                    <Info className="h-5 w-5" /> Sobre o evento
-                  </h4>
-                  <div className="prose prose-sm max-w-none text-slate-700 whitespace-pre-line leading-relaxed">
-                    {eventInfo.description}
-                  </div>
-                </div>
+                )}
               </div>
             </section>
+
 
             {/* Info + Regras */}
             <section className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
