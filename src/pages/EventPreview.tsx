@@ -1320,46 +1320,102 @@ const EventPreview: React.FC = () => {
                 </div>
 
 
-                <div className={cn('flex-1 grid overflow-hidden', isMobile ? 'grid-cols-1' : 'grid-cols-[1.4fr_1fr]')}>
-                  <div className="relative bg-slate-50 border-r border-slate-200 min-h-[300px]">
+                <div className={cn('flex-1 grid overflow-hidden min-h-0', isMobile ? 'grid-cols-1 grid-rows-[minmax(260px,45vh)_1fr]' : 'grid-cols-[1.4fr_1fr]')}>
+                  <div
+                    ref={mapWrapperRef}
+                    className="relative bg-slate-50 border-r border-b sm:border-b-0 border-slate-200 overflow-hidden select-none"
+                    onWheel={onMapWheel}
+                    onMouseDown={onMapMouseDown}
+                    onMouseMove={onMapMouseMove}
+                    onMouseUp={onMapMouseUp}
+                    onMouseLeave={onMapMouseUp}
+                    style={{ cursor: mapView.scale > 1 ? (dragRef.current ? 'grabbing' : 'grab') : 'default' }}
+                  >
                     {sectorsForSale.length === 0 ? (
                       <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500 text-center p-6">
                         Nenhum setor disponível no mapa.
                       </div>
                     ) : (
-                      <MapPreviewSVG
-                        sectors={snapshot.sectors}
-                        elements={snapshot.elements}
-                        textElements={snapshot.textElements}
-                        width={snapshot.width}
-                        height={snapshot.height}
-                        backgroundImage={snapshot.backgroundImage}
-                        bgConfig={snapshot.bgConfig}
-                        hoveredSectorId={hoveredSectorId}
-                        selectedSectorId={selectedSectorId}
-                        onHoverSector={setHoveredSectorId}
-                        onClickSector={(id) => setSelectedSectorId((prev) => (prev === id ? null : id))}
-                        focusBounds={salesFocusBounds}
-                        showSeatLabels={!!selectedSectorId}
-                        selectedSeatIds={selectedSeatIds}
-                        onClickSeat={(seat, sector) => toggleSeat(seat, sector)}
-                      />
+                      <div className="absolute inset-0">
+                        <MapPreviewSVG
+                          sectors={snapshot.sectors}
+                          elements={snapshot.elements}
+                          textElements={snapshot.textElements}
+                          width={snapshot.width}
+                          height={snapshot.height}
+                          backgroundImage={snapshot.backgroundImage}
+                          bgConfig={snapshot.bgConfig}
+                          hoveredSectorId={hoveredSectorId}
+                          selectedSectorId={selectedSectorId}
+                          onHoverSector={setHoveredSectorId}
+                          onClickSector={(id) => {
+                            if (dragRef.current?.moved) return;
+                            setSelectedSectorId((prev) => (prev === id ? null : id));
+                          }}
+                          focusBounds={effectiveMapBounds}
+                          showSeatLabels={!!selectedSectorId || mapView.scale >= 2.5}
+                          selectedSeatIds={selectedSeatIds}
+                          onClickSeat={(seat, sector) => {
+                            if (dragRef.current?.moved) return;
+                            toggleSeat(seat, sector);
+                          }}
+                        />
+                      </div>
                     )}
                     {/* Controle: voltar do zoom */}
                     {selectedSectorId && (
                       <button
                         onClick={() => setSelectedSectorId(null)}
-                        className="absolute top-3 left-3 bg-white/95 border border-slate-200 rounded-full px-3 py-1 text-[11px] font-bold text-slate-700 shadow hover:bg-white"
+                        className="absolute top-3 left-3 bg-white/95 border border-slate-200 rounded-full px-3 py-1 text-[11px] font-bold text-slate-700 shadow hover:bg-white z-10"
                       >
                         ← Ver mapa completo
                       </button>
                     )}
+                    {/* Zoom controls */}
+                    <div className="absolute bottom-3 right-3 z-10 flex flex-col gap-1 bg-white/95 backdrop-blur border border-slate-200 rounded-full shadow p-1">
+                      <button
+                        onClick={() => zoomBy(1.4)}
+                        className="h-8 w-8 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100"
+                        aria-label="Aproximar"
+                        title="Aproximar"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => zoomBy(1 / 1.4)}
+                        className="h-8 w-8 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100 disabled:opacity-40"
+                        disabled={mapView.scale <= 1.001}
+                        aria-label="Afastar"
+                        title="Afastar"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={resetView}
+                        className="h-8 w-8 rounded-full flex items-center justify-center text-slate-700 hover:bg-slate-100 text-[10px] font-bold disabled:opacity-40"
+                        disabled={mapView.scale === 1 && mapView.panX === 0 && mapView.panY === 0}
+                        aria-label="Reenquadrar"
+                        title="Reenquadrar"
+                      >
+                        ⤢
+                      </button>
+                    </div>
+                    {/* Indicador de zoom */}
+                    {mapView.scale > 1.01 && (
+                      <div className="absolute bottom-3 left-3 z-10 bg-slate-900/85 text-white text-[10px] font-bold rounded-full px-2.5 py-1 shadow">
+                        {Math.round(mapView.scale * 100)}%
+                      </div>
+                    )}
                     {/* Instrução flutuante */}
-                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-[10px] uppercase tracking-wider text-slate-600 font-bold rounded-full px-3 py-1 shadow">
-                      {selectedSectorId ? 'Clique nos assentos para selecionar' : 'Clique em um setor'}
+                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-[10px] uppercase tracking-wider text-slate-600 font-bold rounded-full px-3 py-1 shadow z-10">
+                      {selectedSectorId
+                        ? 'Clique nos assentos • arraste para mover'
+                        : mapView.scale > 1
+                        ? 'Arraste para mover • scroll para zoom'
+                        : 'Clique em um setor • scroll para zoom'}
                     </div>
                     {(hoveredSectorId || selectedSectorId) && (
-                      <div className="absolute bottom-3 left-3 right-3 bg-slate-900/90 text-white text-xs rounded-md px-3 py-2 flex items-center justify-between pointer-events-none">
+                      <div className="absolute bottom-14 left-3 right-3 bg-slate-900/90 text-white text-xs rounded-md px-3 py-2 flex items-center justify-between pointer-events-none z-10">
                         <span className="font-semibold truncate">
                           {sectorsForSale.find((s) => s.id === (hoveredSectorId || selectedSectorId))?.name}
                         </span>
@@ -1369,6 +1425,7 @@ const EventPreview: React.FC = () => {
                       </div>
                     )}
                   </div>
+
 
                   <ScrollArea className="bg-white">
                     <div className="p-4 space-y-2">
