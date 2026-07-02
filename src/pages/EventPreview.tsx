@@ -1268,9 +1268,9 @@ const EventPreview: React.FC = () => {
 
           {/* ============ SALES MODAL ============ */}
           {salesOpen && (
-            <div className="absolute inset-0 z-[70] bg-slate-900/60 backdrop-blur-sm flex items-stretch justify-center p-0 sm:p-4" onClick={() => setSalesOpen(false)}>
+            <div className="fixed inset-0 z-[100] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-0 sm:p-4" onClick={() => setSalesOpen(false)}>
               <div
-                className="bg-white w-full max-w-6xl rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[100dvh] sm:max-h-[92vh] my-auto"
+                className="bg-white w-full max-w-6xl rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden h-[100dvh] sm:h-[90vh]"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="border-b bg-slate-50">
