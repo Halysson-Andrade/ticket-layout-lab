@@ -905,8 +905,8 @@ const EventPreview: React.FC = () => {
                           sectors={snapshot.sectors}
                           elements={snapshot.elements}
                           textElements={snapshot.textElements}
-                          width={snapshot.canvasWidth}
-                          height={snapshot.canvasHeight}
+                          width={snapshot.width}
+                          height={snapshot.height}
                           backgroundImage={null}
                           bgConfig={null}
                           interactive={false}
