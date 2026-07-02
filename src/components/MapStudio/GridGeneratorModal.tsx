@@ -52,7 +52,7 @@ export const GridGeneratorModal: React.FC<GridGeneratorModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Grid3X3 className="h-5 w-5 text-primary" />
