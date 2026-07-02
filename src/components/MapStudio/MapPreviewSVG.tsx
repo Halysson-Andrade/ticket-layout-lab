@@ -37,6 +37,7 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
   onHoverSector,
   onClickSector,
   className,
+  focusBounds,
 }) => {
   // Compute fit bounds from visible content
   const bounds = useMemo(() => {
