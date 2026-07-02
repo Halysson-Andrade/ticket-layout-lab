@@ -1274,9 +1274,26 @@ const EventPreview: React.FC = () => {
                         hoveredSectorId={hoveredSectorId}
                         selectedSectorId={selectedSectorId}
                         onHoverSector={setHoveredSectorId}
-                        onClickSector={(id) => setSelectedSectorId(id)}
+                        onClickSector={(id) => setSelectedSectorId((prev) => (prev === id ? null : id))}
+                        focusBounds={salesFocusBounds}
+                        showSeatLabels={!!selectedSectorId}
+                        selectedSeatIds={selectedSeatIds}
+                        onClickSeat={(seat, sector) => toggleSeat(seat, sector)}
                       />
                     )}
+                    {/* Controle: voltar do zoom */}
+                    {selectedSectorId && (
+                      <button
+                        onClick={() => setSelectedSectorId(null)}
+                        className="absolute top-3 left-3 bg-white/95 border border-slate-200 rounded-full px-3 py-1 text-[11px] font-bold text-slate-700 shadow hover:bg-white"
+                      >
+                        ← Ver mapa completo
+                      </button>
+                    )}
+                    {/* Instrução flutuante */}
+                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-[10px] uppercase tracking-wider text-slate-600 font-bold rounded-full px-3 py-1 shadow">
+                      {selectedSectorId ? 'Clique nos assentos para selecionar' : 'Clique em um setor'}
+                    </div>
                     {(hoveredSectorId || selectedSectorId) && (
                       <div className="absolute bottom-3 left-3 right-3 bg-slate-900/90 text-white text-xs rounded-md px-3 py-2 flex items-center justify-between pointer-events-none">
                         <span className="font-semibold truncate">
