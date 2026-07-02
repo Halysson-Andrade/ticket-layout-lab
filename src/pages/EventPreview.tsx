@@ -296,6 +296,66 @@ const EventPreview: React.FC = () => {
     return { x: minX - pad, y: minY - pad, w: w + pad * 2, h: h + pad * 2 };
   }, [snapshot, selectedSectorId]);
 
+  // Bounds do mapa inteiro (fallback quando não há setor selecionado)
+  const wholeMapBounds = useMemo(() => {
+    if (!snapshot) return null;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    snapshot.sectors.forEach((s) => {
+      if (s.visible === false) return;
+      s.vertices.forEach((v) => {
+        if (v.x < minX) minX = v.x;
+        if (v.y < minY) minY = v.y;
+        if (v.x > maxX) maxX = v.x;
+        if (v.y > maxY) maxY = v.y;
+      });
+    });
+    if (!isFinite(minX)) return { x: 0, y: 0, w: snapshot.width, h: snapshot.height };
+    const pad = Math.max(maxX - minX, maxY - minY) * 0.08;
+    return { x: minX - pad, y: minY - pad, w: (maxX - minX) + pad * 2, h: (maxY - minY) + pad * 2 };
+  }, [snapshot]);
+
+  // Bounds base (setor focado ou mapa inteiro) + zoom/pan aplicados
+  const effectiveMapBounds = useMemo(() => {
+    const base = salesFocusBounds ?? wholeMapBounds;
+    if (!base) return null;
+    const scale = mapView.scale;
+    const w = base.w / scale;
+    const h = base.h / scale;
+    const cx = base.x + base.w / 2 - mapView.panX;
+    const cy = base.y + base.h / 2 - mapView.panY;
+    return { x: cx - w / 2, y: cy - h / 2, w, h };
+  }, [salesFocusBounds, wholeMapBounds, mapView]);
+
+  // Reset do zoom/pan ao trocar seleção ou fechar modal
+  useEffect(() => {
+    setMapView({ scale: 1, panX: 0, panY: 0 });
+  }, [selectedSectorId, salesOpen]);
+
+  const zoomBy = (factor: number) => {
+    setMapView((v) => ({ ...v, scale: Math.max(1, Math.min(8, v.scale * factor)) }));
+  };
+  const resetView = () => setMapView({ scale: 1, panX: 0, panY: 0 });
+
+  const onMapWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+    setMapView((v) => ({ ...v, scale: Math.max(1, Math.min(8, v.scale * factor)) }));
+  };
+  const onMapMouseDown = (e: React.MouseEvent) => {
+    // pan somente com botão do meio ou quando já em zoom (>1). Deixa clique normal para setores/assentos.
+    if (mapView.scale <= 1 && e.button !== 1) return;
+    dragRef.current = { x: e.clientX, y: e.clientY, panX: mapView.panX, panY: mapView.panY, moved: false };
+  };
+  const onMapMouseMove = (e: React.MouseEvent) => {
+    if (!dragRef.current || !effectiveMapBounds || !mapWrapperRef.current) return;
+    const rect = mapWrapperRef.current.getBoundingClientRect();
+    const dx = (e.clientX - dragRef.current.x) * (effectiveMapBounds.w / rect.width);
+    const dy = (e.clientY - dragRef.current.y) * (effectiveMapBounds.h / rect.height);
+    if (Math.abs(e.clientX - dragRef.current.x) + Math.abs(e.clientY - dragRef.current.y) > 4) dragRef.current.moved = true;
+    setMapView((v) => ({ ...v, panX: dragRef.current!.panX + dx, panY: dragRef.current!.panY + dy }));
+  };
+  const onMapMouseUp = () => { dragRef.current = null; };
+
   const selectedSeatIds = useMemo(() => selectedSeats.map((s) => s.id), [selectedSeats]);
   const selectedSeatsTotal = selectedSeats.reduce((sum, s) => sum + s.price, 0);
 
