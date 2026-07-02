@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import type { Sector, VenueElement, TextElement } from '@/types/mapStudio';
+import type { Sector, VenueElement, TextElement, Seat } from '@/types/mapStudio';
 
 interface MapPreviewSVGProps {
   sectors: Sector[];
@@ -16,7 +16,12 @@ interface MapPreviewSVGProps {
   onClickSector?: (id: string) => void;
   className?: string;
   focusBounds?: { x: number; y: number; w: number; h: number } | null;
+  selectedSeatIds?: string[];
+  onClickSeat?: (seat: Seat, sector: Sector) => void;
+  showSeatLabels?: boolean;
+  interactive?: boolean;
 }
+
 
 const verticesToPath = (vertices: { x: number; y: number }[]) => {
   if (!vertices.length) return '';
@@ -38,7 +43,13 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
   onClickSector,
   className,
   focusBounds,
+  selectedSeatIds,
+  onClickSeat,
+  showSeatLabels = false,
+  interactive = true,
 }) => {
+  const selectedSeatSet = useMemo(() => new Set(selectedSeatIds ?? []), [selectedSeatIds]);
+
   // Compute fit bounds from visible content
   const bounds = useMemo(() => {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -121,14 +132,16 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
         const isSelected = selectedSectorId === s.id;
         const cx = s.bounds.x + s.bounds.width / 2;
         const cy = s.bounds.y + s.bounds.height / 2;
+        const seatBaseR = Math.max(2, (s.seatSize ?? 14) * 0.35);
+        const seatR = showSeatLabels ? Math.max(6, (s.seatSize ?? 14) * 0.5) : seatBaseR;
         return (
           <g
             key={s.id}
             transform={`rotate(${s.rotation || 0} ${cx} ${cy})`}
-            className="cursor-pointer"
-            onMouseEnter={() => onHoverSector?.(s.id)}
-            onMouseLeave={() => onHoverSector?.(null)}
-            onClick={() => onClickSector?.(s.id)}
+            className={interactive ? 'cursor-pointer' : undefined}
+            onMouseEnter={interactive ? () => onHoverSector?.(s.id) : undefined}
+            onMouseLeave={interactive ? () => onHoverSector?.(null) : undefined}
+            onClick={interactive ? () => onClickSector?.(s.id) : undefined}
           >
             <path
               d={verticesToPath(s.vertices)}
@@ -138,35 +151,69 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
               strokeWidth={isSelected ? 3 : 1.5}
               style={{ transition: 'fill-opacity 120ms, stroke 120ms' }}
             />
-            {/* Seats as tiny dots */}
-            {s.seats.slice(0, 600).map((seat) => (
-              <circle
-                key={seat.id}
-                cx={seat.x}
-                cy={seat.y}
-                r={Math.max(2, (s.seatSize ?? 14) * 0.35)}
-                fill="rgba(255,255,255,0.85)"
-                stroke="rgba(0,0,0,0.3)"
-                strokeWidth={0.5}
-              />
-            ))}
-            {/* Sector label */}
-            <text
-              x={cx}
-              y={cy}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fill="#0f172a"
-              fontSize={Math.max(14, Math.min(s.bounds.width, s.bounds.height) * 0.12)}
-              fontWeight="bold"
-              style={{ paintOrder: 'stroke', stroke: 'rgba(255,255,255,0.9)', strokeWidth: 3 }}
-              pointerEvents="none"
-            >
-              {s.sectorLabel || s.name}
-            </text>
+            {/* Seats */}
+            {s.seats.slice(0, showSeatLabels ? 2000 : 600).map((seat) => {
+              const isSeatSelected = selectedSeatSet.has(seat.id);
+              const isBlocked = seat.status === 'blocked' || seat.status === 'sold' || seat.type === 'blocked';
+              const fill = isSeatSelected
+                ? '#11CC35'
+                : isBlocked
+                ? 'rgba(148,163,184,0.6)'
+                : 'rgba(255,255,255,0.9)';
+              const handleSeatClick = (e: React.MouseEvent) => {
+                if (!interactive || !onClickSeat || isBlocked) return;
+                e.stopPropagation();
+                onClickSeat(seat, s);
+              };
+              return (
+                <g key={seat.id}>
+                  <circle
+                    cx={seat.x}
+                    cy={seat.y}
+                    r={seatR}
+                    fill={fill}
+                    stroke={isSeatSelected ? '#0a8a26' : 'rgba(0,0,0,0.35)'}
+                    strokeWidth={isSeatSelected ? 1.5 : 0.5}
+                    onClick={handleSeatClick}
+                    style={{ cursor: interactive && onClickSeat && !isBlocked ? 'pointer' : undefined }}
+                  />
+                  {showSeatLabels && seat.number && (
+                    <text
+                      x={seat.x}
+                      y={seat.y}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontSize={seatR * 0.9}
+                      fontWeight={700}
+                      fill={isSeatSelected ? '#fff' : '#0f172a'}
+                      pointerEvents="none"
+                    >
+                      {seat.number}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+            {/* Sector label — hide when zoomed in with visible seat labels */}
+            {!showSeatLabels && (
+              <text
+                x={cx}
+                y={cy}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fill="#0f172a"
+                fontSize={Math.max(14, Math.min(s.bounds.width, s.bounds.height) * 0.12)}
+                fontWeight="bold"
+                style={{ paintOrder: 'stroke', stroke: 'rgba(255,255,255,0.9)', strokeWidth: 3 }}
+                pointerEvents="none"
+              >
+                {s.sectorLabel || s.name}
+              </text>
+            )}
           </g>
         );
       })}
+
 
       {/* Text overlays */}
       {textElements.map((t) => (

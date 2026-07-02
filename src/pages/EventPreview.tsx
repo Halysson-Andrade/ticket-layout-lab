@@ -169,6 +169,7 @@ const EventPreview: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showStickyCTA, setShowStickyCTA] = useState(false);
   const [mapFocusId, setMapFocusId] = useState<string | null>(null);
+  const [selectedSeats, setSelectedSeats] = useState<Array<{ id: string; sectorId: string; row: string; number: string; price: number; sectorName: string; color: string }>>([]);
 
   // === Conversion boosters ===
   const [viewers, setViewers] = useState(() => 87 + Math.floor(Math.random() * 60));
@@ -271,6 +272,38 @@ const EventPreview: React.FC = () => {
     const pad = Math.max(w, h) * 0.6;
     return { x: minX - pad, y: minY - pad, w: w + pad * 2, h: h + pad * 2 };
   }, [snapshot, mapFocusId]);
+
+  // Focus bounds do modal — quando um setor é selecionado, dá zoom pra ver os assentos
+  const salesFocusBounds = useMemo(() => {
+    if (!snapshot || !selectedSectorId) return null;
+    const s = snapshot.sectors.find((x) => x.id === selectedSectorId);
+    if (!s) return null;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    s.vertices.forEach((v) => {
+      if (v.x < minX) minX = v.x;
+      if (v.y < minY) minY = v.y;
+      if (v.x > maxX) maxX = v.x;
+      if (v.y > maxY) maxY = v.y;
+    });
+    if (!isFinite(minX)) return null;
+    const w = maxX - minX;
+    const h = maxY - minY;
+    const pad = Math.max(w, h) * 0.15;
+    return { x: minX - pad, y: minY - pad, w: w + pad * 2, h: h + pad * 2 };
+  }, [snapshot, selectedSectorId]);
+
+  const selectedSeatIds = useMemo(() => selectedSeats.map((s) => s.id), [selectedSeats]);
+  const selectedSeatsTotal = selectedSeats.reduce((sum, s) => sum + s.price, 0);
+
+  const toggleSeat = (seat: { id: string; row: string; number: string }, sector: { id: string; name: string; color: string }) => {
+    setSelectedSeats((prev) => {
+      const exists = prev.find((s) => s.id === seat.id);
+      if (exists) return prev.filter((s) => s.id !== seat.id);
+      const price = sectorsForSale.find((s) => s.id === sector.id)?.price ?? 0;
+      return [...prev, { id: seat.id, sectorId: sector.id, row: seat.row, number: seat.number, price, sectorName: sector.name, color: sector.color }];
+    });
+  };
+
 
   // === Inteligência de conversão ===
   // Melhor custo-benefício: setor com >=15 disponíveis mais próximo da mediana de preço
@@ -774,26 +807,26 @@ const EventPreview: React.FC = () => {
               </div>
             </section>
 
-            {/* Mapa do evento (display-only) + descrições */}
+            {/* Mapa do evento — imagem estática + CTA para abrir seleção */}
             <section id="preview-sectors" className="bg-slate-50">
               <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl')}>
                 <div className="text-center mb-6">
                   <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Mapa do evento</p>
                   <h3 className={cn('gw-display-md text-slate-900', isMobile ? 'text-2xl' : 'text-4xl')}>{snapshot.mapName}</h3>
                   <p className="text-sm text-slate-500 mt-2">
-                    Explore o mapa e escolha o setor. Clique em um setor para dar zoom, ou selecione pela lista ao lado.
+                    Veja abaixo a distribuição dos setores. Clique em "Comprar ingresso" para escolher setor, fila e assento.
                   </p>
                 </div>
 
-                <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-[1.4fr_1fr]')}>
-                  <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden aspect-[4/3] relative group">
+                <div className="relative bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+                  <div className="aspect-[16/9] relative">
                     {sectorsForSale.length === 0 ? (
                       <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500 text-center p-6">
                         Nenhum setor criado no mapa ainda.
                       </div>
                     ) : (
                       <>
-                        <div className="absolute inset-0">
+                        <div className="absolute inset-0 pointer-events-none">
                           <MapPreviewSVG
                             sectors={snapshot.sectors}
                             elements={snapshot.elements}
@@ -802,150 +835,51 @@ const EventPreview: React.FC = () => {
                             height={snapshot.height}
                             backgroundImage={snapshot.backgroundImage}
                             bgConfig={snapshot.bgConfig}
-                            hoveredSectorId={hoveredSectorId}
-                            selectedSectorId={mapFocusId}
-                            onHoverSector={setHoveredSectorId}
-                            onClickSector={(id) => setMapFocusId((prev) => (prev === id ? null : id))}
-                            focusBounds={mapFocusBounds}
+                            interactive={false}
                           />
                         </div>
-
-                        {/* Tooltip flutuante do setor em foco/hover */}
-                        {(hoveredSectorId || mapFocusId) && (() => {
-                          const active = sectorsForSale.find((s) => s.id === (hoveredSectorId || mapFocusId));
-                          if (!active) return null;
-                          return (
-                            <div className="absolute left-3 bottom-3 bg-white/95 backdrop-blur border border-slate-200 rounded-xl shadow-lg px-3 py-2 flex items-center gap-3 max-w-[70%]">
-                              <span className="h-3 w-3 rounded-full shrink-0" style={{ background: active.color }} />
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold text-slate-900 truncate">{active.name}</p>
-                                <p className="text-[11px] text-slate-500">A partir de <span className="font-bold" style={{ color: BRAND.green }}>{brl(active.price)}</span></p>
-                              </div>
-                              <Button
-                                size="sm"
-                                className="h-8 px-3 text-xs text-white shrink-0"
-                                style={{ background: BRAND.green }}
-                                onClick={() => addToCart(active)}
-                              >
-                                <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
-                              </Button>
-                            </div>
-                          );
-                        })()}
-
-                        {/* Controles do mapa */}
-                        <div className="absolute top-3 right-3 flex items-center gap-2">
-                          {mapFocusId && (
-                            <button
-                              onClick={() => setMapFocusId(null)}
-                              className="bg-white/95 backdrop-blur border border-slate-200 rounded-full px-3 py-1 text-[11px] font-bold text-slate-700 shadow hover:bg-white"
-                            >
-                              ← Ver mapa completo
-                            </button>
-                          )}
-                          <div className="bg-white/90 backdrop-blur text-[10px] uppercase tracking-wider text-slate-600 font-bold rounded-full px-3 py-1 shadow">
-                            {mapFocusId ? 'Zoom no setor' : 'Clique em um setor'}
+                        <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/0 to-white/0" />
+                        <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+                          <div className="text-center sm:text-left">
+                            <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500">Ingressos disponíveis</p>
+                            <p className="text-lg font-black text-slate-900">
+                              A partir de <span style={{ color: BRAND.green }}>{brl(minPrice)}</span>
+                            </p>
                           </div>
+                          <Button
+                            size="lg"
+                            className="text-white font-bold shadow-lg"
+                            style={{ background: BRAND.green }}
+                            onClick={() => setSalesOpen(true)}
+                          >
+                            <Ticket className="h-4 w-4 mr-2" />
+                            Comprar ingresso
+                          </Button>
                         </div>
                       </>
                     )}
                   </div>
+                </div>
 
-                  {/* Lista de setores dinâmica */}
-                  <div className="space-y-2.5 max-h-[560px] overflow-y-auto pr-1">
-                    {sectorsForSale.map((s) => {
-                      const isActive = (mapFocusId || hoveredSectorId) === s.id;
-                      const inCart = cart.find((c) => c.sectorId === s.id)?.qty ?? 0;
-                      const scarce = s.available <= 20;
-                      return (
-                        <div
-                          key={s.id}
-                          onMouseEnter={() => setHoveredSectorId(s.id)}
-                          onMouseLeave={() => setHoveredSectorId(null)}
-                          onClick={() => setMapFocusId(s.id)}
-                          className={cn(
-                            'bg-white border rounded-xl p-3 cursor-pointer transition-all',
-                            isActive ? 'shadow-lg -translate-y-0.5' : 'border-slate-200 hover:border-slate-300 hover:shadow-sm',
-                          )}
-                          style={isActive ? { borderColor: s.color, boxShadow: `0 8px 24px -12px ${s.color}66` } : undefined}
-                        >
-                          <div className="flex items-start gap-3">
-                            <span className="h-10 w-1.5 rounded-full shrink-0 mt-0.5" style={{ background: s.color }} />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="text-sm font-bold text-slate-900 truncate">{s.name}</p>
-                                {scarce && (
-                                  <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: '#fee2e2', color: '#b91c1c' }}>
-                                    Últimos
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-baseline gap-1.5 mt-1">
-                                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">A partir de</span>
-                                <span className="text-base font-black text-slate-900 tabular-nums">{brl(s.price)}</span>
-                              </div>
-                              <p className="text-[11px] text-slate-500 mt-0.5">
-                                {s.available} disponíveis · 10x de {brl(s.price / 10)}
-                              </p>
-                              <div className="flex items-center gap-2 mt-2">
-                                <Button
-                                  size="sm"
-                                  className="h-8 px-3 text-xs text-white flex-1"
-                                  style={{ background: BRAND.green }}
-                                  onClick={(e) => { e.stopPropagation(); addToCart(s); }}
-                                >
-                                  <Plus className="h-3.5 w-3.5 mr-1" />
-                                  {inCart > 0 ? `Adicionar (${inCart})` : 'Adicionar'}
-                                </Button>
-                                {inCart > 0 && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-8 px-2 text-xs"
-                                    onClick={(e) => { e.stopPropagation(); updateQty(s.id, -1); }}
-                                  >
-                                    <Minus className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {/* Resumo dinâmico do carrinho */}
-                    {cartCount > 0 && (
-                      <div className="sticky bottom-0 bg-white border-2 rounded-xl p-3 shadow-lg mt-2" style={{ borderColor: BRAND.green }}>
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Subtotal ({cartCount} {cartCount === 1 ? 'ingresso' : 'ingressos'})</p>
-                            <p className="text-lg font-black text-slate-900 tabular-nums">{brl(subtotal)}</p>
-                          </div>
-                          <Button
-                            className="h-10 px-4 font-bold text-white"
-                            style={{ background: BRAND.green }}
-                            onClick={() => setCartOpen(true)}
-                          >
-                            <ShoppingCart className="h-4 w-4 mr-2" /> Ver carrinho
-                          </Button>
-                        </div>
+                {/* Chips com resumo dos setores (não interativo, só informativo) */}
+                {sectorsForSale.length > 0 && (
+                  <div className="mt-4 flex flex-wrap justify-center gap-2">
+                    {sectorsForSale.map((s) => (
+                      <div
+                        key={s.id}
+                        className="flex items-center gap-2 bg-white border border-slate-200 rounded-full pl-2 pr-3 py-1.5 text-xs"
+                      >
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
+                        <span className="font-semibold text-slate-800">{s.name}</span>
+                        <span className="text-slate-400">·</span>
+                        <span className="font-bold" style={{ color: BRAND.green }}>{brl(s.price)}</span>
                       </div>
-                    )}
+                    ))}
                   </div>
-                </div>
-
-
-                <div className="mt-10 max-w-4xl mx-auto">
-                  <h4 className="font-bold text-lg mb-3 flex items-center gap-2" style={{ color: BRAND.green }}>
-                    <Info className="h-5 w-5" /> Sobre o evento
-                  </h4>
-                  <div className="prose prose-sm max-w-none text-slate-700 whitespace-pre-line leading-relaxed">
-                    {eventInfo.description}
-                  </div>
-                </div>
+                )}
               </div>
             </section>
+
 
             {/* Info + Regras */}
             <section className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
@@ -1340,9 +1274,26 @@ const EventPreview: React.FC = () => {
                         hoveredSectorId={hoveredSectorId}
                         selectedSectorId={selectedSectorId}
                         onHoverSector={setHoveredSectorId}
-                        onClickSector={(id) => setSelectedSectorId(id)}
+                        onClickSector={(id) => setSelectedSectorId((prev) => (prev === id ? null : id))}
+                        focusBounds={salesFocusBounds}
+                        showSeatLabels={!!selectedSectorId}
+                        selectedSeatIds={selectedSeatIds}
+                        onClickSeat={(seat, sector) => toggleSeat(seat, sector)}
                       />
                     )}
+                    {/* Controle: voltar do zoom */}
+                    {selectedSectorId && (
+                      <button
+                        onClick={() => setSelectedSectorId(null)}
+                        className="absolute top-3 left-3 bg-white/95 border border-slate-200 rounded-full px-3 py-1 text-[11px] font-bold text-slate-700 shadow hover:bg-white"
+                      >
+                        ← Ver mapa completo
+                      </button>
+                    )}
+                    {/* Instrução flutuante */}
+                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-[10px] uppercase tracking-wider text-slate-600 font-bold rounded-full px-3 py-1 shadow">
+                      {selectedSectorId ? 'Clique nos assentos para selecionar' : 'Clique em um setor'}
+                    </div>
                     {(hoveredSectorId || selectedSectorId) && (
                       <div className="absolute bottom-3 left-3 right-3 bg-slate-900/90 text-white text-xs rounded-md px-3 py-2 flex items-center justify-between pointer-events-none">
                         <span className="font-semibold truncate">
@@ -1357,9 +1308,64 @@ const EventPreview: React.FC = () => {
 
                   <ScrollArea className="bg-white">
                     <div className="p-4 space-y-2">
-                      <p className="text-xs text-slate-500 mb-2">
-                        Clique em um setor — no mapa ou na lista — para destacar e adicionar ao carrinho.
-                      </p>
+                      {selectedSectorId ? (
+                        <div className="mb-3">
+                          <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1.5">Assentos selecionados</p>
+                          {selectedSeats.length === 0 ? (
+                            <p className="text-xs text-slate-500 border border-dashed border-slate-200 rounded-lg p-3">
+                              Clique nos assentos do mapa para escolher fila e número.
+                            </p>
+                          ) : (
+                            <div className="space-y-1.5">
+                              {selectedSeats.map((seat) => (
+                                <div key={seat.id} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
+                                  <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: seat.color }} />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[11px] font-bold text-slate-800 truncate">{seat.sectorName}</p>
+                                    <p className="text-[10px] text-slate-500">Fila {seat.row || '—'} · Nº {seat.number || '—'}</p>
+                                  </div>
+                                  <span className="text-xs font-bold text-slate-900 tabular-nums">{brl(seat.price)}</span>
+                                  <button
+                                    onClick={() => setSelectedSeats((prev) => prev.filter((s) => s.id !== seat.id))}
+                                    className="h-6 w-6 rounded flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50"
+                                    aria-label="Remover assento"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                                <span className="text-[11px] text-slate-500">Total assentos</span>
+                                <span className="text-sm font-black text-slate-900 tabular-nums">{brl(selectedSeatsTotal)}</span>
+                              </div>
+                              <Button
+                                size="sm"
+                                className="w-full text-white mt-1"
+                                style={{ background: BRAND.green }}
+                                onClick={() => {
+                                  // Consolida no carrinho por setor
+                                  selectedSeats.forEach((seat) => {
+                                    const sector = sectorsForSale.find((s) => s.id === seat.sectorId);
+                                    if (sector) addToCart(sector);
+                                  });
+                                  setSelectedSeats([]);
+                                  toast.success(`${selectedSeats.length} ${selectedSeats.length === 1 ? 'assento adicionado' : 'assentos adicionados'} ao carrinho`);
+                                }}
+                              >
+                                <ShoppingCart className="h-3.5 w-3.5 mr-1.5" />
+                                Adicionar {selectedSeats.length} ao carrinho
+                              </Button>
+                            </div>
+                          )}
+                          <div className="my-3 border-t border-slate-100" />
+                          <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Outros setores</p>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-500 mb-2">
+                          Clique em um setor — no mapa ou na lista — para dar zoom e escolher os assentos.
+                        </p>
+                      )}
+
                       {sectorsForSale.map((s) => {
                         const isActive = (selectedSectorId || hoveredSectorId) === s.id;
                         const inCart = cart.find((i) => i.sectorId === s.id);
