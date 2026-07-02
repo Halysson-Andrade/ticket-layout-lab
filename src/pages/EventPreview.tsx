@@ -778,71 +778,161 @@ const EventPreview: React.FC = () => {
             <section id="preview-sectors" className="bg-slate-50">
               <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl')}>
                 <div className="text-center mb-6">
-                  <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Mapa do evento</p>
-                  <h3 className={cn('gw-display-md text-slate-900', isMobile ? 'text-2xl' : 'text-4xl')}>{snapshot.mapName}</h3>
-                  <p className="text-sm text-slate-500 mt-2">
-                    Confira a distribuição dos setores. Clique em "Comprar ingresso" para escolher seu lugar.
+                  <p className="text-xs text-slate-500">
+                    Explore o mapa e escolha o setor. Clique em um setor para dar zoom, ou selecione pela lista ao lado.
                   </p>
                 </div>
 
                 <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-[1.4fr_1fr]')}>
-                  <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden aspect-[4/3] relative">
-                    {snapshot.backgroundImage ? (
-                      <img
-                        src={snapshot.backgroundImage}
-                        alt={`Mapa ${snapshot.mapName}`}
-                        className="absolute inset-0 w-full h-full object-contain bg-slate-50 select-none pointer-events-none"
-                        draggable={false}
-                      />
-                    ) : sectorsForSale.length === 0 ? (
+                  <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden aspect-[4/3] relative group">
+                    {sectorsForSale.length === 0 ? (
                       <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500 text-center p-6">
                         Nenhum setor criado no mapa ainda.
                       </div>
                     ) : (
-                      <div className="absolute inset-0 pointer-events-none select-none">
-                        <MapPreviewSVG
-                          sectors={snapshot.sectors}
-                          elements={snapshot.elements}
-                          textElements={snapshot.textElements}
-                          width={snapshot.width}
-                          height={snapshot.height}
-                          backgroundImage={snapshot.backgroundImage}
-                          bgConfig={snapshot.bgConfig}
-                        />
-                      </div>
+                      <>
+                        <div className="absolute inset-0">
+                          <MapPreviewSVG
+                            sectors={snapshot.sectors}
+                            elements={snapshot.elements}
+                            textElements={snapshot.textElements}
+                            width={snapshot.width}
+                            height={snapshot.height}
+                            backgroundImage={snapshot.backgroundImage}
+                            bgConfig={snapshot.bgConfig}
+                            hoveredSectorId={hoveredSectorId}
+                            selectedSectorId={mapFocusId}
+                            onHoverSector={setHoveredSectorId}
+                            onClickSector={(id) => setMapFocusId((prev) => (prev === id ? null : id))}
+                            focusBounds={mapFocusBounds}
+                          />
+                        </div>
+
+                        {/* Tooltip flutuante do setor em foco/hover */}
+                        {(hoveredSectorId || mapFocusId) && (() => {
+                          const active = sectorsForSale.find((s) => s.id === (hoveredSectorId || mapFocusId));
+                          if (!active) return null;
+                          return (
+                            <div className="absolute left-3 bottom-3 bg-white/95 backdrop-blur border border-slate-200 rounded-xl shadow-lg px-3 py-2 flex items-center gap-3 max-w-[70%]">
+                              <span className="h-3 w-3 rounded-full shrink-0" style={{ background: active.color }} />
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-slate-900 truncate">{active.name}</p>
+                                <p className="text-[11px] text-slate-500">A partir de <span className="font-bold" style={{ color: BRAND.green }}>{brl(active.price)}</span></p>
+                              </div>
+                              <Button
+                                size="sm"
+                                className="h-8 px-3 text-xs text-white shrink-0"
+                                style={{ background: BRAND.green }}
+                                onClick={() => addToCart(active)}
+                              >
+                                <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
+                              </Button>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Controles do mapa */}
+                        <div className="absolute top-3 right-3 flex items-center gap-2">
+                          {mapFocusId && (
+                            <button
+                              onClick={() => setMapFocusId(null)}
+                              className="bg-white/95 backdrop-blur border border-slate-200 rounded-full px-3 py-1 text-[11px] font-bold text-slate-700 shadow hover:bg-white"
+                            >
+                              ← Ver mapa completo
+                            </button>
+                          )}
+                          <div className="bg-white/90 backdrop-blur text-[10px] uppercase tracking-wider text-slate-600 font-bold rounded-full px-3 py-1 shadow">
+                            {mapFocusId ? 'Zoom no setor' : 'Clique em um setor'}
+                          </div>
+                        </div>
+                      </>
                     )}
-                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-[10px] uppercase tracking-wider text-slate-600 font-bold rounded-full px-3 py-1 shadow">
-                      Apenas visualização
-                    </div>
                   </div>
 
-                  <div className="space-y-3">
-                    {sectorDescriptions.map((s) => (
-                      <div key={s.name} className="bg-white border border-slate-200 rounded-xl p-4">
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <p className="text-sm font-bold text-slate-900">{s.name}</p>
-                          <span className="text-[10px] font-semibold rounded-full px-2 py-0.5" style={{ background: `${BRAND.yellow}33`, color: '#7a5b00' }}>
-                            {s.age}
-                          </span>
+                  {/* Lista de setores dinâmica */}
+                  <div className="space-y-2.5 max-h-[560px] overflow-y-auto pr-1">
+                    {sectorsForSale.map((s) => {
+                      const isActive = (mapFocusId || hoveredSectorId) === s.id;
+                      const inCart = cart.find((c) => c.sectorId === s.id)?.qty ?? 0;
+                      const scarce = s.available <= 20;
+                      return (
+                        <div
+                          key={s.id}
+                          onMouseEnter={() => setHoveredSectorId(s.id)}
+                          onMouseLeave={() => setHoveredSectorId(null)}
+                          onClick={() => setMapFocusId(s.id)}
+                          className={cn(
+                            'bg-white border rounded-xl p-3 cursor-pointer transition-all',
+                            isActive ? 'shadow-lg -translate-y-0.5' : 'border-slate-200 hover:border-slate-300 hover:shadow-sm',
+                          )}
+                          style={isActive ? { borderColor: s.color, boxShadow: `0 8px 24px -12px ${s.color}66` } : undefined}
+                        >
+                          <div className="flex items-start gap-3">
+                            <span className="h-10 w-1.5 rounded-full shrink-0 mt-0.5" style={{ background: s.color }} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-sm font-bold text-slate-900 truncate">{s.name}</p>
+                                {scarce && (
+                                  <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: '#fee2e2', color: '#b91c1c' }}>
+                                    Últimos
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-baseline gap-1.5 mt-1">
+                                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">A partir de</span>
+                                <span className="text-base font-black text-slate-900 tabular-nums">{brl(s.price)}</span>
+                              </div>
+                              <p className="text-[11px] text-slate-500 mt-0.5">
+                                {s.available} disponíveis · 10x de {brl(s.price / 10)}
+                              </p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <Button
+                                  size="sm"
+                                  className="h-8 px-3 text-xs text-white flex-1"
+                                  style={{ background: BRAND.green }}
+                                  onClick={(e) => { e.stopPropagation(); addToCart(s); }}
+                                >
+                                  <Plus className="h-3.5 w-3.5 mr-1" />
+                                  {inCart > 0 ? `Adicionar (${inCart})` : 'Adicionar'}
+                                </Button>
+                                {inCart > 0 && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-8 px-2 text-xs"
+                                    onClick={(e) => { e.stopPropagation(); updateQty(s.id, -1); }}
+                                  >
+                                    <Minus className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <ul className="space-y-1">
-                          {s.notes.map((n, i) => (
-                            <li key={i} className="text-xs text-slate-600 flex gap-2">
-                              <span style={{ color: BRAND.green }} className="mt-0.5">•</span>{n}
-                            </li>
-                          ))}
-                        </ul>
+                      );
+                    })}
+
+                    {/* Resumo dinâmico do carrinho */}
+                    {cartCount > 0 && (
+                      <div className="sticky bottom-0 bg-white border-2 rounded-xl p-3 shadow-lg mt-2" style={{ borderColor: BRAND.green }}>
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Subtotal ({cartCount} {cartCount === 1 ? 'ingresso' : 'ingressos'})</p>
+                            <p className="text-lg font-black text-slate-900 tabular-nums">{brl(subtotal)}</p>
+                          </div>
+                          <Button
+                            className="h-10 px-4 font-bold text-white"
+                            style={{ background: BRAND.green }}
+                            onClick={() => setCartOpen(true)}
+                          >
+                            <ShoppingCart className="h-4 w-4 mr-2" /> Ver carrinho
+                          </Button>
+                        </div>
                       </div>
-                    ))}
-                    <Button
-                      className="w-full font-bold h-12 text-white"
-                      style={{ background: BRAND.green }}
-                      onClick={() => setSalesOpen(true)}
-                    >
-                      Comprar Ingresso
-                    </Button>
+                    )}
                   </div>
                 </div>
+
 
                 <div className="mt-10 max-w-4xl mx-auto">
                   <h4 className="font-bold text-lg mb-3 flex items-center gap-2" style={{ color: BRAND.green }}>
