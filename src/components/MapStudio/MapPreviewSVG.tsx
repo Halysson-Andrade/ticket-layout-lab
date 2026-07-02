@@ -15,6 +15,7 @@ interface MapPreviewSVGProps {
   onHoverSector?: (id: string | null) => void;
   onClickSector?: (id: string) => void;
   className?: string;
+  focusBounds?: { x: number; y: number; w: number; h: number } | null;
 }
 
 const verticesToPath = (vertices: { x: number; y: number }[]) => {
@@ -36,6 +37,7 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
   onHoverSector,
   onClickSector,
   className,
+  focusBounds,
 }) => {
   // Compute fit bounds from visible content
   const bounds = useMemo(() => {
@@ -61,11 +63,16 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
     };
   }, [sectors, width, height]);
 
+  const finalBounds = focusBounds
+    ? { x: focusBounds.x, y: focusBounds.y, w: focusBounds.w, h: focusBounds.h }
+    : bounds;
+
   return (
     <svg
       className={cn('w-full h-full block', className)}
-      viewBox={`${bounds.x} ${bounds.y} ${bounds.w} ${bounds.h}`}
+      viewBox={`${finalBounds.x} ${finalBounds.y} ${finalBounds.w} ${finalBounds.h}`}
       preserveAspectRatio="xMidYMid meet"
+      style={{ transition: 'all 400ms cubic-bezier(0.22, 0.61, 0.36, 1)' }}
     >
       {backgroundImage && bgConfig && (
         <image
