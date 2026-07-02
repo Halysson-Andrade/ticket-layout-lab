@@ -83,72 +83,76 @@ const brl = (v: number) =>
 
 const GW_LOGO = 'https://s3.guicheweb.com.br/nova_marca/logogw.png';
 
-// Modelo: 54ª Exposete Rodeio Festival
+// Modelo: Circo Mirage Circus Ribeirão Preto
 const eventInfo = {
-  title: '54ª Exposete Rodeio Festival',
-  subtitle: 'A maior festa do interior de Minas Gerais',
-  date: '09 a 19 de Julho de 2026',
-  doors: '18:00h',
-  venue: 'Parque de Exposições Edgar Maffei',
-  city: 'SETE LAGOAS / MG',
+  title: 'Circo Mirage Circus Ribeirão Preto',
+  subtitle: 'Marcos Frota apresenta: o gigante está de volta - Tour 2026',
+  date: '11 de Julho de 2026',
+  doors: '15:30h',
+  venue: 'Circo Mirage Circus - Rodovia Antônio Machado Sant\'Anna',
+  city: 'RIBEIRÃO PRETO / SP',
   rating: 4.9,
-  reviews: 4820,
-  heroBanner: 'https://s3.guicheweb.com.br/banners/19-06-2026_10-39-35.png',
-  description: `A Exposete chega à sua 54ª edição como uma das maiores festas agropecuárias do país, reunindo rodeio profissional, shows nacionais, parque de diversões, praça de alimentação e leilões.
+  reviews: 3120,
+  heroBanner: 'https://s3.guicheweb.com.br/imagenseventos/15-06-2026_12-55-36.jpg',
+  posterImage: 'https://s3.guicheweb.com.br/imagenseventos/01-06-2026_21-06-51.png',
+  description: `O maior circo do Brasil retorna a Ribeirão Preto com o espetáculo Mirage Circus Tour 2026, comandado por Marcos Frota.
 
-Durante 11 dias de programação, o Parque de Exposições Edgar Maffei recebe mais de 300 mil visitantes e atrações de primeira linha do sertanejo, pagode e piseiro.
+Um show inesquecível para toda a família com acrobatas internacionais, palhaços, ilusionismo, roda da morte e muito mais, em uma estrutura moderna, climatizada e com poltronas numeradas.
 
-Garanta seu ingresso e viva uma experiência inesquecível em Sete Lagoas / MG.`,
+Garanta seu ingresso e viva uma experiência mágica no picadeiro do Circo Mirage.`,
 };
 
 const upcomingEvents = [
-  { title: 'Turnê Manifesto Musical 2026 - SP', city: 'São Paulo / SP', date: '15 FEV',
+  { title: 'Circo Mirage - Campinas/SP', city: 'Campinas / SP', date: '25 JUL',
+    img: 'https://s3.guicheweb.com.br/imagenseventos/01-06-2026_21-06-51.png' },
+  { title: 'Circo Mirage - São José do Rio Preto', city: 'S. J. do Rio Preto / SP', date: '08 AGO',
+    img: 'https://s3.guicheweb.com.br/imagenseventos/15-06-2026_12-55-36.jpg' },
+  { title: 'Turnê Manifesto Musical 2026', city: 'São Paulo / SP', date: '15 FEV',
     img: 'https://s3.guicheweb.com.br/banners/20-01-2026_11-45-24.jpg' },
   { title: 'Henrique e Juliano Em Casa', city: 'Palmas / TO', date: '12 SET',
     img: 'https://s3.guicheweb.com.br/banners/27-05-2026_16-27-13.jpg' },
-  { title: 'Festa do Peão de Salto de Pirapora', city: 'Salto de Pirapora / SP', date: '20 a 28 JUN',
-    img: 'https://s3.guicheweb.com.br/banners/20-05-2026_10-41-16.png' },
   { title: 'Oba Festival 2027', city: 'Goiânia / GO', date: '03 a 05 JAN',
     img: 'https://s3.guicheweb.com.br/banners/17-06-2026_14-19-42.png' },
-  { title: 'Tangará Festival Music', city: 'Tangará da Serra / MT', date: '22 AGO',
-    img: 'https://s3.guicheweb.com.br/banners/19-06-2026_10-39-35.png' },
   { title: 'Manifesto Musical - BH', city: 'Belo Horizonte / MG', date: '18 JUL',
     img: 'https://s3.guicheweb.com.br/banners/20-01-2026_11-45-26.jpg' },
 ];
 
 const sectorDescriptions = [
-  { name: 'CAMAROTE NASALA', age: '18 anos', notes: ['Open bar premium: cerveja, vodka, gin, whisky, refrigerante, tônica e água', 'Acesso exclusivo e vista privilegiada', 'Área elevada • Experiências exclusivas'] },
-  { name: 'ESPAÇO ÚLTIMA SAUDADE', age: '18 anos', notes: ['Open bar: cerveja, água e refrigerante', 'Haverá venda de destilados'] },
-  { name: 'GRAMADO', age: '16 anos', notes: ['Área localizada no gramado do parque', 'Venda de bebidas', 'Área de alimentação'] },
-  { name: 'ARQUIBANCADA', age: '16 anos', notes: ['Venda de bebidas', 'Área de alimentação'] },
+  { name: 'VIP OURO', age: 'Livre', notes: ['Melhor visão do picadeiro', 'Poltronas numeradas premium', 'Setor mais próximo ao show'] },
+  { name: 'VIP PRATA', age: 'Livre', notes: ['Excelente visão central', 'Poltronas numeradas', 'Setor VIP com conforto premium'] },
+  { name: 'CENTRAL OURO', age: 'Livre', notes: ['Visão central privilegiada', 'Poltronas numeradas', 'Ótimo custo-benefício'] },
+  { name: 'CENTRAL PRATA', age: 'Livre', notes: ['Visão central confortável', 'Poltronas numeradas'] },
+  { name: 'LATERAL OURO', age: 'Livre', notes: ['Visão lateral premium', 'Poltronas numeradas'] },
+  { name: 'LATERAL PRATA', age: 'Livre', notes: ['Setor de entrada com ótimo preço', 'Poltronas numeradas'] },
 ];
 
 const faqs = [
-  { q: 'Será permitida a entrada de menores acompanhados e com autorização?',
-    a: 'Menores com 16 e 17 anos devem estar acompanhados do responsável legal nos setores Gramado e Arquibancada. Não serão aceitos menores sozinhos. Nos setores open bar não serão permitidos menores de 18 anos mesmo que acompanhados.' },
-  { q: 'Quais alimentos serão aceitos na portaria com ingresso solidário?',
-    a: 'Apenas alimentos não perecíveis, embalados de fábrica, dentro do prazo de validade e que não sejam sal, cuscuz ou milharina.' },
-  { q: 'Qual horário de abertura dos portões do evento?', a: 'Abertura dos portões prevista para 18 horas.' },
-  { q: 'Terá estacionamento?', a: 'Sim, terceirizado. A produção não se responsabiliza pelos veículos.' },
-  { q: 'Terá área PCD?', a: 'Sim, haverá área exclusiva para PCD e seus acompanhantes.' },
+  { q: 'Menores de idade podem entrar?',
+    a: 'Sim. Crianças de até 2 anos não pagam desde que fiquem no colo dos responsáveis. Menores de 12 anos devem estar acompanhados dos pais ou responsáveis legais.' },
+  { q: 'O circo é climatizado?',
+    a: 'Sim, toda a estrutura do Circo Mirage é totalmente climatizada, com poltronas numeradas e ambiente coberto.' },
+  { q: 'Qual o horário de abertura das portas?', a: 'A abertura dos portões acontece 30 minutos antes do início do espetáculo (15:00h).' },
+  { q: 'Terá estacionamento no local?', a: 'Sim, há estacionamento terceirizado próximo ao circo. A produção não se responsabiliza pelos veículos.' },
+  { q: 'Como funciona a meia-entrada?', a: 'Meia-entrada mediante comprovação no local conforme legislação vigente (estudante, idoso, PCD, doador de sangue e demais previstos em lei).' },
 ];
 
 const rules = [
-  'Apresentação obrigatória do ingresso impresso ou digital, juntamente com documento oficial com foto.',
-  'O não comparecimento ao evento invalidará o ingresso e não permitirá reembolso.',
+  'Apresentação obrigatória do ingresso impresso ou digital, junto com documento oficial com foto.',
+  'Tolerância de 15 minutos após o horário do espetáculo. Após esse período, a entrada é permitida somente em intervalos.',
   'Meia-entrada apenas mediante comprovação no local conforme legislação vigente.',
-  'Proibida a entrada com copos, latas, objetos pontiagudos, guarda-chuvas, drones e armas.',
+  'Proibida a entrada com alimentos, bebidas, objetos pontiagudos ou perigosos.',
   'Solicitações de cancelamento podem ser feitas em até 7 dias da compra, com no mínimo 48h de antecedência do evento.',
 ];
 
 const pointsOfSale = [
-  { city: 'Sete Lagoas/MG', name: 'Loja Centro', address: 'Av. Brasil, 1502', phone: '(31) 3035-9080' },
-  { city: 'Belo Horizonte/MG', name: 'Shopping Diamond Mall', address: 'Av. Olegário Maciel, 1600', phone: '(31) 3033-2210' },
-  { city: 'Belo Horizonte/MG', name: 'BH Shopping', address: 'BR-356, 3049 - Belvedere', phone: '(31) 3033-1622' },
-  { city: 'Contagem/MG', name: 'ItaúPower Shopping', address: 'Av. João César de Oliveira, 1275', phone: '(31) 3244-1199' },
+  { city: 'Ribeirão Preto/SP', name: 'Bilheteria Oficial do Circo', address: 'Rod. Antônio Machado Sant\'Anna, km 321', phone: '(16) 3600-2020' },
+  { city: 'Ribeirão Preto/SP', name: 'Shopping Iguatemi', address: 'Av. Luiz Eduardo Toledo Prado, 900', phone: '(16) 3877-1010' },
+  { city: 'Ribeirão Preto/SP', name: 'Ribeirão Shopping', address: 'Av. Cel. Fernando Ferreira Leite, 1540', phone: '(16) 3877-2020' },
+  { city: 'Sertãozinho/SP', name: 'Shopping Sertãozinho', address: 'Av. Antônio Paschoal, 2000', phone: '(16) 3945-3030' },
 ];
 
-const MOCK_PRICES = [480, 280, 220, 180, 150, 120, 90, 380, 650, 420];
+// Preços de referência do Circo Mirage (fallback quando o setor não tem preço definido)
+const MOCK_PRICES = [105, 90, 80, 65, 30, 25, 210, 180, 160, 130];
 const getSectorPrice = (s: Sector, idx: number): number => {
   const seatWithPrice = s.seats.find((x) => typeof x.price === 'number' && x.price! > 0);
   if (seatWithPrice?.price) return seatWithPrice.price;
