@@ -892,44 +892,31 @@ const EventPreview: React.FC = () => {
 
                 <div className="relative bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                   <div className="aspect-[16/9] relative">
-                    {sectorsForSale.length === 0 ? (
-                      <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500 text-center p-6">
-                        Nenhum setor criado no mapa ainda.
+                    <img
+                      src={eventInfo.heroBanner}
+                      alt={`Imagem do evento ${eventInfo.title}`}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+                      <div className="text-center sm:text-left text-white">
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-white/80">Ingressos disponíveis</p>
+                        <p className="text-lg font-black">
+                          A partir de <span style={{ color: BRAND.green }}>{brl(minPrice)}</span>
+                        </p>
                       </div>
-                    ) : (
-                      <>
-                        <div className="absolute inset-0 pointer-events-none">
-                          <MapPreviewSVG
-                            sectors={snapshot.sectors}
-                            elements={snapshot.elements}
-                            textElements={snapshot.textElements}
-                            width={snapshot.width}
-                            height={snapshot.height}
-                            backgroundImage={snapshot.backgroundImage}
-                            bgConfig={snapshot.bgConfig}
-                            interactive={false}
-                          />
-                        </div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/0 to-white/0" />
-                        <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-                          <div className="text-center sm:text-left">
-                            <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500">Ingressos disponíveis</p>
-                            <p className="text-lg font-black text-slate-900">
-                              A partir de <span style={{ color: BRAND.green }}>{brl(minPrice)}</span>
-                            </p>
-                          </div>
-                          <Button
-                            size="lg"
-                            className="text-white font-bold shadow-lg"
-                            style={{ background: BRAND.green }}
-                            onClick={() => setSalesOpen(true)}
-                          >
-                            <Ticket className="h-4 w-4 mr-2" />
-                            Comprar ingresso
-                          </Button>
-                        </div>
-                      </>
-                    )}
+                      <Button
+                        size="lg"
+                        className="text-white font-bold shadow-lg"
+                        style={{ background: BRAND.green }}
+                        onClick={() => setSalesOpen(true)}
+                        disabled={sectorsForSale.length === 0}
+                      >
+                        <Ticket className="h-4 w-4 mr-2" />
+                        {sectorsForSale.length === 0 ? 'Mapa indisponível' : 'Comprar ingresso'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
