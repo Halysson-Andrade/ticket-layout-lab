@@ -191,7 +191,9 @@ export function useIntegrationMode(): IntegrationResult {
         return;
       }
 
-      const setoresRes = await fetch(integration.url_list_setores, {
+      const setoresUrl = new URL(integration.url_list_setores);
+      setoresUrl.searchParams.set('id_evento', eventId);
+      const setoresRes = await fetch(setoresUrl.toString(), {
         headers: {
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           Authorization: `Bearer ${session.access_token}`,
