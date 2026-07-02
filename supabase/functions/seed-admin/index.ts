@@ -26,8 +26,26 @@ Deno.serve(async (req) => {
       .maybeSingle()
 
     if (existingProfile) {
+      // Reset password and flags
+      const { data: prof } = await supabaseAdmin
+        .from('profiles')
+        .select('user_id')
+        .eq('username', 'adm')
+        .maybeSingle()
+
+      if (prof?.user_id) {
+        await supabaseAdmin.auth.admin.updateUserById(prof.user_id, {
+          password: 'Guiche@2026@',
+          email_confirm: true,
+        })
+        await supabaseAdmin
+          .from('profiles')
+          .update({ must_change_password: false, status: 'ativo' })
+          .eq('user_id', prof.user_id)
+      }
+
       return new Response(
-        JSON.stringify({ message: 'Admin user already exists' }),
+        JSON.stringify({ message: 'Admin password reset', username: 'adm', password: 'Guiche@2026@' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
