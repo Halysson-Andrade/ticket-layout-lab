@@ -43,7 +43,13 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
   onClickSector,
   className,
   focusBounds,
+  selectedSeatIds,
+  onClickSeat,
+  showSeatLabels = false,
+  interactive = true,
 }) => {
+  const selectedSeatSet = useMemo(() => new Set(selectedSeatIds ?? []), [selectedSeatIds]);
+
   // Compute fit bounds from visible content
   const bounds = useMemo(() => {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
