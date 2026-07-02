@@ -778,7 +778,9 @@ const EventPreview: React.FC = () => {
             <section id="preview-sectors" className="bg-slate-50">
               <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl')}>
                 <div className="text-center mb-6">
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Mapa do evento</p>
+                  <h3 className={cn('gw-display-md text-slate-900', isMobile ? 'text-2xl' : 'text-4xl')}>{snapshot.mapName}</h3>
+                  <p className="text-sm text-slate-500 mt-2">
                     Explore o mapa e escolha o setor. Clique em um setor para dar zoom, ou selecione pela lista ao lado.
                   </p>
                 </div>
