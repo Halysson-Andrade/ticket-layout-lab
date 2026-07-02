@@ -168,6 +168,7 @@ const EventPreview: React.FC = () => {
   const [selectedSectorId, setSelectedSectorId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showStickyCTA, setShowStickyCTA] = useState(false);
+  const [mapFocusId, setMapFocusId] = useState<string | null>(null);
 
   // === Conversion boosters ===
   const [viewers, setViewers] = useState(() => 87 + Math.floor(Math.random() * 60));
