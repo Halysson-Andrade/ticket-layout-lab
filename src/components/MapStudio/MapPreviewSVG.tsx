@@ -15,6 +15,7 @@ interface MapPreviewSVGProps {
   onHoverSector?: (id: string | null) => void;
   onClickSector?: (id: string) => void;
   className?: string;
+  focusBounds?: { x: number; y: number; w: number; h: number } | null;
 }
 
 const verticesToPath = (vertices: { x: number; y: number }[]) => {
