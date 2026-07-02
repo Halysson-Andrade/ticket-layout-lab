@@ -1308,9 +1308,64 @@ const EventPreview: React.FC = () => {
 
                   <ScrollArea className="bg-white">
                     <div className="p-4 space-y-2">
-                      <p className="text-xs text-slate-500 mb-2">
-                        Clique em um setor — no mapa ou na lista — para destacar e adicionar ao carrinho.
-                      </p>
+                      {selectedSectorId ? (
+                        <div className="mb-3">
+                          <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1.5">Assentos selecionados</p>
+                          {selectedSeats.length === 0 ? (
+                            <p className="text-xs text-slate-500 border border-dashed border-slate-200 rounded-lg p-3">
+                              Clique nos assentos do mapa para escolher fila e número.
+                            </p>
+                          ) : (
+                            <div className="space-y-1.5">
+                              {selectedSeats.map((seat) => (
+                                <div key={seat.id} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
+                                  <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: seat.color }} />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[11px] font-bold text-slate-800 truncate">{seat.sectorName}</p>
+                                    <p className="text-[10px] text-slate-500">Fila {seat.row || '—'} · Nº {seat.number || '—'}</p>
+                                  </div>
+                                  <span className="text-xs font-bold text-slate-900 tabular-nums">{brl(seat.price)}</span>
+                                  <button
+                                    onClick={() => setSelectedSeats((prev) => prev.filter((s) => s.id !== seat.id))}
+                                    className="h-6 w-6 rounded flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50"
+                                    aria-label="Remover assento"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                                <span className="text-[11px] text-slate-500">Total assentos</span>
+                                <span className="text-sm font-black text-slate-900 tabular-nums">{brl(selectedSeatsTotal)}</span>
+                              </div>
+                              <Button
+                                size="sm"
+                                className="w-full text-white mt-1"
+                                style={{ background: BRAND.green }}
+                                onClick={() => {
+                                  // Consolida no carrinho por setor
+                                  selectedSeats.forEach((seat) => {
+                                    const sector = sectorsForSale.find((s) => s.id === seat.sectorId);
+                                    if (sector) addToCart(sector);
+                                  });
+                                  setSelectedSeats([]);
+                                  toast.success(`${selectedSeats.length} ${selectedSeats.length === 1 ? 'assento adicionado' : 'assentos adicionados'} ao carrinho`);
+                                }}
+                              >
+                                <ShoppingCart className="h-3.5 w-3.5 mr-1.5" />
+                                Adicionar {selectedSeats.length} ao carrinho
+                              </Button>
+                            </div>
+                          )}
+                          <div className="my-3 border-t border-slate-100" />
+                          <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Outros setores</p>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-500 mb-2">
+                          Clique em um setor — no mapa ou na lista — para dar zoom e escolher os assentos.
+                        </p>
+                      )}
+
                       {sectorsForSale.map((s) => {
                         const isActive = (selectedSectorId || hoveredSectorId) === s.id;
                         const inCart = cart.find((i) => i.sectorId === s.id);
