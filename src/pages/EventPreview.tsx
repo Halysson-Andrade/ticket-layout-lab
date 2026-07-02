@@ -891,14 +891,29 @@ const EventPreview: React.FC = () => {
                 </div>
 
                 <div className="relative bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                  <div className="aspect-[16/9] relative">
-                    <img
-                      src={eventInfo.heroBanner}
-                      alt={`Imagem do evento ${eventInfo.title}`}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                  <div className="aspect-[16/9] relative bg-slate-100">
+                    {snapshot.backgroundImage ? (
+                      <img
+                        src={snapshot.backgroundImage}
+                        alt={`Mapa ${snapshot.mapName}`}
+                        className="absolute inset-0 w-full h-full object-contain"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="absolute inset-0">
+                        <MapPreviewSVG
+                          sectors={snapshot.sectors}
+                          elements={snapshot.elements}
+                          textElements={snapshot.textElements}
+                          width={snapshot.width}
+                          height={snapshot.height}
+                          backgroundImage={null}
+                          bgConfig={null}
+                          interactive={false}
+                        />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-transparent pointer-events-none" />
                     <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-3">
                       <div className="text-center sm:text-left text-white">
                         <p className="text-[10px] uppercase tracking-widest font-bold text-white/80">Ingressos disponíveis</p>
