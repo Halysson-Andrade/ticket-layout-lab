@@ -253,6 +253,25 @@ const EventPreview: React.FC = () => {
   const minPrice = sectorsForSale.length ? Math.min(...sectorsForSale.map((s) => s.price)) : 0;
   const maxPrice = sectorsForSale.length ? Math.max(...sectorsForSale.map((s) => s.price)) : 0;
 
+  // Focus bounds para "zoom" no setor selecionado no mapa da página
+  const mapFocusBounds = useMemo(() => {
+    if (!snapshot || !mapFocusId) return null;
+    const s = snapshot.sectors.find((x) => x.id === mapFocusId);
+    if (!s) return null;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    s.vertices.forEach((v) => {
+      if (v.x < minX) minX = v.x;
+      if (v.y < minY) minY = v.y;
+      if (v.x > maxX) maxX = v.x;
+      if (v.y > maxY) maxY = v.y;
+    });
+    if (!isFinite(minX)) return null;
+    const w = maxX - minX;
+    const h = maxY - minY;
+    const pad = Math.max(w, h) * 0.6;
+    return { x: minX - pad, y: minY - pad, w: w + pad * 2, h: h + pad * 2 };
+  }, [snapshot, mapFocusId]);
+
   // === Inteligência de conversão ===
   // Melhor custo-benefício: setor com >=15 disponíveis mais próximo da mediana de preço
   const bestValueSectorId = useMemo(() => {
