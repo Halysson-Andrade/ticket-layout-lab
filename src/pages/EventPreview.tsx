@@ -289,23 +289,39 @@ const EventPreview: React.FC = () => {
     });
   };
 
-  // Scroll reveal: adiciona classe is-visible quando o elemento entra na viewport
+  // Scroll reveal: adiciona classe is-visible ao entrar na viewport
+  // Usa checagem por getBoundingClientRect para funcionar mesmo dentro de containers scrolláveis (moldura mobile)
   useEffect(() => {
-    const els = document.querySelectorAll<HTMLElement>('.gw-reveal');
-    if (!els.length) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
-            io.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.12, rootMargin: '0px 0px -60px 0px' }
-    );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
+    let raf = 0;
+    const check = () => {
+      raf = 0;
+      const els = document.querySelectorAll<HTMLElement>('.gw-reveal:not(.is-visible)');
+      if (!els.length) return;
+      const vh = window.innerHeight || document.documentElement.clientHeight;
+      els.forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (r.top < vh - 40 && r.bottom > 0) {
+          el.classList.add('is-visible');
+        }
+      });
+    };
+    const schedule = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(check);
+    };
+    // Fallback: garante que tudo apareça mesmo se listener não disparar (containers exóticos)
+    const fallback = window.setTimeout(() => {
+      document.querySelectorAll<HTMLElement>('.gw-reveal').forEach((el) => el.classList.add('is-visible'));
+    }, 1200);
+    schedule();
+    window.addEventListener('scroll', schedule, true);
+    window.addEventListener('resize', schedule);
+    return () => {
+      window.removeEventListener('scroll', schedule, true);
+      window.removeEventListener('resize', schedule);
+      if (raf) cancelAnimationFrame(raf);
+      window.clearTimeout(fallback);
+    };
   }, [snapshot]);
 
   const sectorsForSale = useMemo(() => {
