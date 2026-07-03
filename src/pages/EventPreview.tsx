@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Accordion,
   AccordionContent,
@@ -1777,7 +1776,7 @@ const EventPreview: React.FC = () => {
                   </div>
 
 
-                  <ScrollArea className="bg-white min-h-0">
+                  <div className={cn('bg-white min-h-0 overflow-y-auto', isMobile && 'gw-hide-scroll')}>
                     <div className="p-4 space-y-2">
                       <p className="text-xs text-slate-500 mb-1">
                         {selectedSectorId
@@ -1863,7 +1862,7 @@ const EventPreview: React.FC = () => {
                         );
                       })}
                     </div>
-                  </ScrollArea>
+                  </div>
                 </div>
 
                 {/* Rodapé persistente: resumo + ações */}
@@ -1917,9 +1916,9 @@ const EventPreview: React.FC = () => {
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
-                      <ScrollArea className="flex-1 p-4">
+                      <div className={cn('flex-1 p-4 overflow-y-auto', isMobile && 'gw-hide-scroll')}>
                         {renderCartItems()}
-                      </ScrollArea>
+                      </div>
                       {cart.length > 0 && (
                         <div className="border-t p-4 space-y-3 bg-slate-50 shrink-0">
                           {renderCartTotals()}
@@ -2064,7 +2063,7 @@ const EventPreview: React.FC = () => {
                 </div>
               </div>
 
-              <ScrollArea className="flex-1 min-h-0">
+              <div className={cn('flex-1 min-h-0 overflow-y-auto', isMobile && 'gw-hide-scroll')}>
                 <div className="mx-auto w-full max-w-2xl p-3 sm:p-6 space-y-3 sm:space-y-5">
                   {cartCount === 0 ? (
                     <div className="text-center py-16 text-slate-500">
@@ -2108,7 +2107,7 @@ const EventPreview: React.FC = () => {
                     </>
                   )}
                 </div>
-              </ScrollArea>
+              </div>
 
               {/* Rodapé: finalizar */}
               {cartCount > 0 && (
@@ -2156,7 +2155,7 @@ const EventPreview: React.FC = () => {
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
-                <ScrollArea className="flex-1 p-4">
+                <div className={cn('flex-1 p-4 overflow-y-auto', isMobile && 'gw-hide-scroll')}>
                   <Accordion type="single" collapsible className="w-full">
                     {TERMS.produtor.sections.map((sec, i) => (
                       <AccordionItem key={i} value={`term-${i}`}>
@@ -2167,7 +2166,7 @@ const EventPreview: React.FC = () => {
                       </AccordionItem>
                     ))}
                   </Accordion>
-                </ScrollArea>
+                </div>
                 <div className="border-t p-4 shrink-0">
                   <Button className="w-full font-bold text-white" style={{ background: BRAND.green }} onClick={() => setProdutorTermOpen(false)}>
                     Entendi
