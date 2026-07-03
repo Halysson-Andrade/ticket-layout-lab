@@ -764,7 +764,7 @@ const EventPreview: React.FC = () => {
                       Vendas abertas
                     </span>
                     <span className="text-[11px] text-white/60 font-medium uppercase tracking-[0.16em]">
-                      Sete Lagoas · MG · Julho 2026
+                      Ribeirão Preto · SP · 11 Julho 2026
                     </span>
                   </div>
                 )}
@@ -782,7 +782,7 @@ const EventPreview: React.FC = () => {
                   <div className="absolute top-4 left-4 sm:top-5 sm:left-5">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 backdrop-blur px-3 py-1.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-900 shadow-sm ring-1 ring-black/5">
                       <span className="h-1.5 w-1.5 rounded-full" style={{ background: BRAND.green }} />
-                      54ª Edição · Confirmado
+                      Tour 2026 · Confirmado
                     </span>
                   </div>
                 </div>
@@ -829,17 +829,17 @@ const EventPreview: React.FC = () => {
                       style={{ background: `${BRAND.green}14`, color: BRAND.green }}
                     >
                       <span className="h-1.5 w-1.5 rounded-full" style={{ background: BRAND.green }} />
-                      Festival · Rodeio
+                      Circo · Espetáculo
                     </span>
-                    <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">Julho · 2026</span>
+                    <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">11 Julho · 2026 · 15h30</span>
                   </div>
 
                   <h1 className={cn(
                     'gw-display text-slate-900 leading-[1.02] gw-rise break-words',
-                    isMobile ? 'text-[2rem]' : 'text-[3rem] lg:text-[3.5rem]'
+                    isMobile ? 'text-[1.75rem]' : 'text-[2.5rem] lg:text-[3rem]'
                   )}>
-                    54ª Exposete{' '}
-                    <span className="text-slate-900">Rodeio Festival</span>
+                    Circo Mirage Circus Ribeirão Preto. SP{' '}
+                    <span className="text-slate-900">— 11.JUL às 15h30</span>
                   </h1>
                   <p className="text-base text-slate-500 mt-2 max-w-2xl">{eventInfo.subtitle}</p>
 
