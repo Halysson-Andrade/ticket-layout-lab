@@ -23,10 +23,19 @@ interface MapPreviewSVGProps {
 }
 
 
-const verticesToPath = (vertices: { x: number; y: number }[]) => {
+// Constrói o path do setor respeitando curvas bézier (controlPoint), igual ao construtor.
+// Convenção: v.controlPoint é o ponto de controle da aresta que TERMINA em v.
+const verticesToPath = (vertices: { x: number; y: number; controlPoint?: { x: number; y: number } }[]) => {
   if (!vertices.length) return '';
-  const [first, ...rest] = vertices;
-  return `M ${first.x} ${first.y} ${rest.map((v) => `L ${v.x} ${v.y}`).join(' ')} Z`;
+  const [first] = vertices;
+  let d = `M ${first.x} ${first.y}`;
+  for (let i = 1; i < vertices.length; i++) {
+    const v = vertices[i];
+    d += v.controlPoint ? ` Q ${v.controlPoint.x} ${v.controlPoint.y} ${v.x} ${v.y}` : ` L ${v.x} ${v.y}`;
+  }
+  // Aresta de fechamento (último -> primeiro) usa o controlPoint do primeiro vértice
+  d += first.controlPoint ? ` Q ${first.controlPoint.x} ${first.controlPoint.y} ${first.x} ${first.y}` : ' Z';
+  return d;
 };
 
 export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
@@ -151,8 +160,8 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
               strokeWidth={isSelected ? 3 : 1.5}
               style={{ transition: 'fill-opacity 120ms, stroke 120ms' }}
             />
-            {/* Seats */}
-            {s.seats.slice(0, showSeatLabels ? 2000 : 600).map((seat) => {
+            {/* Seats — setor em foco renderiza TODOS os assentos (compra); demais mantêm cap por performance */}
+            {s.seats.slice(0, s.id === selectedSectorId ? s.seats.length : (showSeatLabels ? 2000 : 600)).map((seat) => {
               const isSeatSelected = selectedSeatSet.has(seat.id);
               const isBlocked = seat.status === 'blocked' || seat.status === 'sold' || seat.type === 'blocked';
               const fill = isSeatSelected
@@ -165,6 +174,58 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
                 e.stopPropagation();
                 onClickSeat(seat, s);
               };
+              const seatCursor = interactive && onClickSeat && !isBlocked ? 'pointer' : undefined;
+
+              // Mesa/bistrô: espelha o desenho do construtor (mesa + cadeiras ao redor)
+              const isTable = seat.furnitureType === 'table' || seat.furnitureType === 'bistro';
+              if (isTable) {
+                const cfg = seat.tableConfig || { shape: 'round' as const, chairCount: 4, tableWidth: 40, tableHeight: 40, chairStartAngle: 0 };
+                const tW = cfg.tableWidth || 40;
+                const tH = cfg.tableHeight || 40;
+                const chairR = cfg.chairRadius || 6;
+                const tCenterX = seat.x + tW / 2;
+                const tCenterY = seat.y + tH / 2;
+                const defaultColor = seat.furnitureType === 'bistro' ? '#8b5cf6' : '#64748b';
+                const tableFill = isSeatSelected ? '#11CC35' : isBlocked ? 'rgba(148,163,184,0.7)' : (cfg.tableColor || defaultColor);
+                const chairFill = isBlocked ? 'rgba(148,163,184,0.5)' : 'rgba(255,255,255,0.9)';
+                const startAngle = ((cfg.chairStartAngle || 0) * Math.PI) / 180;
+                const chairs = [];
+                for (let i = 0; i < (cfg.chairCount || 0); i++) {
+                  const angle = cfg.chairAngles && cfg.chairAngles.length === cfg.chairCount
+                    ? (cfg.chairAngles[i] * Math.PI) / 180
+                    : startAngle + (i / cfg.chairCount) * Math.PI * 2 - Math.PI / 2;
+                  const cos = Math.cos(angle), sin = Math.sin(angle);
+                  let chX: number, chY: number;
+                  if (cfg.shape === 'round') {
+                    const dist = Math.min(tW, tH) / 2 + chairR + 1;
+                    chX = tCenterX + cos * dist;
+                    chY = tCenterY + sin * dist;
+                  } else {
+                    const scaleX = cos !== 0 ? Math.abs((tW / 2) / cos) : Infinity;
+                    const scaleY = sin !== 0 ? Math.abs((tH / 2) / sin) : Infinity;
+                    const sc = Math.min(scaleX, scaleY);
+                    chX = tCenterX + cos * (sc + chairR + 1);
+                    chY = tCenterY + sin * (sc + chairR + 1);
+                  }
+                  chairs.push(<circle key={i} cx={chX} cy={chY} r={chairR} fill={chairFill} stroke="rgba(0,0,0,0.3)" strokeWidth={0.4} pointerEvents="none" />);
+                }
+                return (
+                  <g key={seat.id} onClick={handleSeatClick} style={{ cursor: seatCursor }}>
+                    {chairs}
+                    {cfg.shape === 'round' ? (
+                      <circle cx={tCenterX} cy={tCenterY} r={Math.min(tW, tH) / 2} fill={tableFill} stroke={isSeatSelected ? '#0a8a26' : 'rgba(0,0,0,0.35)'} strokeWidth={isSeatSelected ? 1.5 : 0.6} />
+                    ) : (
+                      <rect x={seat.x} y={seat.y} width={tW} height={tH} rx={3} fill={tableFill} stroke={isSeatSelected ? '#0a8a26' : 'rgba(0,0,0,0.35)'} strokeWidth={isSeatSelected ? 1.5 : 0.6} />
+                    )}
+                    {showSeatLabels && seat.number && (
+                      <text x={tCenterX} y={tCenterY} textAnchor="middle" dominantBaseline="middle" fontSize={Math.min(tW, tH) * 0.3} fontWeight={700} fill="#fff" pointerEvents="none">
+                        {seat.number}
+                      </text>
+                    )}
+                  </g>
+                );
+              }
+
               return (
                 <g key={seat.id}>
                   <circle
@@ -175,7 +236,7 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
                     stroke={isSeatSelected ? '#0a8a26' : 'rgba(0,0,0,0.35)'}
                     strokeWidth={isSeatSelected ? 1.5 : 0.5}
                     onClick={handleSeatClick}
-                    style={{ cursor: interactive && onClickSeat && !isBlocked ? 'pointer' : undefined }}
+                    style={{ cursor: seatCursor }}
                   />
                   {showSeatLabels && seat.number && (
                     <text

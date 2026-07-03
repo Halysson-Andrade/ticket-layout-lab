@@ -2136,6 +2136,7 @@ export const MapStudio: React.FC = () => {
         tableConfig: seat.tableConfig,
         rowDescription: seat.rowDescription,
         description: seat.description,
+        viewImageUrl: seat.viewImageUrl,
       })),
     })),
     elements: elements.map(e => ({

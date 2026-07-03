@@ -1183,6 +1183,27 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                       </div>
                     </div>
 
+                    {/* Foto da visão do assento para o palco (URL) — exibida no carrinho */}
+                    <div>
+                      <Label className="text-[10px] text-muted-foreground">Foto da visão (URL)</Label>
+                      <Input
+                        value={selectedSeats[0].viewImageUrl || ''}
+                        onChange={(e) => onUpdateSeats([selectedSeats[0].id], { viewImageUrl: e.target.value || undefined })}
+                        placeholder="https://…/vista-do-assento.jpg"
+                        className="h-7 text-xs"
+                      />
+                      {selectedSeats[0].viewImageUrl && (
+                        <div className="mt-1.5 rounded-md overflow-hidden border border-border">
+                          <img
+                            src={selectedSeats[0].viewImageUrl}
+                            alt="Prévia da visão do assento"
+                            className="w-full h-24 object-cover"
+                            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        </div>
+                      )}
+                    </div>
+
                     {/* Propriedades de Mesa/Bistrô */}
                     {(selectedSeats[0].furnitureType === 'table' || selectedSeats[0].furnitureType === 'bistro') && selectedSeats[0].tableConfig && (
                       <div className="space-y-3 pt-3 border-t border-border">

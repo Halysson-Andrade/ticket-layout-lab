@@ -116,6 +116,7 @@ export interface Seat {
   tableConfig?: TableConfig;
   rowDescription?: string; // Descrição customizada da fileira
   description?: string; // Motivo de bloqueio ou nota sobre o assento
+  viewImageUrl?: string; // URL da foto da visão do assento para o palco (exibida no carrinho)
 }
 
 export interface Sector {

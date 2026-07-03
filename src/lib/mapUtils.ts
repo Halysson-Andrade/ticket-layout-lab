@@ -754,7 +754,196 @@ export function generateSeatsGrid(
   return seats;
 }
 
+// ============================================================================
+// LAYOUT UNIFICADO DE ASSENTOS (plano + curvo)
+// Uma única fonte de verdade usada TANTO pela geração real quanto pelo preview
+// do gerador. Para formas planas reproduz exatamente o grid antigo; para formas
+// com curva/arco posiciona os assentos ao longo da fronteira REAL do setor
+// (vértices + pontos de controle bézier), em vez de um círculo sintético.
+// ============================================================================
+
+export interface SeatLayoutInput {
+  vertices: Vertex[];
+  rows: number;
+  cols: number;
+  itemSize: number;       // tamanho já ajustado por tipo de mobília (e já escalado no preview)
+  colSpacing: number;
+  rowSpacing: number;     // espaçamento de fileira efetivo (o chamador resolve ?? colSpacing)
+  curvature: number;
+  isArcShape: boolean;
+  rowAlignment?: RowAlignment;
+  seatsPerRow?: number[];
+}
+
+export interface LayoutCell {
+  x: number;              // CENTRO x do assento
+  y: number;              // CENTRO y do assento
+  row: number;            // índice da fileira
+  col: number;            // índice da coluna (estável — usado para rótulos)
+  isInside: boolean;      // se o centro cai dentro do polígono
+  rotation: number;       // 0 no ramo plano; ângulo da tangente (graus) no ramo curvo
+}
+
+type LPoint = { x: number; y: number };
+
+function polylineLength(pts: LPoint[]): number {
+  let len = 0;
+  for (let i = 1; i < pts.length; i++) {
+    len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+  }
+  return len;
+}
+
+// Amostra um ponto ao longo da polilinha por comprimento de arco (u em [0,1])
+function sampleAlong(pts: LPoint[], u: number, totalLen?: number): LPoint {
+  if (pts.length === 1) return pts[0];
+  const total = totalLen ?? polylineLength(pts);
+  if (total <= 0) return pts[0];
+  const target = Math.max(0, Math.min(1, u)) * total;
+  let acc = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const seg = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+    if (acc + seg >= target || i === pts.length - 1) {
+      const t = seg > 0 ? (target - acc) / seg : 0;
+      return {
+        x: pts[i - 1].x + (pts[i].x - pts[i - 1].x) * t,
+        y: pts[i - 1].y + (pts[i].y - pts[i - 1].y) * t,
+      };
+    }
+    acc += seg;
+  }
+  return pts[pts.length - 1];
+}
+
+// Ângulo (radianos) da tangente da polilinha na posição u (por comprimento de arco)
+function tangentAlong(pts: LPoint[], u: number, totalLen?: number): number {
+  const total = totalLen ?? polylineLength(pts);
+  if (total <= 0 || pts.length < 2) return 0;
+  const target = Math.max(0, Math.min(1, u)) * total;
+  let acc = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const seg = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+    if (acc + seg >= target || i === pts.length - 1) {
+      return Math.atan2(pts[i].y - pts[i - 1].y, pts[i].x - pts[i - 1].x);
+    }
+    acc += seg;
+  }
+  return 0;
+}
+
+// Separa o contorno tesselado em cadeia superior e inferior (entre min-x e max-x),
+// ambas orientadas da esquerda para a direita. Retorna null se degenerado.
+function splitTopBottom(loop: LPoint[]): { top: LPoint[]; bottom: LPoint[] } | null {
+  if (loop.length < 3) return null;
+  let iMin = 0, iMax = 0;
+  for (let i = 1; i < loop.length; i++) {
+    if (loop[i].x < loop[iMin].x) iMin = i;
+    if (loop[i].x > loop[iMax].x) iMax = i;
+  }
+  if (iMin === iMax) return null;
+
+  const chainA: LPoint[] = [];
+  for (let i = iMin; ; i = (i + 1) % loop.length) {
+    chainA.push(loop[i]);
+    if (i === iMax) break;
+  }
+  const chainB: LPoint[] = [];
+  for (let i = iMax; ; i = (i + 1) % loop.length) {
+    chainB.push(loop[i]);
+    if (i === iMin) break;
+  }
+  chainB.reverse(); // agora ambas vão de min-x -> max-x
+
+  if (chainA.length < 2 || chainB.length < 2) return null;
+
+  const meanY = (pts: LPoint[]) => pts.reduce((a, p) => a + p.y, 0) / pts.length;
+  // y cresce para baixo na tela → menor média = topo
+  const top = meanY(chainA) <= meanY(chainB) ? chainA : chainB;
+  const bottom = top === chainA ? chainB : chainA;
+  return { top, bottom };
+}
+
+export function computeSeatLayout(input: SeatLayoutInput): LayoutCell[] {
+  const { vertices, rows, cols, itemSize, colSpacing, rowSpacing, curvature, isArcShape, rowAlignment, seatsPerRow } = input;
+  if (vertices.length < 3 || rows <= 0 || cols <= 0) return [];
+
+  const bounds = getBoundsFromVertices(vertices);
+  const colStep = itemSize + colSpacing;
+  const rowStep = itemSize + rowSpacing;
+  const gridHeight = rows * rowStep;
+  const offsetY = bounds.y + (bounds.height - gridHeight) / 2 + itemSize / 2;
+  const safetyPadding = itemSize / 2 + 10;
+
+  const curved = isArcShape || curvature > 0;
+  const band = curved ? splitTopBottom(tessellatePolygon(vertices, 24)) : null;
+
+  const cells: LayoutCell[] = [];
+
+  // Pré-computa comprimentos das curvas de fronteira (otimização)
+  const topLen = band ? polylineLength(band.top) : 0;
+  const bottomLen = band ? polylineLength(band.bottom) : 0;
+
+  for (let r = 0; r < rows; r++) {
+    const colsInRow = seatsPerRow && seatsPerRow[r] !== undefined ? seatsPerRow[r] : cols;
+
+    if (band) {
+      // ==== RAMO CURVO (ruled band): fileira = mistura vertical entre topo e fundo ====
+      const yNom = offsetY + r * rowStep;
+      const v = bounds.height > 0 ? Math.max(0, Math.min(1, (yNom - bounds.y) / bounds.height)) : 0;
+
+      const K = 64;
+      const rowPts: LPoint[] = [];
+      for (let k = 0; k <= K; k++) {
+        const u = k / K;
+        const pt = sampleAlong(band.top, u, topLen);
+        const pb = sampleAlong(band.bottom, u, bottomLen);
+        rowPts.push({ x: pt.x + (pb.x - pt.x) * v, y: pt.y + (pb.y - pt.y) * v });
+      }
+      const L = polylineLength(rowPts);
+      if (L <= 0) continue;
+
+      const rowGridWidth = colsInRow * colStep;
+      let s0: number;
+      if (rowAlignment === 'left') s0 = itemSize / 2;
+      else if (rowAlignment === 'right') s0 = L - rowGridWidth + colStep / 2;
+      else s0 = (L - rowGridWidth) / 2 + colStep / 2;
+
+      for (let c = 0; c < colsInRow; c++) {
+        const s = s0 + c * colStep;
+        const u = L > 0 ? s / L : 0;
+        const P = sampleAlong(rowPts, u, L);
+        const rot = tangentAlong(rowPts, u, L) * (180 / Math.PI);
+        const isInside = s >= 0 && s <= L && isPointInPolygon(P, vertices);
+        cells.push({ x: P.x, y: P.y, row: r, col: c, isInside, rotation: rot });
+      }
+    } else {
+      // ==== RAMO PLANO (idêntico ao grid antigo) ====
+      const y = offsetY + r * rowStep;
+      const extent = getPolygonHorizontalExtent(vertices, y);
+      const extentMinX = extent ? extent.minX + itemSize / 2 : bounds.x + safetyPadding;
+      const extentMaxX = extent ? extent.maxX - itemSize / 2 : bounds.x + bounds.width - safetyPadding;
+      const availableWidth = extentMaxX - extentMinX;
+      if (availableWidth < itemSize) continue;
+
+      const rowGridWidth = colsInRow * colStep;
+      let rowOffsetX: number;
+      if (rowAlignment === 'left') rowOffsetX = extentMinX;
+      else if (rowAlignment === 'right') rowOffsetX = extentMaxX - rowGridWidth + colStep;
+      else rowOffsetX = extentMinX + (availableWidth - rowGridWidth) / 2 + colStep / 2;
+
+      for (let c = 0; c < colsInRow; c++) {
+        const x = rowOffsetX + c * colStep;
+        const isInside = isPointInPolygon({ x, y }, vertices);
+        cells.push({ x, y, row: r, col: c, isInside, rotation: 0 });
+      }
+    }
+  }
+
+  return cells;
+}
+
 // Gera assentos em formato de arco/semicírculo
+// @deprecated Substituída por computeSeatLayout (ramo curvo). Mantida por segurança.
 export function generateSeatsInArc(
   bounds: Bounds,
   sectorId: string,
@@ -834,6 +1023,7 @@ export function generateSeatsInArc(
 }
 
 // Gera assentos com curvatura aplicada (grid curvo)
+// @deprecated Substituída por computeSeatLayout (ramo curvo). Mantida por segurança.
 export function generateSeatsWithCurvature(
   bounds: Bounds,
   vertices: Vertex[],
@@ -940,141 +1130,78 @@ export function generateSeatsInsidePolygon(
   const bounds = getBoundsFromVertices(vertices);
   const effectiveRowSpacing = rowSpacing !== undefined ? rowSpacing : colSpacing;
   
-  // Se tiver curvatura alta ou for arco, usa geração em arco
-  if (isArcShape || curvature >= 40) {
-    const effectiveRows = rows > 0 ? rows : Math.floor(bounds.height / (seatSize + effectiveRowSpacing));
-    const effectiveCols = cols > 0 ? cols : Math.floor(bounds.width / (seatSize + colSpacing));
-    return generateSeatsInArc(
-      bounds,
-      sectorId,
-      effectiveRows,
-      effectiveCols,
-      seatSize,
-      colSpacing,
-      rowLabelType,
-      seatLabelType,
-      prefix,
-      furnitureType,
-      tableConfig,
-      isArcShape ? 100 : curvature
-    );
-  }
-  
-  // Se tiver curvatura leve, usa grid curvo
-  if (curvature > 0) {
-    const effectiveRows = rows > 0 ? rows : Math.floor(bounds.height / (seatSize + effectiveRowSpacing));
-    const effectiveCols = cols > 0 ? cols : Math.floor(bounds.width / (seatSize + colSpacing));
-    return generateSeatsWithCurvature(
-      bounds,
-      vertices,
-      sectorId,
-      effectiveRows,
-      effectiveCols,
-      seatSize,
-      colSpacing,
-      curvature,
-      rowLabelType,
-      seatLabelType,
-      prefix,
-      furnitureType,
-      tableConfig
-    );
-  }
-
-  // Grid normal para curvatura 0 (usa rows e cols se especificados)
-  const seats: Seat[] = [];
-  
   // Ajusta tamanho baseado no tipo de mobília
   const isTable = furnitureType === 'table' || furnitureType === 'bistro';
-  const itemSize = isTable 
+  const itemSize = isTable
     ? (tableConfig?.tableWidth || 60) + 20 // Mesa + espaço para cadeiras
     : seatSize;
-  const colStep = itemSize + colSpacing;
-  const rowStep = itemSize + effectiveRowSpacing;
-  
-  // NOTA: NÃO aplicamos rotação aqui porque o Canvas já aplica rotação visual 
-  // ao setor inteiro via ctx.rotate(sector.rotation). A rotação é apenas visual,
-  // as posições dos assentos são relativas ao setor não-rotacionado.
-  
-  // Se rows e cols foram especificados, usa geração baseada em grid exato
-  if (rows > 0 && cols > 0) {
-    // Calcula o tamanho total do grid
-    const gridWidth = cols * colStep;
-    const gridHeight = rows * rowStep;
-    
-    // Para setores rotacionados ou com geometria não-retangular, usa padding maior
-    const safetyPadding = itemSize / 2 + 10;
-    
-    // Centraliza o grid verticalmente dentro do polígono
-    const offsetY = bounds.y + (bounds.height - gridHeight) / 2 + itemSize / 2;
-    
-    for (let r = 0; r < rows; r++) {
-      const rowLabel = getRowLabel(r, rowLabelType, rowLabelStart);
-      const y = offsetY + r * rowStep;
-      
-      // Quantidade de assentos nesta fileira
-      const colsInRow = seatsPerRow && seatsPerRow[r] !== undefined ? seatsPerRow[r] : cols;
-      
-      // === SHAPE-ADAPTIVE: calcula extensão horizontal da forma nesta altura ===
-      const extent = getPolygonHorizontalExtent(vertices, y);
-      const extentMinX = extent ? extent.minX + itemSize / 2 : bounds.x + safetyPadding;
-      const extentMaxX = extent ? extent.maxX - itemSize / 2 : bounds.x + bounds.width - safetyPadding;
-      const availableWidth = extentMaxX - extentMinX;
-      
-      // Se não há espaço suficiente nesta fila, pula
-      if (availableWidth < itemSize) continue;
-      
-      // Calcula offset X baseado no alinhamento dentro da extensão da forma
-      const rowGridWidth = colsInRow * colStep;
-      let rowOffsetX: number;
-      if (rowAlignment === 'left') {
-        rowOffsetX = extentMinX;
-      } else if (rowAlignment === 'right') {
-        rowOffsetX = extentMaxX - rowGridWidth + colStep;
-      } else {
-        // Centralizado dentro da extensão da forma
-        rowOffsetX = extentMinX + (availableWidth - rowGridWidth) / 2 + colStep / 2;
+
+  const curved = isArcShape || curvature > 0;
+
+  // Determina rows/cols efetivos (chamadas programáticas podem não informar)
+  const effectiveRows = rows > 0 ? rows : Math.floor(bounds.height / (seatSize + effectiveRowSpacing));
+  const effectiveCols = cols > 0 ? cols : Math.floor(bounds.width / (seatSize + colSpacing));
+
+  // Caminho UNIFICADO: grid explícito (rows/cols) OU qualquer forma com curva.
+  // computeSeatLayout reproduz o grid plano byte-a-byte e, para curvas, posiciona
+  // os assentos ao longo da fronteira REAL do setor (vértices + pontos de controle).
+  // NOTA: para assentos redondos o Canvas ignora rotation (desenha círculo); rotation
+  // só importa para mesas. Formas planas mantêm `rotation` (rotação visual do setor é
+  // aplicada pelo Canvas); curvas usam a tangente da fileira.
+  if ((rows > 0 && cols > 0) || curved) {
+    const layoutCols = curved ? effectiveCols : cols;
+    const cells = computeSeatLayout({
+      vertices,
+      rows: curved ? effectiveRows : rows,
+      cols: layoutCols,
+      itemSize,
+      colSpacing,
+      rowSpacing: effectiveRowSpacing,
+      curvature,
+      isArcShape,
+      rowAlignment,
+      seatsPerRow,
+    });
+
+    const seats: Seat[] = [];
+    for (const cell of cells) {
+      if (!cell.isInside) continue;
+      const rowLabel = getRowLabel(cell.row, rowLabelType, rowLabelStart);
+      const colsInRow = seatsPerRow && seatsPerRow[cell.row] !== undefined ? seatsPerRow[cell.row] : layoutCols;
+      const isLeftSide = cell.col < colsInRow / 2;
+      const rowConfig = seatLabelType === 'custom-per-row' && customPerRowNumbers?.[rowLabel]
+        ? customPerRowNumbers[rowLabel]
+        : undefined;
+      const seatLabel = getSeatLabel(cell.col, colsInRow, seatLabelType, seatLabelStart, isLeftSide, customNumbers, rowConfig, seatNumberDirection);
+
+      const seat: Seat = {
+        id: generateId(),
+        sectorId,
+        row: prefix + rowLabel,
+        number: seatLabel,
+        type: 'normal',
+        status: 'available',
+        x: cell.x - itemSize / 2,
+        y: cell.y - itemSize / 2,
+        rotation: curved ? cell.rotation : rotation,
+        furnitureType,
+        rowDescription: rowDescriptions?.[rowLabel],
+      };
+
+      if (isTable && tableConfig) {
+        seat.tableConfig = { ...tableConfig };
       }
-      
-      for (let c = 0; c < colsInRow; c++) {
-        const x = rowOffsetX + c * colStep;
-        
-        // Verifica se está dentro do polígono (no ponto central)
-        const seatCenter = { x, y };
-        const isInside = isPointInPolygon(seatCenter, vertices);
-        
-        if (isInside) {
-          const isLeftSide = c < colsInRow / 2;
-          const rowConfig = seatLabelType === 'custom-per-row' && customPerRowNumbers?.[rowLabel] 
-            ? customPerRowNumbers[rowLabel] 
-            : undefined;
-          const seatLabel = getSeatLabel(c, colsInRow, seatLabelType, seatLabelStart, isLeftSide, customNumbers, rowConfig, seatNumberDirection);
-          
-          const seat: Seat = {
-            id: generateId(),
-            sectorId,
-            row: prefix + rowLabel,
-            number: seatLabel,
-            type: 'normal',
-            status: 'available',
-            x: x - itemSize / 2,
-            y: y - itemSize / 2,
-            rotation,
-            furnitureType,
-            rowDescription: rowDescriptions?.[rowLabel],
-          };
-          
-          if (isTable && tableConfig) {
-            seat.tableConfig = { ...tableConfig };
-          }
-          
-          seats.push(seat);
-        }
-      }
+
+      seats.push(seat);
     }
-    
+
     return seats;
   }
+
+  // Fallback (sem rows/cols e sem curva): varredura por padding interno
+  const seats: Seat[] = [];
+  const colStep = itemSize + colSpacing;
+  const rowStep = itemSize + effectiveRowSpacing;
   
   // Fallback: padding interno para não encostar nas bordas
   const padding = itemSize;
