@@ -949,14 +949,7 @@ const EventPreview: React.FC = () => {
                     </p>
                     <p className="text-[11px] text-slate-400 mt-0.5">Lote atual · + taxa de serviço</p>
 
-                    {/* Ancoragem: economia antes da virada de lote */}
-                    {loteSavings > 0 && (
-                      <div className="mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold"
-                        style={{ background: `${BRAND.yellow}1f`, color: '#7a5b00' }}>
-                        <TrendingUp className="h-3.5 w-3.5 shrink-0" />
-                        <span>Economize <span className="font-black">{brl(loteSavings)}</span> comprando antes do próximo lote ({nextLoteDays} dias)</span>
-                      </div>
-                    )}
+
 
                     <Button
                       className="gw-cta-glow w-full font-bold h-12 text-white mt-4 rounded-xl border-0"
