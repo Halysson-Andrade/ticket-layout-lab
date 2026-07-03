@@ -96,7 +96,7 @@ const GW_LOGO = 'https://s3.guicheweb.com.br/nova_marca/logogw.png';
 // Fonte: https://www.guicheweb.com.br/circo-mirage-circus-ribeirao-preto-sp-11jul-as-15h30_52987
 const eventInfo = {
   title: 'Circo Mirage Circus Ribeirão Preto. SP - 11.JUL às 15h30',
-  subtitle: 'Marcos Frota apresenta: Mirage Circus — Tour 2026',
+  subtitle: 'Marcos Frota apresenta: Mirage Circus - Tour 2026',
   date: '11/07/2026',
   doors: '15:30h',
   venue: 'Circo Mirage Circus',
