@@ -776,7 +776,7 @@ const EventPreview: React.FC = () => {
                   <img
                     src={eventInfo.heroBanner}
                     alt={eventInfo.title}
-                    className="w-full h-full object-contain transition-transform duration-[1400ms] ease-out group-hover:scale-[1.03]"
+                    className="w-full h-full object-cover object-center transition-transform duration-[1400ms] ease-out group-hover:scale-[1.03]"
                     loading="eager"
                   />
                   <div className="absolute top-4 left-4 sm:top-5 sm:left-5">
