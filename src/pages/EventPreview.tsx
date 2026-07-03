@@ -53,6 +53,7 @@ import {
 import { MapPreviewSVG } from '@/components/MapStudio/MapPreviewSVG';
 import { getMapContentExtent } from '@/lib/mapUtils';
 import type { Sector, VenueElement, TextElement, Seat } from '@/types/mapStudio';
+import mirageBannerAsset from '@/assets/mirage-banner.png.asset.json';
 
 type Device = 'desktop' | 'mobile';
 type CartItem = { sectorId: string; name: string; price: number; qty: number; color: string };
