@@ -688,7 +688,7 @@ const EventPreview: React.FC = () => {
           className={cn(
             'bg-white transition-all duration-300 relative flex flex-col',
             isMobile
-              ? 'w-[390px] shadow-2xl rounded-xl overflow-hidden min-h-[844px]'
+              ? 'w-[390px] h-[844px] shadow-2xl rounded-xl overflow-y-auto overflow-x-hidden'
               : 'w-full min-h-screen',
           )}
           // Em mobile: cria containing block para elementos `fixed` internos,
