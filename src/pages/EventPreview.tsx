@@ -51,10 +51,17 @@ import {
   Award,
 } from 'lucide-react';
 import { MapPreviewSVG } from '@/components/MapStudio/MapPreviewSVG';
-import type { Sector, VenueElement, TextElement } from '@/types/mapStudio';
+import type { Sector, VenueElement, TextElement, Seat } from '@/types/mapStudio';
 
 type Device = 'desktop' | 'mobile';
 type CartItem = { sectorId: string; name: string; price: number; qty: number; color: string };
+
+// Tipos de ingresso do simulado (fixos). factor = multiplicador sobre o preço do setor.
+const TICKET_TYPES: { id: string; label: string; factor: number; hint: string }[] = [
+  { id: 'inteira', label: 'Inteira', factor: 1, hint: 'Valor cheio' },
+  { id: 'meia', label: 'Meia', factor: 0.5, hint: 'Estudante, idoso, PCD e demais previstos em lei' },
+  { id: 'meia-solidaria', label: 'Meia solidária', factor: 0.5, hint: 'Mediante doação de 1kg de alimento não perecível' },
+];
 
 interface PreviewSnapshot {
   mapName: string;
@@ -173,7 +180,10 @@ const EventPreview: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showStickyCTA, setShowStickyCTA] = useState(false);
   const [mapFocusId, setMapFocusId] = useState<string | null>(null);
-  const [selectedSeats, setSelectedSeats] = useState<Array<{ id: string; sectorId: string; row: string; number: string; price: number; sectorName: string; color: string }>>([]);
+  const [selectedSeats, setSelectedSeats] = useState<Array<{ id: string; sectorId: string; row: string; number: string; price: number; sectorName: string; color: string; ticketType: string }>>([]);
+  // Modal de escolha do ingresso ao clicar num assento
+  const [pendingSeat, setPendingSeat] = useState<{ seat: Seat; sector: Sector } | null>(null);
+  const [pendingTicketType, setPendingTicketType] = useState<string>('inteira');
   // Zoom/pan do mapa dentro do modal
   const [mapView, setMapView] = useState<{ scale: number; panX: number; panY: number }>({ scale: 1, panX: 0, panY: 0 });
   const mapWrapperRef = React.useRef<HTMLDivElement>(null);
@@ -335,6 +345,11 @@ const EventPreview: React.FC = () => {
     setMapView({ scale: 1, panX: 0, panY: 0 });
   }, [selectedSectorId, salesOpen]);
 
+  // Fecha o modal de escolha de ingresso se o modal de vendas fechar
+  useEffect(() => {
+    if (!salesOpen) setPendingSeat(null);
+  }, [salesOpen]);
+
   // Lock body scroll enquanto o modal de vendas está aberto
   useEffect(() => {
     if (!salesOpen) return;
@@ -371,13 +386,44 @@ const EventPreview: React.FC = () => {
   const selectedSeatIds = useMemo(() => selectedSeats.map((s) => s.id), [selectedSeats]);
   const selectedSeatsTotal = selectedSeats.reduce((sum, s) => sum + s.price, 0);
 
-  const toggleSeat = (seat: { id: string; row: string; number: string }, sector: { id: string; name: string; color: string }) => {
-    setSelectedSeats((prev) => {
-      const exists = prev.find((s) => s.id === seat.id);
-      if (exists) return prev.filter((s) => s.id !== seat.id);
-      const price = sectorsForSale.find((s) => s.id === sector.id)?.price ?? 0;
-      return [...prev, { id: seat.id, sectorId: sector.id, row: seat.row, number: seat.number, price, sectorName: sector.name, color: sector.color }];
-    });
+  // Clique no assento: se já selecionado, remove; senão abre o modal de escolha do ingresso.
+  const onSeatClicked = (seat: Seat, sector: Sector) => {
+    if (selectedSeats.some((s) => s.id === seat.id)) {
+      setSelectedSeats((prev) => prev.filter((s) => s.id !== seat.id));
+      return;
+    }
+    setPendingSeat({ seat, sector });
+    setPendingTicketType('inteira');
+  };
+
+  const pendingBasePrice = useMemo(() => {
+    if (!pendingSeat) return 0;
+    return sectorsForSale.find((s) => s.id === pendingSeat.sector.id)?.price ?? 0;
+  }, [pendingSeat, sectorsForSale]);
+
+  const pendingFinalPrice = useMemo(() => {
+    const tt = TICKET_TYPES.find((t) => t.id === pendingTicketType) ?? TICKET_TYPES[0];
+    return Math.round(pendingBasePrice * tt.factor);
+  }, [pendingBasePrice, pendingTicketType]);
+
+  const confirmSeatSelection = () => {
+    if (!pendingSeat) return;
+    const { seat, sector } = pendingSeat;
+    const tt = TICKET_TYPES.find((t) => t.id === pendingTicketType) ?? TICKET_TYPES[0];
+    setSelectedSeats((prev) => [
+      ...prev,
+      {
+        id: seat.id,
+        sectorId: sector.id,
+        row: seat.row,
+        number: seat.number,
+        price: Math.round(pendingBasePrice * tt.factor),
+        sectorName: sector.name,
+        color: sector.color,
+        ticketType: tt.label,
+      },
+    ]);
+    setPendingSeat(null);
   };
 
 
@@ -1371,7 +1417,7 @@ const EventPreview: React.FC = () => {
                           selectedSeatIds={selectedSeatIds}
                           onClickSeat={(seat, sector) => {
                             if (dragRef.current?.moved) return;
-                            toggleSeat(seat, sector);
+                            onSeatClicked(seat, sector);
                           }}
                         />
                       </div>
@@ -1458,6 +1504,11 @@ const EventPreview: React.FC = () => {
                                   <div className="flex-1 min-w-0">
                                     <p className="text-[11px] font-bold text-slate-800 truncate">{seat.sectorName}</p>
                                     <p className="text-[10px] text-slate-500">Fila {seat.row || '—'} · Nº {seat.number || '—'}</p>
+                                    {seat.ticketType && (
+                                      <span className="inline-block mt-0.5 text-[9px] font-bold uppercase tracking-wide rounded px-1 py-px" style={{ background: 'rgba(17,204,53,0.12)', color: BRAND.greenDark }}>
+                                        {seat.ticketType}
+                                      </span>
+                                    )}
                                   </div>
                                   <span className="text-xs font-bold text-slate-900 tabular-nums">{brl(seat.price)}</span>
                                   <button
@@ -1595,6 +1646,116 @@ const EventPreview: React.FC = () => {
                       onClick={() => { setSalesOpen(false); setCartOpen(true); }}
                     >
                       <ShoppingCart className="h-4 w-4 mr-2" /> Ver carrinho
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ============ MODAL: ESCOLHA DO INGRESSO DO ASSENTO ============ */}
+          {pendingSeat && (
+            <div
+              className="absolute inset-0 z-[120] bg-slate-900/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+              onClick={() => setPendingSeat(null)}
+            >
+              <div
+                className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Cabeçalho + foto da visão do assento */}
+                <div className="relative">
+                  {pendingSeat.seat.viewImageUrl ? (
+                    <img
+                      src={pendingSeat.seat.viewImageUrl}
+                      alt="Visão do assento para o palco"
+                      className="w-full h-44 object-cover bg-slate-100"
+                      onError={(e) => {
+                        const el = e.currentTarget as HTMLImageElement;
+                        el.style.display = 'none';
+                        el.parentElement?.querySelector('[data-fallback]')?.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  <div
+                    data-fallback
+                    className={cn(
+                      'w-full h-44 flex-col items-center justify-center gap-1 bg-slate-100 text-slate-400',
+                      pendingSeat.seat.viewImageUrl ? 'hidden flex' : 'flex',
+                    )}
+                  >
+                    <Eye className="h-7 w-7 opacity-50" />
+                    <span className="text-xs font-medium">Sem foto da visão cadastrada</span>
+                  </div>
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 py-2">
+                    <p className="text-[10px] uppercase tracking-wider font-bold text-white/80">Visão do assento para o palco</p>
+                  </div>
+                  <button
+                    onClick={() => setPendingSeat(null)}
+                    className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white/90 flex items-center justify-center text-slate-700 hover:bg-white shadow"
+                    aria-label="Fechar"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="p-4 space-y-3 overflow-y-auto">
+                  {/* Resumo do assento */}
+                  <div className="flex items-center gap-2">
+                    <span className="h-3 w-3 rounded-full shrink-0" style={{ background: pendingSeat.sector.color }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-slate-900 text-sm truncate">{pendingSeat.sector.name}</p>
+                      <p className="text-xs text-slate-500">
+                        Fila {pendingSeat.seat.row || '—'} · Nº {pendingSeat.seat.number || '—'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Tipo do ingresso */}
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1.5">Tipo do ingresso</p>
+                    <div className="space-y-1.5">
+                      {TICKET_TYPES.map((tt) => {
+                        const active = pendingTicketType === tt.id;
+                        const price = Math.round(pendingBasePrice * tt.factor);
+                        return (
+                          <button
+                            key={tt.id}
+                            onClick={() => setPendingTicketType(tt.id)}
+                            className={cn(
+                              'w-full flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left transition',
+                              active ? 'border-transparent ring-2' : 'border-slate-200 hover:border-slate-300',
+                            )}
+                            style={active ? ({ '--tw-ring-color': BRAND.green, background: 'rgba(17,204,53,0.06)' } as React.CSSProperties) : undefined}
+                          >
+                            <span
+                              className="h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0"
+                              style={{ borderColor: active ? BRAND.green : '#cbd5e1' }}
+                            >
+                              {active && <span className="h-2 w-2 rounded-full" style={{ background: BRAND.green }} />}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-slate-800">{tt.label}</p>
+                              <p className="text-[10px] text-slate-500 truncate">{tt.hint}</p>
+                            </div>
+                            <span className="text-sm font-black text-slate-900 tabular-nums">{brl(price)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rodapé: total + ações */}
+                <div className="border-t bg-slate-50 px-4 py-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] text-slate-500">Valor do ingresso</p>
+                    <p className="text-lg font-black text-slate-900 tabular-nums">{brl(pendingFinalPrice)}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setPendingSeat(null)}>Cancelar</Button>
+                    <Button size="sm" className="text-white font-bold" style={{ background: BRAND.green }} onClick={confirmSeatSelection}>
+                      <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar
                     </Button>
                   </div>
                 </div>

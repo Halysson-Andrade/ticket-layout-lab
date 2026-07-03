@@ -30,7 +30,7 @@ import {
   SeatNumberDirection
 } from '@/types/mapStudio';
 import { cn } from '@/lib/utils';
-import { isPointInPolygon, getBoundsFromVertices, getRowLabel, getSeatLabel, getPolygonHorizontalExtent } from '@/lib/mapUtils';
+import { getRowLabel, getSeatLabel, computeSeatLayout } from '@/lib/mapUtils';
 
 interface SeatGeneratorModalProps {
   open: boolean;
@@ -260,88 +260,60 @@ export const SeatGeneratorModal: React.FC<SeatGeneratorModalProps> = ({
       rowLabel: string;
       seatLabel: string;
     }[] = [];
-    const { width, height, scale, sectorWidth, sectorHeight } = previewDimensions;
-    
-    // Usa os mesmos valores de tamanho que a função real
+    const { width, height, scale } = previewDimensions;
+
+    // Usa os mesmos valores de tamanho que a função real (escalados para o preview)
     const baseItemSize = isTable ? 60 : config.seatSize;
     const itemSize = isTable ? (baseItemSize + 20) * scale : config.seatSize * scale;
     const spacing = config.colSpacing * scale;
     const rSpacing = config.rowSpacing * scale;
-    const step = itemSize + spacing;
-    const rowStep = itemSize + rSpacing;
-    
-    // Calcula o tamanho total do grid (apenas para altura)
-    const gridHeight = config.rows * rowStep;
-    
-    // Centraliza verticalmente
-    const offsetY = (height - gridHeight) / 2 + itemSize / 2;
-    
+
     let insideCount = 0;
     let outsideCount = 0;
-    
-    for (let r = 0; r < config.rows; r++) {
-      const rowLabel = getPreviewRowLabel(r);
-      const y = offsetY + r * rowStep;
-      
-      // Quantidade de assentos nesta fileira
-      const colsInRow = parsedSeatsPerRow && parsedSeatsPerRow[r] !== undefined ? parsedSeatsPerRow[r] : config.cols;
-      
-      // === SHAPE-ADAPTIVE: calcula extensão horizontal da forma nesta altura ===
-      let extentMinX = itemSize / 2;
-      let extentMaxX = width - itemSize / 2;
-      
-      if (previewVertices) {
-        const extent = getPolygonHorizontalExtent(previewVertices, y);
-        if (extent) {
-          extentMinX = extent.minX + itemSize / 2;
-          extentMaxX = extent.maxX - itemSize / 2;
-        }
-      }
-      const availableWidth = extentMaxX - extentMinX;
-      
-      // Se não há espaço suficiente, pula
-      if (availableWidth < itemSize) continue;
-      
-      // Calcula offset X baseado no alinhamento dentro da extensão da forma
-      const rowGridWidth = colsInRow * step;
-      let rowOffsetX: number;
-      if (config.seatsPerRowEnabled && config.rowAlignment === 'left') {
-        rowOffsetX = extentMinX;
-      } else if (config.seatsPerRowEnabled && config.rowAlignment === 'right') {
-        rowOffsetX = extentMaxX - rowGridWidth + step;
-      } else {
-        // Centralizado dentro da extensão da forma
-        rowOffsetX = extentMinX + (availableWidth - rowGridWidth) / 2 + step / 2;
-      }
-      
-      for (let c = 0; c < colsInRow; c++) {
-        const x = rowOffsetX + c * step;
-        
-        // Verifica se está dentro do polígono
-        let isInside = true;
-        if (previewVertices) {
-          isInside = isPointInPolygon({ x, y }, previewVertices);
-        }
-        
-        // Para odd-left/even-left, considera lado esquerdo como primeira metade
-        const isLeftSide = c < colsInRow / 2;
-        const seatLabel = getPreviewSeatLabel(c, colsInRow, isLeftSide, rowLabel);
-        
-        if (isInside) insideCount++;
-        else outsideCount++;
-        
-        seats.push({ x, y, row: r, col: c, isInside, rowLabel, seatLabel });
-      }
+
+    // MESMA lógica da geração real: usa computeSeatLayout com a geometria REAL do setor
+    // (vértices + pontos de controle bézier). Retângulo de fallback caso não haja vértices.
+    const layoutVertices = previewVertices ?? [
+      { x: 0, y: 0 },
+      { x: width, y: 0 },
+      { x: width, y: height },
+      { x: 0, y: height },
+    ];
+
+    const cells = computeSeatLayout({
+      vertices: layoutVertices,
+      rows: config.rows,
+      cols: config.cols,
+      itemSize,
+      colSpacing: spacing,
+      rowSpacing: rSpacing,
+      curvature: sector?.curvature ?? 0,
+      isArcShape: sector?.shape === 'arc',
+      // Espelha exatamente o que a geração real recebe (handleGenerate)
+      rowAlignment: config.seatsPerRowEnabled ? config.rowAlignment : undefined,
+      seatsPerRow: parsedSeatsPerRow,
+    });
+
+    for (const cell of cells) {
+      const rowLabel = getPreviewRowLabel(cell.row);
+      const colsInRow = parsedSeatsPerRow && parsedSeatsPerRow[cell.row] !== undefined ? parsedSeatsPerRow[cell.row] : config.cols;
+      const isLeftSide = cell.col < colsInRow / 2;
+      const seatLabel = getPreviewSeatLabel(cell.col, colsInRow, isLeftSide, rowLabel);
+
+      if (cell.isInside) insideCount++;
+      else outsideCount++;
+
+      seats.push({ x: cell.x, y: cell.y, row: cell.row, col: cell.col, isInside: cell.isInside, rowLabel, seatLabel });
     }
-    
-    return { 
+
+    return {
       seats, 
       insideCount, 
       outsideCount,
       totalItems: config.rows * config.cols,
       totalSeats: isTable ? insideCount * config.chairsPerTable : insideCount
     };
-  }, [config.rows, config.cols, config.furnitureType, config.chairsPerTable, config.seatSize, config.colSpacing, config.rowSpacing, config.rowLabelType, config.rowLabelStart, config.seatLabelType, config.seatLabelStart, config.seatsPerRowEnabled, config.rowAlignment, previewDimensions, previewVertices, isTable, parsedSeatsPerRow, parsedCustomNumbers, parsedCustomPerRowNumbers]);
+  }, [config.rows, config.cols, config.furnitureType, config.chairsPerTable, config.seatSize, config.colSpacing, config.rowSpacing, config.rowLabelType, config.rowLabelStart, config.seatLabelType, config.seatLabelStart, config.seatsPerRowEnabled, config.rowAlignment, previewDimensions, previewVertices, isTable, parsedSeatsPerRow, parsedCustomNumbers, parsedCustomPerRowNumbers, sector?.curvature, sector?.shape]);
 
   const handleGenerate = () => {
     const tableConf = isTable ? {

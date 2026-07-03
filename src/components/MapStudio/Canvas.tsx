@@ -151,6 +151,8 @@ export const Canvas: React.FC<CanvasProps> = ({
   const [isDraggingSeat, setIsDraggingSeat] = useState(false);
   const [isDraggingText, setIsDraggingText] = useState(false);
   const [draggingSeatInfo, setDraggingSeatInfo] = useState<{ seatId: string; sectorId: string } | null>(null);
+  // Marca se houve movimento real durante o arraste de assento (evita histórico em clique simples)
+  const seatDragMovedRef = useRef(false);
   const [isBoxSelecting, setIsBoxSelecting] = useState(false);
   const [isDraggingVertex, setIsDraggingVertex] = useState(false);
   const [activeVertexIndex, setActiveVertexIndex] = useState<number | null>(null);
@@ -1644,7 +1646,7 @@ export const Canvas: React.FC<CanvasProps> = ({
 
       // Verifica click em assento (sem precisar de Ctrl)
       for (const sector of sectors) {
-        if (!sector.visible) continue;
+        if (!sector.visible || sector.locked) continue;
         // Transforma o clique para o espaço local do setor (desfaz rotação)
         const localPos = transformPointForSector(pos, sector);
         for (const seat of sector.seats) {
@@ -1678,6 +1680,7 @@ export const Canvas: React.FC<CanvasProps> = ({
             setIsDraggingSeat(true);
             setDraggingSeatInfo({ seatId: seat.id, sectorId: sector.id });
             setDragStart(pos);
+            seatDragMovedRef.current = false;
             return;
           }
         }
@@ -1958,14 +1961,20 @@ export const Canvas: React.FC<CanvasProps> = ({
       const localDragStart = sector ? transformPointForSector(dragStart, sector) : dragStart;
       const dx = localPos.x - localDragStart.x;
       const dy = localPos.y - localDragStart.y;
-      
+      if (dx !== 0 || dy !== 0) seatDragMovedRef.current = true;
+
       // Move todos os assentos selecionados
       if (selectedSeatIds.length > 1 && onMoveSelectedSeats) {
         onMoveSelectedSeats(dx, dy);
       } else {
-        // Move apenas o assento arrastado
+        // Move apenas o assento arrastado — usa delta a partir da posição atual
+        // (igual à seleção múltipla). Evita o "pulo" que ocorria ao grudar o
+        // centro do assento no cursor independentemente de onde foi clicado.
         if (sector) {
-          onMoveSeat(draggingSeatInfo.seatId, draggingSeatInfo.sectorId, localPos.x - 7, localPos.y - 7);
+          const draggedSeat = sector.seats.find(s => s.id === draggingSeatInfo.seatId);
+          if (draggedSeat) {
+            onMoveSeat(draggingSeatInfo.seatId, draggingSeatInfo.sectorId, draggedSeat.x + dx, draggedSeat.y + dy);
+          }
         }
       }
       setDragStart(pos);
@@ -2150,8 +2159,8 @@ export const Canvas: React.FC<CanvasProps> = ({
       }
     }
 
-    // Salva histórico se estava arrastando assento
-    if (isDraggingSeat && onSeatMoveEnd) {
+    // Salva histórico se estava arrastando assento (somente se moveu de fato)
+    if (isDraggingSeat && seatDragMovedRef.current && onSeatMoveEnd) {
       onSeatMoveEnd();
     }
 
