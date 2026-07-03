@@ -218,6 +218,7 @@ const EventPreview: React.FC = () => {
   const [pendingTicketType, setPendingTicketType] = useState<string>('inteira');
   // Zoom/pan do mapa dentro do modal
   const [mapView, setMapView] = useState<{ scale: number; panX: number; panY: number }>({ scale: 1, panX: 0, panY: 0 });
+  const [videoPlaying, setVideoPlaying] = useState(false);
   const mapWrapperRef = React.useRef<HTMLDivElement>(null);
   const dragRef = React.useRef<{ x: number; y: number; panX: number; panY: number; moved: boolean } | null>(null);
 
