@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Accordion,
   AccordionContent,
@@ -233,7 +232,6 @@ const EventPreview: React.FC = () => {
   // Fluxo em etapas (substitui o popup de vendas): detalhe -> ingressos -> resumo
   const [flowStep, setFlowStep] = useState<FlowStep>('detalhe');
   const [cartPanelOpen, setCartPanelOpen] = useState(false); // carrinho expansível dentro da etapa 'ingressos'
-  const [termsAccepted, setTermsAccepted] = useState(false); // aceite obrigatório no 'resumo'
   const [produtorTermOpen, setProdutorTermOpen] = useState(false); // modal de termos do produtor
   const [selectedSectorId, setSelectedSectorId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -734,7 +732,8 @@ const EventPreview: React.FC = () => {
         .gw-display { font-family: 'Bricolage Grotesque', 'DM Sans', system-ui, sans-serif; font-weight: 700; letter-spacing: -0.025em; font-variation-settings: "opsz" 96; }
         .gw-display-md { font-family: 'Bricolage Grotesque', 'DM Sans', system-ui, sans-serif; font-weight: 700; letter-spacing: -0.02em; font-variation-settings: "opsz" 48; }
       `}</style>
-      {/* Barra flutuante discreta: voltar ao mapa + toggle device (posicionada abaixo do header) */}
+      {/* Barra flutuante (voltar ao mapa + toggle device) — só no detalhe; nas etapas o device definido no evento é mantido */}
+      {!inFlowStep && (
       <div className="fixed top-20 left-3 z-[100] flex items-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity">
         <button
           onClick={() => navigate(-1)}
@@ -763,6 +762,7 @@ const EventPreview: React.FC = () => {
           ><Smartphone className="h-3 w-3" /></button>
         </div>
       </div>
+      )}
 
       {/* Container da preview (simula viewport) */}
       <div className={cn('flex-1 flex justify-center', isMobile && 'py-6 px-4')}>
@@ -2069,13 +2069,8 @@ const EventPreview: React.FC = () => {
                         {renderCartItems()}
                       </div>
 
-                      {/* Totais */}
-                      <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-sm">
-                        {renderCartTotals()}
-                      </div>
-
-                      {/* Termos e aceite */}
-                      <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-sm space-y-3">
+                      {/* Termos */}
+                      <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-sm space-y-2.5">
                         <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Termos e políticas</p>
                         <a
                           href={TERMS.ticketeira.url}
@@ -2083,28 +2078,19 @@ const EventPreview: React.FC = () => {
                           rel="noopener noreferrer"
                           className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50 transition"
                         >
-                          <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4" style={{ color: BRAND.green }} /> {TERMS.ticketeira.label}</span>
-                          <ExternalLink className="h-4 w-4 text-slate-400" />
+                          <span className="flex items-center gap-2 min-w-0"><ShieldCheck className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> <span className="truncate">{TERMS.ticketeira.label}</span></span>
+                          <ExternalLink className="h-4 w-4 text-slate-400 shrink-0" />
                         </a>
                         <button
                           onClick={() => setProdutorTermOpen(true)}
                           className="w-full flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50 transition"
                         >
-                          <span className="flex items-center gap-2"><Info className="h-4 w-4" style={{ color: BRAND.green }} /> {TERMS.produtor.label}</span>
-                          <ChevronDown className="h-4 w-4 text-slate-400 -rotate-90" />
+                          <span className="flex items-center gap-2 min-w-0"><Info className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> <span className="truncate">{TERMS.produtor.label}</span></span>
+                          <ChevronDown className="h-4 w-4 text-slate-400 -rotate-90 shrink-0" />
                         </button>
-
-                        <label className="flex items-start gap-2.5 pt-1 cursor-pointer select-none">
-                          <Checkbox
-                            checked={termsAccepted}
-                            onCheckedChange={(v) => setTermsAccepted(v === true)}
-                            className="mt-0.5 border-slate-300 data-[state=checked]:border-transparent"
-                            style={termsAccepted ? { background: BRAND.green } : undefined}
-                          />
-                          <span className="text-xs text-slate-600 leading-relaxed">
-                            Li e aceito os termos e políticas da ticketeira e do produtor do evento.
-                          </span>
-                        </label>
+                        <p className="text-xs text-slate-500 leading-relaxed pt-0.5">
+                          Ao clicar em <span className="font-semibold text-slate-700">Finalizar compra</span>, você concorda com os termos acima.
+                        </p>
                       </div>
                     </>
                   )}
@@ -2122,12 +2108,11 @@ const EventPreview: React.FC = () => {
                     <Button
                       className="font-bold h-11 px-5 sm:px-6 text-white flex-1 sm:flex-none"
                       style={{ background: BRAND.green }}
-                      disabled={!termsAccepted || cartCount === 0}
+                      disabled={cartCount === 0}
                       onClick={() => {
                         toast.success('Compra realizada com sucesso!', { description: 'Simulação — nenhum pagamento foi processado.' });
                         setCart([]);
                         setSelectedSeats([]);
-                        setTermsAccepted(false);
                         setFlowStep('detalhe');
                       }}
                     >
