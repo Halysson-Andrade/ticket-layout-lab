@@ -1078,6 +1078,52 @@ const EventPreview: React.FC = () => {
               </div>
             </section>
 
+            {/* Vídeo do evento */}
+            <section className="bg-white">
+              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
+                <div className="text-center mb-6">
+                  <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Assista</p>
+                  <h3 className={cn('gw-display-md text-slate-900', isMobile ? 'text-2xl' : 'text-3xl')}>Veja o espetáculo em ação</h3>
+                </div>
+                <div className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-lg bg-black aspect-video">
+                  {videoPlaying ? (
+                    <iframe
+                      className="absolute inset-0 w-full h-full"
+                      src="https://www.youtube.com/embed/ZueIOvWJQdM?autoplay=1&rel=0"
+                      title="Mirage Circus"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setVideoPlaying(true)}
+                      className="absolute inset-0 w-full h-full group"
+                      aria-label="Reproduzir vídeo"
+                    >
+                      <img
+                        src="https://img.youtube.com/vi/ZueIOvWJQdM/maxresdefault.jpg"
+                        alt="Mirage Circus - vídeo"
+                        className="absolute inset-0 w-full h-full object-cover"
+                        loading="lazy"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://img.youtube.com/vi/ZueIOvWJQdM/hqdefault.jpg'; }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-black/20 group-hover:from-black/70 transition" />
+                      <span className="absolute inset-0 flex items-center justify-center">
+                        <span className="h-20 w-20 rounded-full flex items-center justify-center shadow-2xl transition-transform group-hover:scale-110" style={{ background: '#FF0000' }}>
+                          <svg viewBox="0 0 24 24" className="h-9 w-9 ml-1" fill="#fff" aria-hidden><path d="M8 5v14l11-7z"/></svg>
+                        </span>
+                      </span>
+                      <span className="absolute bottom-4 left-4 right-4 text-left text-white">
+                        <span className="block text-xs font-bold tracking-widest uppercase opacity-80">Trailer oficial</span>
+                        <span className="block text-lg font-black mt-0.5">Circo Mirage Circus</span>
+                      </span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </section>
+
 
             {/* Info + Regras */}
             <section className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
