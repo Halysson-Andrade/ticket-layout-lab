@@ -474,14 +474,36 @@ const EventPreview: React.FC = () => {
   const selectedSeatIds = useMemo(() => selectedSeats.map((s) => s.id), [selectedSeats]);
   const selectedSeatsTotal = selectedSeats.reduce((sum, s) => sum + s.price, 0);
 
-  // Clique no assento: se já selecionado, remove; senão abre o modal de escolha do ingresso.
+  // Clique no assento: se já selecionado, remove; senão adiciona direto (inteira) e coloca no carrinho.
   const onSeatClicked = (seat: Seat, sector: Sector) => {
     if (selectedSeats.some((s) => s.id === seat.id)) {
       setSelectedSeats((prev) => prev.filter((s) => s.id !== seat.id));
       return;
     }
-    setPendingSeat({ seat, sector });
-    setPendingTicketType('inteira');
+    const sectorForSale = sectorsForSale.find((s) => s.id === sector.id);
+    const basePrice = sectorForSale?.price ?? 0;
+    const tt = TICKET_TYPES[0]; // inteira por padrão
+    const price = Math.round(basePrice * tt.factor);
+    setSelectedSeats((prev) => [
+      ...prev,
+      {
+        id: seat.id,
+        sectorId: sector.id,
+        row: seat.row,
+        number: seat.number,
+        price,
+        sectorName: sector.name,
+        color: sector.color,
+        ticketType: tt.label,
+      },
+    ]);
+    // adiciona ao carrinho automaticamente
+    setCart((prev) => {
+      const found = prev.find((i) => i.sectorId === sector.id);
+      if (found) return prev.map((i) => (i.sectorId === sector.id ? { ...i, qty: i.qty + 1 } : i));
+      return [{ sectorId: sector.id, name: sector.name, price, qty: 1, color: sector.color }, ...prev];
+    });
+    toast.success(`Assento ${seat.row}${seat.number} adicionado ao carrinho`);
   };
 
   const pendingBasePrice = useMemo(() => {
