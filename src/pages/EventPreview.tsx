@@ -960,9 +960,21 @@ const EventPreview: React.FC = () => {
                   <div className="mt-4 pt-4 border-t border-slate-100">
                     <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-2">Formas de pagamento</p>
                     <div className="flex flex-wrap items-center gap-1.5">
-                      {['Visa', 'Master', 'Elo', 'Amex', 'Pix', 'Boleto'].map((m) => (
-                        <span key={m} className="px-2 py-1 rounded-md border border-slate-200 bg-slate-50 text-[10px] font-bold text-slate-600 tracking-wide">
-                          {m}
+                      {[
+                        { name: 'Visa', bg: '#1A1F71', fg: '#F7B600', label: 'VISA' },
+                        { name: 'Master', bg: '#FFFFFF', fg: '#EB001B', label: 'master' },
+                        { name: 'Elo', bg: '#000000', fg: '#FFFFFF', label: 'Elo' },
+                        { name: 'Amex', bg: '#2E77BB', fg: '#FFFFFF', label: 'AMEX' },
+                        { name: 'Pix', bg: '#FFFFFF', fg: '#32BCAD', label: 'pix' },
+                        { name: 'Boleto', bg: '#FFFFFF', fg: '#334155', label: 'Boleto' },
+                      ].map((m) => (
+                        <span
+                          key={m.name}
+                          className="inline-flex items-center justify-center h-7 min-w-[44px] px-2 rounded-md border border-slate-200 text-[11px] font-extrabold tracking-tight shadow-sm"
+                          style={{ background: m.bg, color: m.fg }}
+                          title={m.name}
+                        >
+                          {m.label}
                         </span>
                       ))}
                     </div>
@@ -978,7 +990,6 @@ const EventPreview: React.FC = () => {
               <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl')}>
                 <div className="text-center mb-6">
                   <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Mapa do evento</p>
-                  <h3 className={cn('gw-display-md text-slate-900', isMobile ? 'text-2xl' : 'text-4xl')}>{snapshot.mapName}</h3>
                   <p className="text-sm text-slate-500 mt-2">
                     Veja abaixo a distribuição dos setores. Clique em "Comprar ingresso" para escolher setor, fila e assento.
                   </p>
