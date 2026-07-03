@@ -509,7 +509,6 @@ const EventPreview: React.FC = () => {
   const onMapMouseUp = () => { dragRef.current = null; };
 
   const selectedSeatIds = useMemo(() => selectedSeats.map((s) => s.id), [selectedSeats]);
-  const selectedSeatsTotal = selectedSeats.reduce((sum, s) => sum + s.price, 0);
 
   // Clique no assento: se já selecionado, remove; senão adiciona direto (inteira) e coloca no carrinho.
   const onSeatClicked = (seat: Seat, sector: Sector) => {
@@ -617,6 +616,8 @@ const EventPreview: React.FC = () => {
   }, [sectorsForSale, countdown.d, cartCount]);
 
   const isMobile = device === 'mobile';
+  // Nas etapas de compra a moldura tem altura fixa (só a lista interna rola); em 'detalhe' a página rola normalmente
+  const inFlowStep = flowStep !== 'detalhe';
 
   // Itens do carrinho — reutilizado no painel expansível da etapa 'ingressos' e no 'resumo'
   const renderCartItems = () => (
@@ -769,8 +770,8 @@ const EventPreview: React.FC = () => {
           className={cn(
             'bg-white transition-all duration-300 relative flex flex-col',
             isMobile
-              ? 'w-[390px] h-[844px] shadow-2xl rounded-xl overflow-y-auto overflow-x-hidden'
-              : 'w-full min-h-screen',
+              ? cn('w-[390px] h-[844px] shadow-2xl rounded-xl overflow-x-hidden', inFlowStep ? 'overflow-y-hidden' : 'overflow-y-auto')
+              : cn('w-full', inFlowStep ? 'h-screen overflow-hidden' : 'min-h-screen'),
           )}
           // Em mobile: cria containing block para elementos `fixed` internos,
           // fazendo modais/CTAs ficarem dentro do frame do celular
@@ -1620,8 +1621,8 @@ const EventPreview: React.FC = () => {
                       <h4 className="font-bold text-slate-900 text-sm sm:text-base truncate">{eventInfo.title}</h4>
                     </div>
                   </div>
-                  {/* Stepper de progresso */}
-                  <div className="px-4 sm:px-6 pb-3 flex items-center gap-2 text-[11px] font-semibold">
+                  {/* Stepper de progresso (oculto no mobile para dar mais espaço ao mapa) */}
+                  <div className="px-4 sm:px-6 pb-3 hidden sm:flex items-center gap-2 text-[11px] font-semibold">
                     {[
                       { n: 1, label: 'Setor', done: !!selectedSectorId || cartCount > 0 },
                       { n: 2, label: 'Quantidade', done: cartCount > 0 },
@@ -1657,10 +1658,10 @@ const EventPreview: React.FC = () => {
                 </div>
 
 
-                <div className={cn('flex-1 grid overflow-hidden min-h-0', isMobile ? 'grid-cols-1 grid-rows-[minmax(260px,45vh)_1fr]' : 'grid-cols-[1.4fr_1fr]')}>
+                <div className={cn('flex-1 grid overflow-hidden min-h-0', isMobile ? 'grid-cols-1 grid-rows-[minmax(0,48%)_minmax(0,52%)]' : 'grid-cols-[1.4fr_1fr]')}>
                   <div
                     ref={mapWrapperRef}
-                    className="relative bg-slate-50 border-r border-b sm:border-b-0 border-slate-200 overflow-hidden select-none"
+                    className="relative bg-slate-50 border-r border-b sm:border-b-0 border-slate-200 overflow-hidden select-none min-h-0"
                     onWheel={onMapWheel}
                     onMouseDown={onMapMouseDown}
                     onMouseMove={onMapMouseMove}
@@ -1765,70 +1766,13 @@ const EventPreview: React.FC = () => {
                   </div>
 
 
-                  <ScrollArea className="bg-white">
+                  <ScrollArea className="bg-white min-h-0">
                     <div className="p-4 space-y-2">
-                      {selectedSectorId ? (
-                        <div className="mb-3">
-                          <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1.5">Assentos selecionados</p>
-                          {selectedSeats.length === 0 ? (
-                            <p className="text-xs text-slate-500 border border-dashed border-slate-200 rounded-lg p-3">
-                              Clique nos assentos do mapa para escolher fila e número.
-                            </p>
-                          ) : (
-                            <div className="space-y-1.5">
-                              {selectedSeats.map((seat) => (
-                                <div key={seat.id} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
-                                  <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: seat.color }} />
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-[11px] font-bold text-slate-800 truncate">{seat.sectorName}</p>
-                                    <p className="text-[10px] text-slate-500">Fila {seat.row || '—'} · Nº {seat.number || '—'}</p>
-                                    {seat.ticketType && (
-                                      <span className="inline-block mt-0.5 text-[9px] font-bold uppercase tracking-wide rounded px-1 py-px" style={{ background: 'rgba(17,204,53,0.12)', color: BRAND.greenDark }}>
-                                        {seat.ticketType}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <span className="text-xs font-bold text-slate-900 tabular-nums">{brl(seat.price)}</span>
-                                  <button
-                                    onClick={() => setSelectedSeats((prev) => prev.filter((s) => s.id !== seat.id))}
-                                    className="h-6 w-6 rounded flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50"
-                                    aria-label="Remover assento"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              ))}
-                              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                                <span className="text-[11px] text-slate-500">Total assentos</span>
-                                <span className="text-sm font-black text-slate-900 tabular-nums">{brl(selectedSeatsTotal)}</span>
-                              </div>
-                              <Button
-                                size="sm"
-                                className="w-full text-white mt-1"
-                                style={{ background: BRAND.green }}
-                                onClick={() => {
-                                  // Consolida no carrinho por setor
-                                  selectedSeats.forEach((seat) => {
-                                    const sector = sectorsForSale.find((s) => s.id === seat.sectorId);
-                                    if (sector) addToCart(sector);
-                                  });
-                                  setSelectedSeats([]);
-                                  toast.success(`${selectedSeats.length} ${selectedSeats.length === 1 ? 'assento adicionado' : 'assentos adicionados'} ao carrinho`);
-                                }}
-                              >
-                                <ShoppingCart className="h-3.5 w-3.5 mr-1.5" />
-                                Adicionar {selectedSeats.length} ao carrinho
-                              </Button>
-                            </div>
-                          )}
-                          <div className="my-3 border-t border-slate-100" />
-                          <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Outros setores</p>
-                        </div>
-                      ) : (
-                        <p className="text-xs text-slate-500 mb-2">
-                          Clique em um setor — no mapa ou na lista — para dar zoom e escolher os assentos.
-                        </p>
-                      )}
+                      <p className="text-xs text-slate-500 mb-1">
+                        {selectedSectorId
+                          ? 'Clique nos assentos do mapa para adicioná-los ao carrinho.'
+                          : 'Clique em um setor — no mapa ou na lista — para dar zoom e escolher os assentos.'}
+                      </p>
 
                       {sectorsForSale.map((s) => {
                         const isActive = (selectedSectorId || hoveredSectorId) === s.id;
@@ -2095,7 +2039,7 @@ const EventPreview: React.FC = () => {
 
           {/* ============ ETAPA: RESUMO DO PEDIDO ============ */}
           {flowStep === 'resumo' && (
-            <section key="resumo" className="gw-step flex-1 flex flex-col min-h-0 bg-slate-50">
+            <section key="resumo" className="gw-step flex-1 flex flex-col min-h-0 bg-slate-50 overflow-hidden">
               {/* Cabeçalho */}
               <div className="border-b bg-white px-4 sm:px-6 py-3 flex items-center gap-3 shrink-0">
                 <Button variant="ghost" size="sm" className="h-8 gap-1 px-2 text-slate-600 hover:text-slate-900 shrink-0" onClick={() => setFlowStep('ingressos')}>
@@ -2107,8 +2051,8 @@ const EventPreview: React.FC = () => {
                 </div>
               </div>
 
-              <ScrollArea className="flex-1">
-                <div className="mx-auto w-full max-w-2xl p-4 sm:p-6 space-y-5">
+              <ScrollArea className="flex-1 min-h-0">
+                <div className="mx-auto w-full max-w-2xl p-3 sm:p-6 space-y-3 sm:space-y-5">
                   {cartCount === 0 ? (
                     <div className="text-center py-16 text-slate-500">
                       <ShoppingCart className="h-14 w-14 mx-auto opacity-30 mb-3" />
@@ -2120,18 +2064,18 @@ const EventPreview: React.FC = () => {
                   ) : (
                     <>
                       {/* Itens */}
-                      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                      <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-sm">
                         <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-3">Ingressos</p>
                         {renderCartItems()}
                       </div>
 
                       {/* Totais */}
-                      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                      <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-sm">
                         {renderCartTotals()}
                       </div>
 
                       {/* Termos e aceite */}
-                      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-3">
+                      <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-sm space-y-3">
                         <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Termos e políticas</p>
                         <a
                           href={TERMS.ticketeira.url}
@@ -2176,7 +2120,7 @@ const EventPreview: React.FC = () => {
                       <p className="text-lg font-black text-slate-900 tabular-nums">{brl(total)}</p>
                     </div>
                     <Button
-                      className="font-bold h-11 px-6 text-white"
+                      className="font-bold h-11 px-5 sm:px-6 text-white flex-1 sm:flex-none"
                       style={{ background: BRAND.green }}
                       disabled={!termsAccepted || cartCount === 0}
                       onClick={() => {
