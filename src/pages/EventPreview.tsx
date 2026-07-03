@@ -593,28 +593,33 @@ const EventPreview: React.FC = () => {
         .gw-display { font-family: 'Bricolage Grotesque', 'DM Sans', system-ui, sans-serif; font-weight: 700; letter-spacing: -0.025em; font-variation-settings: "opsz" 96; }
         .gw-display-md { font-family: 'Bricolage Grotesque', 'DM Sans', system-ui, sans-serif; font-weight: 700; letter-spacing: -0.02em; font-variation-settings: "opsz" 48; }
       `}</style>
-      {/* Botão flutuante: voltar ao mapa + toggle device */}
-      <div className="fixed top-3 left-3 z-[100] flex items-center gap-2">
-        <Button
-          variant="default"
-          size="sm"
+      {/* Barra flutuante discreta: voltar ao mapa + toggle device (posicionada abaixo do header) */}
+      <div className="fixed top-20 left-3 z-[100] flex items-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity">
+        <button
           onClick={() => navigate(-1)}
-          className="shadow-lg bg-slate-900 hover:bg-slate-800 text-white"
+          className="h-7 px-2.5 rounded-full bg-white/90 backdrop-blur border border-slate-200 shadow-sm text-slate-600 hover:text-slate-900 hover:bg-white text-[11px] font-medium flex items-center gap-1"
+          title="Voltar ao mapa"
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Voltar ao mapa
-        </Button>
-        <div className="flex items-center bg-white/95 backdrop-blur rounded-md p-0.5 shadow-lg border border-slate-200">
-          <Button
-            variant={device === 'desktop' ? 'default' : 'ghost'}
-            size="sm" className="h-7 px-2"
-            onClick={() => setDevice('desktop')} title="Desktop"
-          ><Monitor className="h-3.5 w-3.5" /></Button>
-          <Button
-            variant={device === 'mobile' ? 'default' : 'ghost'}
-            size="sm" className="h-7 px-2"
-            onClick={() => setDevice('mobile')} title="Mobile"
-          ><Smartphone className="h-3.5 w-3.5" /></Button>
+          <ArrowLeft className="h-3 w-3" />
+          <span>Voltar</span>
+        </button>
+        <div className="flex items-center bg-white/90 backdrop-blur rounded-full p-0.5 shadow-sm border border-slate-200">
+          <button
+            onClick={() => setDevice('desktop')}
+            title="Desktop"
+            className={cn(
+              'h-6 w-6 rounded-full flex items-center justify-center transition-colors',
+              device === 'desktop' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-900'
+            )}
+          ><Monitor className="h-3 w-3" /></button>
+          <button
+            onClick={() => setDevice('mobile')}
+            title="Mobile"
+            className={cn(
+              'h-6 w-6 rounded-full flex items-center justify-center transition-colors',
+              device === 'mobile' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-900'
+            )}
+          ><Smartphone className="h-3 w-3" /></button>
         </div>
       </div>
 
@@ -627,6 +632,9 @@ const EventPreview: React.FC = () => {
               ? 'w-[390px] shadow-2xl rounded-xl overflow-hidden min-h-[844px]'
               : 'w-full min-h-screen',
           )}
+          // Em mobile: cria containing block para elementos `fixed` internos,
+          // fazendo modais/CTAs ficarem dentro do frame do celular
+          style={isMobile ? { transform: 'translateZ(0)' } : undefined}
         >
           {/* ============ HEADER STICKY ============ */}
           <header className="sticky top-0 z-50 bg-black text-white border-b border-black shadow-sm">
