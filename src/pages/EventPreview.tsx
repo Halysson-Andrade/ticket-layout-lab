@@ -760,12 +760,13 @@ const EventPreview: React.FC = () => {
           className={cn(
             'bg-white transition-all duration-300 relative flex flex-col',
             isMobile
-              ? cn('w-[390px] shadow-2xl rounded-xl overflow-x-hidden gw-hide-scroll', inFlowStep ? 'overflow-y-hidden' : 'overflow-y-auto')
+              ? 'w-[390px] shadow-2xl rounded-xl overflow-hidden'
               : cn('w-full', inFlowStep ? 'h-screen overflow-hidden' : 'min-h-screen'),
           )}
-          // Em mobile: cria containing block para elementos `fixed` internos (modais/CTAs ficam
-          // dentro do frame) e altura limitada à viewport para nada ser cortado; barra de rolagem oculta.
-          style={isMobile ? { transform: 'translateZ(0)', height: 'min(844px, calc(100dvh - 3rem))' } : undefined}
+          // Em mobile: coluna flex com altura limitada à viewport (nada é cortado); o scroll acontece
+          // no container interno (sem barra de rolagem visível) e a barra de compra fica pinada por flex.
+          // translateZ(0) mantém os modais `fixed` contidos dentro da moldura do celular.
+          style={isMobile ? { transform: 'translateZ(0)', height: '844px', maxHeight: 'calc(100dvh - 3rem)' } : undefined}
         >
           {/* ============ HEADER STICKY ============ */}
           <header className="sticky top-0 z-50 bg-black text-white border-b border-black shadow-sm">
@@ -906,6 +907,8 @@ const EventPreview: React.FC = () => {
           {/* ============ ETAPA: DETALHE DO EVENTO ============ */}
           {flowStep === 'detalhe' && (
           <>
+          {/* Container rolável: no mobile rola por dentro (sem scrollbar); no desktop rola a janela */}
+          <div className={cn(isMobile ? 'flex-1 min-h-0 overflow-y-auto gw-hide-scroll flex flex-col' : 'flex-1 flex flex-col')}>
           {/* ============ MAIN ============ */}
           <main className="flex-1 flex flex-col">
             {/* HERO — estilo Guichê Web: fundo blur da mesma imagem + banner nítido + borda serrilhada */}
@@ -1465,17 +1468,12 @@ const EventPreview: React.FC = () => {
               </div>
             </div>
           </footer>
+          </div>
 
-          {/* Espaço para a barra fixa mobile não cobrir o rodapé */}
-          {isMobile && <div aria-hidden className="h-20 shrink-0" />}
-
-          {/* ============ Mobile bottom bar — sempre fixa no rodapé, acompanha o scroll ============ */}
+          {/* ============ Mobile bottom bar — pinada no rodapé por flex (sempre visível) ============ */}
           {isMobile && (
-            <div className="fixed bottom-0 left-0 right-0 z-[60]">
-              <div
-                className="mx-3 mb-3 rounded-2xl bg-white border border-slate-200/80 p-2 flex items-center gap-2.5"
-                style={{ boxShadow: '0 -10px 40px -10px rgba(15,23,42,0.18), 0 2px 6px rgba(15,23,42,0.04)' }}
-              >
+            <div className="shrink-0 bg-white border-t border-slate-200/60">
+              <div className="m-3 rounded-2xl bg-white border border-slate-200/80 p-2 flex items-center gap-2.5">
                 <div className="relative h-11 w-11 rounded-xl overflow-hidden shrink-0 bg-slate-100">
                   <img
                     src={eventInfo.heroBanner}
