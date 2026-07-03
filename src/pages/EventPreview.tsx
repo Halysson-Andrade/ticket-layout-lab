@@ -836,11 +836,10 @@ const EventPreview: React.FC = () => {
                   </div>
 
                   <h1 className={cn(
-                    'gw-display text-slate-900 leading-[1.02] gw-rise break-words',
-                    isMobile ? 'text-[1.75rem]' : 'text-[2.5rem] lg:text-[3rem]'
+                    'gw-display text-slate-900 leading-[1.15] gw-rise break-words tracking-tight',
+                    isMobile ? 'text-[1.25rem]' : 'text-[1.5rem] lg:text-[1.875rem]'
                   )}>
-                    Circo Mirage Circus Ribeirão Preto. SP{' '}
-                    <span className="text-slate-900">— 11.JUL às 15h30</span>
+                    Circo Mirage Circus Ribeirão Preto. SP - 11.JUL às 15h30
                   </h1>
                   <p className="text-base text-slate-500 mt-2 max-w-2xl">{eventInfo.subtitle}</p>
 
