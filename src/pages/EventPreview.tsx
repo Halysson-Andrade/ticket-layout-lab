@@ -770,13 +770,13 @@ const EventPreview: React.FC = () => {
                 )}
 
                 <div className={cn(
-                  'relative overflow-hidden bg-slate-100 group',
-                  isMobile ? 'aspect-[16/10]' : 'rounded-2xl shadow-[0_30px_80px_-30px_rgba(0,0,0,0.55)] ring-1 ring-white/10 aspect-[1920/720]'
+                  'relative overflow-hidden group',
+                  isMobile ? 'aspect-[16/10] bg-transparent' : 'rounded-2xl shadow-[0_30px_80px_-30px_rgba(0,0,0,0.55)] ring-1 ring-white/10 aspect-[1920/720] bg-transparent'
                 )}>
                   <img
                     src={eventInfo.heroBanner}
                     alt={eventInfo.title}
-                    className="w-full h-full object-cover object-center transition-transform duration-[1400ms] ease-out group-hover:scale-[1.03]"
+                    className="w-full h-full object-contain object-center transition-transform duration-[1400ms] ease-out group-hover:scale-[1.03]"
                     loading="eager"
                   />
                   <div className="absolute top-4 left-4 sm:top-5 sm:left-5">
