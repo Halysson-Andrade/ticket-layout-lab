@@ -1,0 +1,1 @@
+UPDATE public.simulated_events SET image_url = '/__l5e/assets-v1/076e4c30-691b-428f-899a-61d83fa634ac/mirage-banner.png' WHERE id = 'fd8949ff-7832-4f69-b64c-77d3a1e5586e';
