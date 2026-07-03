@@ -53,6 +53,7 @@ import {
 import { MapPreviewSVG } from '@/components/MapStudio/MapPreviewSVG';
 import { getMapContentExtent } from '@/lib/mapUtils';
 import type { Sector, VenueElement, TextElement, Seat } from '@/types/mapStudio';
+import mirageBannerAsset from '@/assets/mirage-banner.png.asset.json';
 
 type Device = 'desktop' | 'mobile';
 type CartItem = { sectorId: string; name: string; price: number; qty: number; color: string };
@@ -102,7 +103,7 @@ const eventInfo = {
   city: 'RIBEIRÃO PRETO / SP',
   rating: 4.9,
   reviews: 3120,
-  heroBanner: 'https://s3.guicheweb.com.br/imagenseventos/15-06-2026_12-55-36.jpg',
+  heroBanner: mirageBannerAsset.url,
   posterImage: 'https://s3.guicheweb.com.br/imagenseventos/01-06-2026_21-06-51.png',
   description: `Tour 2026: O gigante está de volta a Ribeirão Preto!
 
