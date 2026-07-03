@@ -577,6 +577,10 @@ const EventPreview: React.FC = () => {
         .gw-rise-delay-3 { animation-delay: .24s; }
         .gw-reveal { opacity: 0; transform: translateY(28px); transition: opacity .8s cubic-bezier(.22,.61,.36,1), transform .8s cubic-bezier(.22,.61,.36,1); will-change: opacity, transform; }
         .gw-reveal.is-visible { opacity: 1; transform: translateY(0); }
+        .gw-reveal-delay-1 { transition-delay: .10s; }
+        .gw-reveal-delay-2 { transition-delay: .20s; }
+        .gw-reveal-delay-3 { transition-delay: .30s; }
+        .gw-reveal-delay-4 { transition-delay: .40s; }
         @media (prefers-reduced-motion: reduce) { .gw-reveal { opacity: 1; transform: none; transition: none; } }
         .gw-grad-text { background: linear-gradient(92deg, ${BRAND.green}, ${BRAND.cyan} 45%, ${BRAND.magenta}); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .gw-shimmer-text { background: linear-gradient(90deg, #fff 0%, #fff 40%, ${BRAND.green} 50%, #fff 60%, #fff 100%); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: gw-shimmer 4s linear infinite; }
