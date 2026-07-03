@@ -91,23 +91,35 @@ const brl = (v: number) =>
 
 const GW_LOGO = 'https://s3.guicheweb.com.br/nova_marca/logogw.png';
 
-// Modelo: Circo Mirage Circus Ribeirão Preto
+// Modelo: Circo Mirage Circus Ribeirão Preto - SP - 11.JUL às 15h30
+// Fonte: https://www.guicheweb.com.br/circo-mirage-circus-ribeirao-preto-sp-11jul-as-15h30_52987
 const eventInfo = {
-  title: 'Circo Mirage Circus Ribeirão Preto',
-  subtitle: 'Marcos Frota apresenta: o gigante está de volta - Tour 2026',
-  date: '11 de Julho de 2026',
+  title: 'Circo Mirage Circus Ribeirão Preto. SP - 11.JUL às 15h30',
+  subtitle: 'Marcos Frota apresenta: Mirage Circus — Tour 2026',
+  date: '11/07/2026',
   doors: '15:30h',
-  venue: 'Circo Mirage Circus - Rodovia Antônio Machado Sant\'Anna',
+  venue: 'Circo Mirage Circus',
   city: 'RIBEIRÃO PRETO / SP',
   rating: 4.9,
   reviews: 3120,
   heroBanner: 'https://s3.guicheweb.com.br/imagenseventos/15-06-2026_12-55-36.jpg',
   posterImage: 'https://s3.guicheweb.com.br/imagenseventos/01-06-2026_21-06-51.png',
-  description: `O maior circo do Brasil retorna a Ribeirão Preto com o espetáculo Mirage Circus Tour 2026, comandado por Marcos Frota.
+  description: `Tour 2026: O gigante está de volta a Ribeirão Preto!
 
-Um show inesquecível para toda a família com acrobatas internacionais, palhaços, ilusionismo, roda da morte e muito mais, em uma estrutura moderna, climatizada e com poltronas numeradas.
+Inspirado nos shows dos cassinos de Las Vegas, Marcos Frota apresenta: "Mirage Circus", o circo que vai te impressionar com um espetáculo diferente de tudo o que você já viu!
 
-Garanta seu ingresso e viva uma experiência mágica no picadeiro do Circo Mirage.`,
+São mais de 800 toneladas de equipamentos de última geração! Estrutura moderna com ar-condicionado, som e iluminação digital, e um gigante telão de LED que dá um toque especial ao show! O circo Mirage conta ainda com duas praças de alimentação com deliciosas opções.
+
+Artistas nacionais e internacionais! Malabaristas, trapezistas, bailarinas, mágicos, palhaços e o impressionante globo da morte!
+
+Sem dúvida um evento incrível e inesquecível para toda a família!
+
+Informações Técnicas:
+- Duração média do espetáculo: 1h45
+- Ar-condicionado
+- Praça de Alimentação
+- Assentos com lugar marcado
+- As portas são abertas cerca de 30 minutos antes do início do espetáculo`,
 };
 
 const upcomingEvents = [
@@ -126,44 +138,62 @@ const upcomingEvents = [
 ];
 
 const sectorDescriptions = [
-  { name: 'VIP OURO', age: 'Livre', notes: ['Melhor visão do picadeiro', 'Poltronas numeradas premium', 'Setor mais próximo ao show'] },
-  { name: 'VIP PRATA', age: 'Livre', notes: ['Excelente visão central', 'Poltronas numeradas', 'Setor VIP com conforto premium'] },
-  { name: 'CENTRAL OURO', age: 'Livre', notes: ['Visão central privilegiada', 'Poltronas numeradas', 'Ótimo custo-benefício'] },
-  { name: 'CENTRAL PRATA', age: 'Livre', notes: ['Visão central confortável', 'Poltronas numeradas'] },
-  { name: 'LATERAL OURO', age: 'Livre', notes: ['Visão lateral premium', 'Poltronas numeradas'] },
-  { name: 'LATERAL PRATA', age: 'Livre', notes: ['Setor de entrada com ótimo preço', 'Poltronas numeradas'] },
+  { name: 'VIP PREMIUM', age: 'Livre', notes: ['A partir de R$ 150,00', 'Poltronas premium mais próximas ao picadeiro', 'Área com acessibilidade para cadeirantes'] },
+  { name: 'VIP OURO', age: 'Livre', notes: ['A partir de R$ 105,00', 'Excelente visão frontal do palco', 'Poltronas numeradas VIP'] },
+  { name: 'VIP PRATA', age: 'Livre', notes: ['A partir de R$ 90,00', 'Visão central privilegiada', 'Poltronas numeradas'] },
+  { name: 'CENTRAL OURO', age: 'Livre', notes: ['A partir de R$ 80,00', 'Ótima visão central', 'Poltronas numeradas'] },
+  { name: 'CENTRAL PRATA', age: 'Livre', notes: ['A partir de R$ 65,00', 'Visão central confortável', 'Poltronas numeradas'] },
+  { name: 'LATERAL OURO', age: 'Livre', notes: ['A partir de R$ 30,00', 'Visão lateral com bom ângulo', 'Poltronas numeradas'] },
+  { name: 'LATERAL PRATA', age: 'Livre', notes: ['A partir de R$ 25,00', 'Setor de entrada com ótimo preço', 'Poltronas numeradas'] },
+  { name: 'CAMAROTE FAMÍLIA', age: 'Livre', notes: ['A partir de R$ 990,00', 'Até 5 pessoas por camarote', 'Experiência exclusiva em família'] },
+  { name: 'SETOR CADEIRANTE', age: 'Livre', notes: ['A partir de R$ 50,00', 'Exclusivo para portador de cadeira de rodas', 'Inclui 1 acompanhante por espaço'] },
 ];
 
 const faqs = [
-  { q: 'Menores de idade podem entrar?',
-    a: 'Sim. Crianças de até 2 anos não pagam desde que fiquem no colo dos responsáveis. Menores de 12 anos devem estar acompanhados dos pais ou responsáveis legais.' },
+  { q: 'Qual a duração do espetáculo?',
+    a: 'A duração média é de 1h45. Alguns números/apresentações podem sofrer alterações sem prévio aviso.' },
+  { q: 'A que horas as portas abrem?',
+    a: 'As portas são abertas cerca de 30 minutos antes do início do espetáculo (por volta das 15:00h).' },
   { q: 'O circo é climatizado?',
-    a: 'Sim, toda a estrutura do Circo Mirage é totalmente climatizada, com poltronas numeradas e ambiente coberto.' },
-  { q: 'Qual o horário de abertura das portas?', a: 'A abertura dos portões acontece 30 minutos antes do início do espetáculo (15:00h).' },
-  { q: 'Terá estacionamento no local?', a: 'Sim, há estacionamento terceirizado próximo ao circo. A produção não se responsabiliza pelos veículos.' },
-  { q: 'Como funciona a meia-entrada?', a: 'Meia-entrada mediante comprovação no local conforme legislação vigente (estudante, idoso, PCD, doador de sangue e demais previstos em lei).' },
+    a: 'Sim, toda a estrutura é climatizada, com poltronas numeradas, som e iluminação digital, telão de LED e duas praças de alimentação.' },
+  { q: 'Como funciona a meia-entrada?',
+    a: 'Meia-entrada conforme Lei Federal 12.933/13 e Decreto 8.537/15: estudantes com CIE, PCD e acompanhante quando necessário, jovens de baixa renda inscritos no CadÚnico, idosos a partir de 60 anos, crianças de 2 a 12 anos, militares, professores e doadores de sangue, mediante comprovação. Crianças de colo até 2 anos não pagam ingresso.' },
+  { q: 'Há acessibilidade para cadeirantes?',
+    a: 'Sim. O circo dispõe de área no setor VIP Premium para acomodar cadeiras de rodas, com 1 assento por espaço para acompanhante.' },
+  { q: 'Quais as formas de pagamento?',
+    a: 'No site: Pix e Cartão de Crédito (parcelamento em até 3x sem juros). Na bilheteria física: Pix, Dinheiro, Cartão de Débito e Crédito em até 3x sem juros.' },
 ];
 
 const rules = [
-  'Apresentação obrigatória do ingresso impresso ou digital, junto com documento oficial com foto.',
-  'Tolerância de 15 minutos após o horário do espetáculo. Após esse período, a entrada é permitida somente em intervalos.',
-  'Meia-entrada apenas mediante comprovação no local conforme legislação vigente.',
-  'Proibida a entrada com alimentos, bebidas, objetos pontiagudos ou perigosos.',
+  'Apresentação obrigatória do ingresso impresso ou digital pelo App Guichê Web, junto com documento oficial com foto.',
+  'Não é possível a troca de data/horário do ingresso ou devolução de valores após a compra. Confirme a data antes de finalizar.',
+  'Meia-entrada apenas mediante comprovação no local, conforme legislação vigente.',
+  'Crianças de colo menores de 2 anos não pagam ingresso. Crianças de 2 a 12 anos pagam meia mediante documento oficial com foto.',
   'Solicitações de cancelamento podem ser feitas em até 7 dias da compra, com no mínimo 48h de antecedência do evento.',
+  'As promoções (Bônus, Preço Único, etc.) não são cumulativas e incidem sempre sobre o valor de "INTEIRA".',
 ];
 
 const pointsOfSale = [
-  { city: 'Ribeirão Preto/SP', name: 'Bilheteria Oficial do Circo', address: 'Rod. Antônio Machado Sant\'Anna, km 321', phone: '(16) 3600-2020' },
-  { city: 'Ribeirão Preto/SP', name: 'Shopping Iguatemi', address: 'Av. Luiz Eduardo Toledo Prado, 900', phone: '(16) 3877-1010' },
-  { city: 'Ribeirão Preto/SP', name: 'Ribeirão Shopping', address: 'Av. Cel. Fernando Ferreira Leite, 1540', phone: '(16) 3877-2020' },
-  { city: 'Sertãozinho/SP', name: 'Shopping Sertãozinho', address: 'Av. Antônio Paschoal, 2000', phone: '(16) 3945-3030' },
+  { city: 'Ribeirão Preto/SP', name: 'Bilheteria Oficial do Circo Mirage', address: 'Local do evento — Ribeirão Preto/SP', phone: 'Ter a Sex 13h–21h · Sáb/Dom/Feriado 10h–20h' },
 ];
 
 // Preços de referência do Circo Mirage (fallback quando o setor não tem preço definido)
-const MOCK_PRICES = [105, 90, 80, 65, 30, 25, 210, 180, 160, 130];
+// Baseado nos valores "a partir de" do site: 25, 30, 65, 80, 90, 105, 150, 990, 50
+const MOCK_PRICES = [25, 30, 65, 80, 90, 105, 150, 990, 50];
 const getSectorPrice = (s: Sector, idx: number): number => {
   const seatWithPrice = s.seats.find((x) => typeof x.price === 'number' && x.price! > 0);
   if (seatWithPrice?.price) return seatWithPrice.price;
+  // Match by sector name if possible
+  const name = (s.name || '').toLowerCase();
+  if (name.includes('camarote')) return 990;
+  if (name.includes('vip premium')) return 150;
+  if (name.includes('vip ouro')) return 105;
+  if (name.includes('vip prata')) return 90;
+  if (name.includes('central ouro')) return 80;
+  if (name.includes('central prata')) return 65;
+  if (name.includes('lateral ouro')) return 30;
+  if (name.includes('lateral prata')) return 25;
+  if (name.includes('cadeirante')) return 50;
   return MOCK_PRICES[idx % MOCK_PRICES.length];
 };
 
