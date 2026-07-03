@@ -1964,7 +1964,7 @@ const EventPreview: React.FC = () => {
             <div className="fixed inset-0 z-[80] flex" onClick={() => setCartOpen(false)}>
               <div className="flex-1 bg-black/40" />
               <div
-                className={cn('bg-white shadow-2xl flex flex-col', isMobile ? 'w-full' : 'w-[400px]')}
+                className={cn('bg-white shadow-2xl flex flex-col h-full', isMobile ? 'w-full' : 'w-[400px]')}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between p-4 border-b">
