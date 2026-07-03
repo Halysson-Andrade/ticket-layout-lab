@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Accordion,
   AccordionContent,
@@ -49,6 +50,7 @@ import {
   TrendingUp,
   Sparkles,
   Award,
+  ExternalLink,
 } from 'lucide-react';
 import { MapPreviewSVG } from '@/components/MapStudio/MapPreviewSVG';
 import { getMapContentExtent } from '@/lib/mapUtils';
@@ -57,6 +59,28 @@ import mirageBannerAsset from '@/assets/mirage-banner.png.asset.json';
 
 type Device = 'desktop' | 'mobile';
 type CartItem = { sectorId: string; name: string; price: number; qty: number; color: string };
+// Etapas do fluxo de compra dentro da moldura de preview
+type FlowStep = 'detalhe' | 'ingressos' | 'resumo';
+
+// Termos exibidos no resumo do pedido. No sistema real, ticketeira e produtor são configuráveis.
+type TermSection = { title: string; html: string };
+const TERMS: {
+  ticketeira: { label: string; url: string };
+  produtor: { label: string; sections: TermSection[] };
+} = {
+  ticketeira: {
+    label: 'Termos e Política da Ticketeira',
+    url: 'https://www.guicheweb.com.br/termos-de-uso',
+  },
+  produtor: {
+    label: 'Termos e Política do Produtor',
+    sections: [
+      { title: 'Política de meia-entrada', html: '<p>A meia-entrada é concedida conforme a <strong>Lei Federal 12.933/13</strong> e o Decreto 8.537/15, mediante comprovação de documento no local do evento.</p>' },
+      { title: 'Cancelamento e reembolso', html: '<p>Solicitações de cancelamento podem ser feitas em até <strong>7 dias</strong> após a compra, respeitando a antecedência mínima de 48h do início do evento.</p>' },
+      { title: 'Regras do evento', html: '<ul><li>Apresentação obrigatória do ingresso (impresso ou digital) com documento oficial com foto.</li><li>Não é permitida a troca de data/horário nem devolução de valores após a compra.</li></ul>' },
+    ],
+  },
+};
 
 // Tipos de ingresso do simulado (fixos). factor = multiplicador sobre o preço do setor.
 const TICKET_TYPES: { id: string; label: string; factor: number; hint: string }[] = [
@@ -204,10 +228,13 @@ const EventPreview: React.FC = () => {
   const [snapshot, setSnapshot] = useState<PreviewSnapshot | null>(null);
   const [device, setDevice] = useState<Device>('desktop');
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [cartOpen, setCartOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [hoveredSectorId, setHoveredSectorId] = useState<string | null>(null);
-  const [salesOpen, setSalesOpen] = useState(false);
+  // Fluxo em etapas (substitui o popup de vendas): detalhe -> ingressos -> resumo
+  const [flowStep, setFlowStep] = useState<FlowStep>('detalhe');
+  const [cartPanelOpen, setCartPanelOpen] = useState(false); // carrinho expansível dentro da etapa 'ingressos'
+  const [termsAccepted, setTermsAccepted] = useState(false); // aceite obrigatório no 'resumo'
+  const [produtorTermOpen, setProdutorTermOpen] = useState(false); // modal de termos do produtor
   const [selectedSectorId, setSelectedSectorId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showStickyCTA, setShowStickyCTA] = useState(false);
@@ -339,7 +366,7 @@ const EventPreview: React.FC = () => {
       io?.disconnect();
       if (safety) window.clearTimeout(safety);
     };
-  }, [snapshot, device]);
+  }, [snapshot, device, flowStep]);
 
   const sectorsForSale = useMemo(() => {
     if (!snapshot) return [] as Array<{ id: string; name: string; color: string; price: number; available: number }>;
@@ -418,7 +445,7 @@ const EventPreview: React.FC = () => {
   // Ao selecionar um setor, dá zoom/centraliza nele (sem travar a base — dá pra panoramizar
   // até outro setor). Ao fechar o modal ou desmarcar, volta ao mapa inteiro.
   useEffect(() => {
-    if (!salesOpen || !selectedSectorId || !salesFocusBounds || !wholeMapBounds) {
+    if (flowStep !== 'ingressos' || !selectedSectorId || !salesFocusBounds || !wholeMapBounds) {
       setMapView({ scale: 1, panX: 0, panY: 0 });
       return;
     }
@@ -433,20 +460,21 @@ const EventPreview: React.FC = () => {
       panX: wholeMapBounds.x + wholeMapBounds.w / 2 - sectorCx,
       panY: wholeMapBounds.y + wholeMapBounds.h / 2 - sectorCy,
     });
-  }, [selectedSectorId, salesOpen, salesFocusBounds, wholeMapBounds]);
+  }, [selectedSectorId, flowStep, salesFocusBounds, wholeMapBounds]);
 
-  // Fecha o modal de escolha de ingresso se o modal de vendas fechar
+  // Fecha o modal de escolha de ingresso ao sair da etapa de ingressos
   useEffect(() => {
-    if (!salesOpen) setPendingSeat(null);
-  }, [salesOpen]);
+    if (flowStep !== 'ingressos') setPendingSeat(null);
+  }, [flowStep]);
 
-  // Lock body scroll enquanto qualquer overlay (vendas ou carrinho) está aberto
+  // Lock body scroll apenas quando um overlay verdadeiro está aberto (as etapas são páginas roláveis)
   useEffect(() => {
-    if (!salesOpen && !cartOpen) return;
+    const overlayOpen = !!pendingSeat || produtorTermOpen || (device === 'mobile' && cartPanelOpen);
+    if (!overlayOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
-  }, [salesOpen, cartOpen]);
+  }, [pendingSeat, produtorTermOpen, cartPanelOpen, device]);
 
   const zoomBy = (factor: number) => {
     setMapView((v) => {
@@ -567,7 +595,6 @@ const EventPreview: React.FC = () => {
       if (found) return prev.map((i) => (i.sectorId === s.id ? { ...i, qty: i.qty + 1 } : i));
       return [...prev, { sectorId: s.id, name: s.name, price: s.price, qty: 1, color: s.color }];
     });
-    setCartOpen(true);
   };
   const updateQty = (id: string, delta: number) =>
     setCart((prev) =>
@@ -591,6 +618,57 @@ const EventPreview: React.FC = () => {
 
   const isMobile = device === 'mobile';
 
+  // Itens do carrinho — reutilizado no painel expansível da etapa 'ingressos' e no 'resumo'
+  const renderCartItems = () => (
+    cart.length === 0 ? (
+      <div className="text-center py-10 text-slate-500">
+        <ShoppingCart className="h-12 w-12 mx-auto opacity-30 mb-3" />
+        <p className="text-sm">Seu carrinho está vazio.</p>
+        <p className="text-xs mt-1">Escolha um setor no mapa para adicionar ingressos.</p>
+      </div>
+    ) : (
+      <div className="space-y-3">
+        {cart.map((i) => (
+          <div key={i.sectorId} className="flex gap-3 border border-slate-200 rounded-lg p-3">
+            <div className="h-12 w-12 rounded-md flex items-center justify-center text-white font-bold shrink-0" style={{ background: i.color }}>
+              {i.name.slice(0, 2).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-900 truncate">{i.name}</p>
+              <p className="text-xs text-slate-500">{brl(i.price)} cada</p>
+              <div className="flex items-center gap-2 mt-2">
+                <button onClick={() => updateQty(i.sectorId, -1)} className="h-6 w-6 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50"><Minus className="h-3 w-3" /></button>
+                <span className="text-sm font-medium w-6 text-center">{i.qty}</span>
+                <button onClick={() => updateQty(i.sectorId, 1)} className="h-6 w-6 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50"><Plus className="h-3 w-3" /></button>
+                <button onClick={() => removeFromCart(i.sectorId)} className="ml-auto text-rose-500 hover:text-rose-700"><Trash2 className="h-3.5 w-3.5" /></button>
+              </div>
+            </div>
+            <p className="text-sm font-bold text-slate-900 whitespace-nowrap">{brl(i.qty * i.price)}</p>
+          </div>
+        ))}
+      </div>
+    )
+  );
+
+  // Bloco de totais (subtotal / taxa / total)
+  const renderCartTotals = () => (
+    <div className="space-y-3">
+      <div className="flex justify-between text-sm">
+        <span className="text-slate-600">Subtotal</span>
+        <span className="text-slate-900 font-medium">{brl(subtotal)}</span>
+      </div>
+      <div className="flex justify-between text-sm">
+        <span className="text-slate-600">Taxa de serviço (10%)</span>
+        <span className="text-slate-900 font-medium">{brl(fee)}</span>
+      </div>
+      <Separator />
+      <div className="flex justify-between">
+        <span className="font-bold text-slate-900">Total</span>
+        <span className="font-black text-lg" style={{ color: BRAND.green }}>{brl(total)}</span>
+      </div>
+    </div>
+  );
+
   if (!snapshot) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -608,7 +686,7 @@ const EventPreview: React.FC = () => {
   const mobileMenuItems = [
     { label: 'Meus Dados', icon: UserCircle, active: false },
     { label: 'Meus Ingressos', icon: Ticket, active: false },
-    { label: 'Carrinho', icon: ShoppingCart, active: false, onClick: () => { setMobileMenuOpen(false); setCartOpen(true); } },
+    { label: 'Carrinho', icon: ShoppingCart, active: false, onClick: () => { setMobileMenuOpen(false); setFlowStep('ingressos'); setCartPanelOpen(true); } },
     { label: 'Suporte', icon: LifeBuoy, active: false },
   ];
 
@@ -637,6 +715,9 @@ const EventPreview: React.FC = () => {
         .gw-reveal-delay-3 { transition-delay: .30s; }
         .gw-reveal-delay-4 { transition-delay: .40s; }
         @media (prefers-reduced-motion: reduce) { .gw-reveal { opacity: 1; transform: none; transition: none; } }
+        @keyframes gw-step-in { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
+        .gw-step { animation: gw-step-in .35s cubic-bezier(.22,.61,.36,1) both; }
+        @media (prefers-reduced-motion: reduce) { .gw-step { animation: none } }
         .gw-grad-text { background: linear-gradient(92deg, ${BRAND.green}, ${BRAND.cyan} 45%, ${BRAND.magenta}); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .gw-shimmer-text { background: linear-gradient(90deg, #fff 0%, #fff 40%, ${BRAND.green} 50%, #fff 60%, #fff 100%); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: gw-shimmer 4s linear infinite; }
         .gw-dot-pulse { animation: gw-pulse-dot 1.4s ease-in-out infinite; }
@@ -732,7 +813,7 @@ const EventPreview: React.FC = () => {
                   <button
                     className="relative rounded-full p-2 text-white"
                     style={{ background: BRAND.green }}
-                    onClick={() => setCartOpen(true)}
+                    onClick={() => { setFlowStep('ingressos'); setCartPanelOpen(true); }}
                     aria-label="Abrir carrinho"
                   >
                     <ShoppingCart className="h-4 w-4" />
@@ -751,7 +832,7 @@ const EventPreview: React.FC = () => {
                   <button
                     className="relative rounded-full p-2 text-white"
                     style={{ background: BRAND.green }}
-                    onClick={() => setCartOpen(true)}
+                    onClick={() => { setFlowStep('ingressos'); setCartPanelOpen(true); }}
                     aria-label="Abrir carrinho"
                   >
                     <ShoppingCart className="h-4 w-4" />
@@ -831,6 +912,9 @@ const EventPreview: React.FC = () => {
             </>
           )}
 
+          {/* ============ ETAPA: DETALHE DO EVENTO ============ */}
+          {flowStep === 'detalhe' && (
+          <div key="detalhe" className="gw-step flex-1 flex flex-col">
           {/* ============ MAIN ============ */}
           <main className="flex-1 flex flex-col">
             {/* HERO — estilo Guichê Web: fundo blur da mesma imagem + banner nítido + borda serrilhada */}
@@ -1045,7 +1129,7 @@ const EventPreview: React.FC = () => {
                     <Button
                       className="gw-cta-glow w-full font-bold h-12 text-white mt-4 rounded-xl border-0"
                       style={{ background: `linear-gradient(120deg, ${BRAND.green}, #0fb02e)` }}
-                      onClick={() => setSalesOpen(true)}
+                      onClick={() => setFlowStep('ingressos')}
                     >
                       <ShoppingCart className="h-4 w-4 mr-2" />
                       {dynamicCta.label}
@@ -1137,7 +1221,7 @@ const EventPreview: React.FC = () => {
                         size="lg"
                         className="text-white font-bold shadow-lg"
                         style={{ background: BRAND.green }}
-                        onClick={() => setSalesOpen(true)}
+                        onClick={() => setFlowStep('ingressos')}
                         disabled={sectorsForSale.length === 0}
                       >
                         <Ticket className="h-4 w-4 mr-2" />
@@ -1367,7 +1451,7 @@ const EventPreview: React.FC = () => {
           </footer>
 
           {/* ============ Mobile bottom bar — aparece ao scroll ============ */}
-          {isMobile && !salesOpen && !cartOpen && (
+          {isMobile && (
             <div
               className={cn(
                 'fixed bottom-0 left-0 right-0 z-[60] transition-all duration-300 ease-out',
@@ -1395,7 +1479,7 @@ const EventPreview: React.FC = () => {
                 <Button
                   className="h-11 px-4 font-bold text-white rounded-xl relative text-sm"
                   style={{ background: BRAND.green, boxShadow: `0 8px 20px -6px ${BRAND.green}aa` }}
-                  onClick={() => setSalesOpen(true)}
+                  onClick={() => setFlowStep('ingressos')}
                 >
                   {cartCount > 0 ? 'Finalizar' : dynamicCta.label}
                   {cartCount > 0 && (
@@ -1412,7 +1496,7 @@ const EventPreview: React.FC = () => {
           )}
 
           {/* ============ Desktop floating CTA bar — aparece ao scroll ============ */}
-          {!isMobile && !salesOpen && !cartOpen && (
+          {!isMobile && (
             <div
               className={cn(
                 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] transition-all duration-300 ease-out',
@@ -1458,7 +1542,7 @@ const EventPreview: React.FC = () => {
                   <>
                     <div className="w-px bg-slate-200/80 my-1" />
                     <button
-                      onClick={() => setCartOpen(true)}
+                      onClick={() => { setFlowStep('ingressos'); setCartPanelOpen(true); }}
                       className="hidden lg:flex items-center gap-2 px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 transition rounded-xl"
                     >
                       <ShoppingCart className="h-4 w-4" style={{ color: BRAND.green }} />
@@ -1478,7 +1562,7 @@ const EventPreview: React.FC = () => {
                       background: `linear-gradient(135deg, ${BRAND.green} 0%, ${BRAND.greenDark} 100%)`,
                       boxShadow: `0 12px 24px -8px ${BRAND.green}aa`,
                     }}
-                    onClick={() => setSalesOpen(true)}
+                    onClick={() => setFlowStep('ingressos')}
                   >
                     {dynamicCta.label}
                     <ChevronDown className="h-4 w-4 ml-1 -rotate-90" />
@@ -1495,8 +1579,8 @@ const EventPreview: React.FC = () => {
 
 
 
-          {/* ============ WhatsApp FAB — sempre visível ============ */}
-          {!salesOpen && !cartOpen && (
+          {/* ============ WhatsApp FAB ============ */}
+          {(
             <a
               href="https://wa.me/553132267272"
               target="_blank"
@@ -1520,29 +1604,28 @@ const EventPreview: React.FC = () => {
 
 
 
-          {/* ============ SALES MODAL ============ */}
-          {salesOpen && (
-            <div className="fixed inset-0 z-[100] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-0 sm:p-4" onClick={() => setSalesOpen(false)}>
-              <div
-                className={cn('bg-white w-full max-w-6xl rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden', isMobile ? 'h-full' : 'h-[100dvh] sm:h-[90vh]')}
-                onClick={(e) => e.stopPropagation()}
-              >
+          </div>
+          )}
+
+          {/* ============ ETAPA: SELEÇÃO DE INGRESSOS ============ */}
+          {flowStep === 'ingressos' && (
+              <section key="ingressos" className="gw-step flex-1 flex flex-col min-h-0 bg-white relative overflow-hidden">
                 <div className="border-b bg-slate-50">
-                  <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+                  <div className="flex items-center gap-3 px-4 sm:px-6 py-3">
+                    <Button variant="ghost" size="sm" className="h-8 gap-1 px-2 text-slate-600 hover:text-slate-900 shrink-0" onClick={() => setFlowStep('detalhe')}>
+                      <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Voltar</span>
+                    </Button>
                     <div className="min-w-0">
                       <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: BRAND.green }}>Escolha seu lugar</p>
                       <h4 className="font-bold text-slate-900 text-sm sm:text-base truncate">{eventInfo.title}</h4>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSalesOpen(false)}>
-                      <X className="h-4 w-4" />
-                    </Button>
                   </div>
                   {/* Stepper de progresso */}
                   <div className="px-4 sm:px-6 pb-3 flex items-center gap-2 text-[11px] font-semibold">
                     {[
                       { n: 1, label: 'Setor', done: !!selectedSectorId || cartCount > 0 },
                       { n: 2, label: 'Quantidade', done: cartCount > 0 },
-                      { n: 3, label: 'Pagamento', done: false },
+                      { n: 3, label: 'Resumo', done: false },
                     ].map((step, i, arr) => {
                       const active = step.done || (i > 0 && arr[i - 1].done && !step.done);
                       return (
@@ -1828,25 +1911,76 @@ const EventPreview: React.FC = () => {
                   </ScrollArea>
                 </div>
 
-                <div className="border-t bg-slate-50 px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
+                {/* Rodapé persistente: resumo + ações */}
+                <div className="border-t bg-white px-4 sm:px-6 py-3 flex items-center justify-between gap-3 shrink-0">
                   <div>
                     <p className="text-[10px] text-slate-500">{cartCount} {cartCount === 1 ? 'ingresso' : 'ingressos'}</p>
                     <p className="text-base font-black text-slate-900">{brl(total)}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setSalesOpen(false)}>Continuar olhando</Button>
+                    <Button
+                      variant="outline"
+                      className="relative font-semibold"
+                      onClick={() => setCartPanelOpen((v) => !v)}
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-2" /> Ver carrinho
+                      {cartCount > 0 && (
+                        <span className="absolute -top-2 -right-2 text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center text-white shadow" style={{ background: BRAND.green }}>
+                          {cartCount}
+                        </span>
+                      )}
+                    </Button>
                     <Button
                       className="font-bold text-white"
                       style={{ background: BRAND.green }}
                       disabled={cartCount === 0}
-                      onClick={() => { setSalesOpen(false); setCartOpen(true); }}
+                      onClick={() => setFlowStep('resumo')}
                     >
-                      <ShoppingCart className="h-4 w-4 mr-2" /> Ver carrinho
+                      Finalizar <ChevronDown className="h-4 w-4 ml-1 -rotate-90" />
                     </Button>
                   </div>
                 </div>
-              </div>
-            </div>
+
+                {/* Carrinho expansível — slide-over (desktop) / bottom-sheet (mobile), contido na moldura */}
+                {cartPanelOpen && (
+                  <>
+                    <div className="absolute inset-0 z-20 bg-black/40" onClick={() => setCartPanelOpen(false)} />
+                    <div
+                      className={cn(
+                        'absolute z-30 bg-white flex flex-col shadow-2xl',
+                        isMobile
+                          ? 'left-0 right-0 bottom-0 max-h-[80%] rounded-t-2xl animate-in slide-in-from-bottom duration-300'
+                          : 'top-0 bottom-0 right-0 w-[380px] animate-in slide-in-from-right duration-300',
+                      )}
+                    >
+                      <div className="flex items-center justify-between p-4 border-b shrink-0">
+                        <div>
+                          <h4 className="font-bold text-slate-900">Seu carrinho</h4>
+                          <p className="text-xs text-slate-500">{cartCount} {cartCount === 1 ? 'item' : 'itens'}</p>
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCartPanelOpen(false)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <ScrollArea className="flex-1 p-4">
+                        {renderCartItems()}
+                      </ScrollArea>
+                      {cart.length > 0 && (
+                        <div className="border-t p-4 space-y-3 bg-slate-50 shrink-0">
+                          {renderCartTotals()}
+                          <Button
+                            className="w-full font-bold h-11 text-white"
+                            style={{ background: BRAND.green }}
+                            onClick={() => { setCartPanelOpen(false); setFlowStep('resumo'); }}
+                          >
+                            Finalizar compra
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </section>
           )}
 
           {/* ============ MODAL: ESCOLHA DO INGRESSO DO ASSENTO ============ */}
@@ -1959,92 +2093,144 @@ const EventPreview: React.FC = () => {
             </div>
           )}
 
-          {/* ============ CART DRAWER ============ */}
-          {cartOpen && (
-            <div className="fixed inset-0 z-[80] flex" onClick={() => setCartOpen(false)}>
-              <div className="flex-1 bg-black/40" />
+          {/* ============ ETAPA: RESUMO DO PEDIDO ============ */}
+          {flowStep === 'resumo' && (
+            <section key="resumo" className="gw-step flex-1 flex flex-col min-h-0 bg-slate-50">
+              {/* Cabeçalho */}
+              <div className="border-b bg-white px-4 sm:px-6 py-3 flex items-center gap-3 shrink-0">
+                <Button variant="ghost" size="sm" className="h-8 gap-1 px-2 text-slate-600 hover:text-slate-900 shrink-0" onClick={() => setFlowStep('ingressos')}>
+                  <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Voltar</span>
+                </Button>
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: BRAND.green }}>Resumo do pedido</p>
+                  <h4 className="font-bold text-slate-900 text-sm sm:text-base truncate">{eventInfo.title}</h4>
+                </div>
+              </div>
+
+              <ScrollArea className="flex-1">
+                <div className="mx-auto w-full max-w-2xl p-4 sm:p-6 space-y-5">
+                  {cartCount === 0 ? (
+                    <div className="text-center py-16 text-slate-500">
+                      <ShoppingCart className="h-14 w-14 mx-auto opacity-30 mb-3" />
+                      <p className="text-sm font-medium">Seu carrinho está vazio.</p>
+                      <Button variant="outline" className="mt-4" onClick={() => setFlowStep('ingressos')}>
+                        Voltar para ingressos
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Itens */}
+                      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-3">Ingressos</p>
+                        {renderCartItems()}
+                      </div>
+
+                      {/* Totais */}
+                      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                        {renderCartTotals()}
+                      </div>
+
+                      {/* Termos e aceite */}
+                      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-3">
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Termos e políticas</p>
+                        <a
+                          href={TERMS.ticketeira.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50 transition"
+                        >
+                          <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4" style={{ color: BRAND.green }} /> {TERMS.ticketeira.label}</span>
+                          <ExternalLink className="h-4 w-4 text-slate-400" />
+                        </a>
+                        <button
+                          onClick={() => setProdutorTermOpen(true)}
+                          className="w-full flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-700 hover:border-slate-300 hover:bg-slate-50 transition"
+                        >
+                          <span className="flex items-center gap-2"><Info className="h-4 w-4" style={{ color: BRAND.green }} /> {TERMS.produtor.label}</span>
+                          <ChevronDown className="h-4 w-4 text-slate-400 -rotate-90" />
+                        </button>
+
+                        <label className="flex items-start gap-2.5 pt-1 cursor-pointer select-none">
+                          <Checkbox
+                            checked={termsAccepted}
+                            onCheckedChange={(v) => setTermsAccepted(v === true)}
+                            className="mt-0.5 border-slate-300 data-[state=checked]:border-transparent"
+                            style={termsAccepted ? { background: BRAND.green } : undefined}
+                          />
+                          <span className="text-xs text-slate-600 leading-relaxed">
+                            Li e aceito os termos e políticas da ticketeira e do produtor do evento.
+                          </span>
+                        </label>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </ScrollArea>
+
+              {/* Rodapé: finalizar */}
+              {cartCount > 0 && (
+                <div className="border-t bg-white px-4 sm:px-6 py-3 shrink-0">
+                  <div className="mx-auto w-full max-w-2xl flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] text-slate-500">Total</p>
+                      <p className="text-lg font-black text-slate-900 tabular-nums">{brl(total)}</p>
+                    </div>
+                    <Button
+                      className="font-bold h-11 px-6 text-white"
+                      style={{ background: BRAND.green }}
+                      disabled={!termsAccepted || cartCount === 0}
+                      onClick={() => {
+                        toast.success('Compra realizada com sucesso!', { description: 'Simulação — nenhum pagamento foi processado.' });
+                        setCart([]);
+                        setSelectedSeats([]);
+                        setTermsAccepted(false);
+                        setFlowStep('detalhe');
+                      }}
+                    >
+                      <ShieldCheck className="h-4 w-4 mr-2" /> Finalizar compra
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-center text-slate-500 flex items-center justify-center gap-1 mt-2">
+                    <ShieldCheck className="h-3 w-3" style={{ color: BRAND.green }} /> Pagamento criptografado
+                  </p>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* ============ MODAL: TERMOS DO PRODUTOR ============ */}
+          {produtorTermOpen && (
+            <div
+              className="fixed inset-0 z-[130] bg-slate-900/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+              onClick={() => setProdutorTermOpen(false)}
+            >
               <div
-                className={cn('bg-white shadow-2xl flex flex-col h-full', isMobile ? 'w-full' : 'w-[400px]')}
+                className="bg-white w-full max-w-lg rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85dvh]"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="flex items-center justify-between p-4 border-b">
-                  <div>
-                    <h4 className="font-bold text-slate-900">Seu carrinho</h4>
-                    <p className="text-xs text-slate-500">{cartCount} {cartCount === 1 ? 'item' : 'itens'}</p>
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCartOpen(false)}>
+                <div className="flex items-center justify-between p-4 border-b shrink-0">
+                  <h4 className="font-bold text-slate-900 text-sm">{TERMS.produtor.label}</h4>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setProdutorTermOpen(false)}>
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
-
                 <ScrollArea className="flex-1 p-4">
-                  {cart.length === 0 ? (
-                    <div className="text-center py-10 text-slate-500">
-                      <ShoppingCart className="h-12 w-12 mx-auto opacity-30 mb-3" />
-                      <p className="text-sm">Seu carrinho está vazio.</p>
-                      <p className="text-xs mt-1">Abra "Comprar Ingresso" para escolher seu setor.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {cart.map((i) => (
-                        <div key={i.sectorId} className="flex gap-3 border border-slate-200 rounded-lg p-3">
-                          <div
-                            className="h-12 w-12 rounded-md flex items-center justify-center text-white font-bold shrink-0"
-                            style={{ background: i.color }}
-                          >
-                            {i.name.slice(0, 2).toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-slate-900 truncate">{i.name}</p>
-                            <p className="text-xs text-slate-500">{brl(i.price)} cada</p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <button
-                                onClick={() => updateQty(i.sectorId, -1)}
-                                className="h-6 w-6 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50"
-                              ><Minus className="h-3 w-3" /></button>
-                              <span className="text-sm font-medium w-6 text-center">{i.qty}</span>
-                              <button
-                                onClick={() => updateQty(i.sectorId, 1)}
-                                className="h-6 w-6 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50"
-                              ><Plus className="h-3 w-3" /></button>
-                              <button
-                                onClick={() => removeFromCart(i.sectorId)}
-                                className="ml-auto text-rose-500 hover:text-rose-700"
-                              ><Trash2 className="h-3.5 w-3.5" /></button>
-                            </div>
-                          </div>
-                          <p className="text-sm font-bold text-slate-900 whitespace-nowrap">
-                            {brl(i.qty * i.price)}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <Accordion type="single" collapsible className="w-full">
+                    {TERMS.produtor.sections.map((sec, i) => (
+                      <AccordionItem key={i} value={`term-${i}`}>
+                        <AccordionTrigger className="text-sm font-semibold text-slate-800 text-left">{sec.title}</AccordionTrigger>
+                        <AccordionContent>
+                          <div className="prose prose-sm max-w-none text-slate-600" dangerouslySetInnerHTML={{ __html: sec.html }} />
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
                 </ScrollArea>
-
-                {cart.length > 0 && (
-                  <div className="border-t p-4 space-y-3 bg-slate-50">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Subtotal</span>
-                      <span className="text-slate-900 font-medium">{brl(subtotal)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">Taxa de serviço (10%)</span>
-                      <span className="text-slate-900 font-medium">{brl(fee)}</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between">
-                      <span className="font-bold text-slate-900">Total</span>
-                      <span className="font-black text-lg" style={{ color: BRAND.green }}>{brl(total)}</span>
-                    </div>
-                    <Button className="w-full font-bold h-11 text-white" style={{ background: BRAND.green }}>
-                      Ir para o pagamento
-                    </Button>
-                    <p className="text-[10px] text-center text-slate-500 flex items-center justify-center gap-1">
-                      <ShieldCheck className="h-3 w-3" style={{ color: BRAND.green }} /> Pagamento criptografado
-                    </p>
-                  </div>
-                )}
+                <div className="border-t p-4 shrink-0">
+                  <Button className="w-full font-bold text-white" style={{ background: BRAND.green }} onClick={() => setProdutorTermOpen(false)}>
+                    Entendi
+                  </Button>
+                </div>
               </div>
             </div>
           )}
