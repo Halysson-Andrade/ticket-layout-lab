@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { cn } from '@/lib/utils';
+import { getMapContentExtent } from '@/lib/mapUtils';
 import type { Sector, VenueElement, TextElement, Seat } from '@/types/mapStudio';
 
 interface MapPreviewSVGProps {
@@ -62,33 +63,19 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
 }) => {
   const selectedSeatSet = useMemo(() => new Set(selectedSeatIds ?? []), [selectedSeatIds]);
 
-  // Compute fit bounds from visible content (setores + elementos como palco/telão + textos)
+  // Compute fit bounds from visible content (setores + elementos como palco/telão + textos),
+  // considerando a rotação de cada item para não cortar nas laterais.
   const bounds = useMemo(() => {
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    const grow = (x: number, y: number) => {
-      if (x < minX) minX = x;
-      if (y < minY) minY = y;
-      if (x > maxX) maxX = x;
-      if (y > maxY) maxY = y;
-    };
-    sectors.forEach((s) => {
-      if (s.visible === false) return;
-      s.vertices.forEach((v) => grow(v.x, v.y));
-    });
-    elements.forEach((el) => {
-      grow(el.bounds.x, el.bounds.y);
-      grow(el.bounds.x + el.bounds.width, el.bounds.y + el.bounds.height);
-    });
-    textElements.forEach((t) => grow(t.x, t.y));
-    if (!isFinite(minX)) {
+    const ext = getMapContentExtent(sectors, elements, textElements);
+    if (!ext) {
       return { x: 0, y: 0, w: width, h: height };
     }
     const pad = 60;
     return {
-      x: minX - pad,
-      y: minY - pad,
-      w: Math.max(100, maxX - minX + pad * 2),
-      h: Math.max(100, maxY - minY + pad * 2),
+      x: ext.minX - pad,
+      y: ext.minY - pad,
+      w: Math.max(100, ext.maxX - ext.minX + pad * 2),
+      h: Math.max(100, ext.maxY - ext.minY + pad * 2),
     };
   }, [sectors, elements, textElements, width, height]);
 

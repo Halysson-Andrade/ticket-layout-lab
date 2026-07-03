@@ -51,6 +51,7 @@ import {
   Award,
 } from 'lucide-react';
 import { MapPreviewSVG } from '@/components/MapStudio/MapPreviewSVG';
+import { getMapContentExtent } from '@/lib/mapUtils';
 import type { Sector, VenueElement, TextElement, Seat } from '@/types/mapStudio';
 
 type Device = 'desktop' | 'mobile';
@@ -292,47 +293,29 @@ const EventPreview: React.FC = () => {
   }, [snapshot, mapFocusId]);
 
   // Focus bounds do modal — quando um setor é selecionado, dá zoom pra ver os assentos
+  // (considerando a rotação do setor)
   const salesFocusBounds = useMemo(() => {
     if (!snapshot || !selectedSectorId) return null;
     const s = snapshot.sectors.find((x) => x.id === selectedSectorId);
     if (!s) return null;
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    s.vertices.forEach((v) => {
-      if (v.x < minX) minX = v.x;
-      if (v.y < minY) minY = v.y;
-      if (v.x > maxX) maxX = v.x;
-      if (v.y > maxY) maxY = v.y;
-    });
-    if (!isFinite(minX)) return null;
-    const w = maxX - minX;
-    const h = maxY - minY;
+    const ext = getMapContentExtent([s]);
+    if (!ext) return null;
+    const w = ext.maxX - ext.minX;
+    const h = ext.maxY - ext.minY;
     const pad = Math.max(w, h) * 0.15;
-    return { x: minX - pad, y: minY - pad, w: w + pad * 2, h: h + pad * 2 };
+    return { x: ext.minX - pad, y: ext.minY - pad, w: w + pad * 2, h: h + pad * 2 };
   }, [snapshot, selectedSectorId]);
 
-  // Bounds do mapa inteiro (setores + elementos como palco/telão + textos) — garante
-  // que nada seja cortado no enquadramento inicial.
+  // Bounds do mapa inteiro (setores + elementos como palco/telão + textos), considerando a
+  // rotação de cada item — garante que nada seja cortado no enquadramento inicial.
   const wholeMapBounds = useMemo(() => {
     if (!snapshot) return null;
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    const grow = (x: number, y: number) => {
-      if (x < minX) minX = x;
-      if (y < minY) minY = y;
-      if (x > maxX) maxX = x;
-      if (y > maxY) maxY = y;
-    };
-    snapshot.sectors.forEach((s) => {
-      if (s.visible === false) return;
-      s.vertices.forEach((v) => grow(v.x, v.y));
-    });
-    (snapshot.elements || []).forEach((el) => {
-      grow(el.bounds.x, el.bounds.y);
-      grow(el.bounds.x + el.bounds.width, el.bounds.y + el.bounds.height);
-    });
-    (snapshot.textElements || []).forEach((t) => grow(t.x, t.y));
-    if (!isFinite(minX)) return { x: 0, y: 0, w: snapshot.width, h: snapshot.height };
-    const pad = Math.max(maxX - minX, maxY - minY) * 0.08;
-    return { x: minX - pad, y: minY - pad, w: (maxX - minX) + pad * 2, h: (maxY - minY) + pad * 2 };
+    const ext = getMapContentExtent(snapshot.sectors, snapshot.elements || [], snapshot.textElements || []);
+    if (!ext) return { x: 0, y: 0, w: snapshot.width, h: snapshot.height };
+    const w = ext.maxX - ext.minX;
+    const h = ext.maxY - ext.minY;
+    const pad = Math.max(w, h) * 0.08;
+    return { x: ext.minX - pad, y: ext.minY - pad, w: w + pad * 2, h: h + pad * 2 };
   }, [snapshot]);
 
   // Base SEMPRE o mapa inteiro + zoom/pan aplicados. Selecionar um setor apenas
@@ -762,7 +745,7 @@ const EventPreview: React.FC = () => {
                   <img
                     src={eventInfo.heroBanner}
                     alt={eventInfo.title}
-                    className="w-full h-full object-cover transition-transform duration-[1400ms] ease-out group-hover:scale-[1.03]"
+                    className="w-full h-full object-contain transition-transform duration-[1400ms] ease-out group-hover:scale-[1.03]"
                     loading="eager"
                   />
                   <div className="absolute top-4 left-4 sm:top-5 sm:left-5">

@@ -1,4 +1,4 @@
-import { Seat, GridGeneratorParams, RowLabelType, SeatLabelType, RowAlignment, SEAT_COLORS, Vertex, SectorShape, Bounds, FurnitureType, TableConfig, TableShape, RowNumberingConfig, SeatNumberDirection } from '@/types/mapStudio';
+import { Seat, GridGeneratorParams, RowLabelType, SeatLabelType, RowAlignment, SEAT_COLORS, Vertex, SectorShape, Bounds, FurnitureType, TableConfig, TableShape, RowNumberingConfig, SeatNumberDirection, Sector, VenueElement, TextElement } from '@/types/mapStudio';
 
 // Gera ID único
 export function generateId(): string {
@@ -365,6 +365,52 @@ export function getBoundsFromVertices(vertices: Vertex[]): Bounds {
     width: maxX - minX,
     height: maxY - minY,
   };
+}
+
+// Extensão (min/max) real do conteúdo do mapa CONSIDERANDO a rotação de cada setor/elemento.
+// Necessário porque o render aplica rotate(rotation) em torno do centro do bounds; usar só os
+// vértices não-rotacionados subestima a área e faz o mapa ser cortado nas laterais.
+export function getMapContentExtent(
+  sectors: Sector[],
+  elements: VenueElement[] = [],
+  textElements: TextElement[] = []
+): { minX: number; minY: number; maxX: number; maxY: number } | null {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const grow = (x: number, y: number) => {
+    if (x < minX) minX = x;
+    if (y < minY) minY = y;
+    if (x > maxX) maxX = x;
+    if (y > maxY) maxY = y;
+  };
+  const growRotated = (pts: { x: number; y: number }[], cx: number, cy: number, rotDeg: number) => {
+    const rad = ((rotDeg || 0) * Math.PI) / 180;
+    const cos = Math.cos(rad), sin = Math.sin(rad);
+    pts.forEach((p) => {
+      const dx = p.x - cx, dy = p.y - cy;
+      grow(cx + dx * cos - dy * sin, cy + dx * sin + dy * cos);
+    });
+  };
+
+  sectors.forEach((s) => {
+    if (s.visible === false) return;
+    const cx = s.bounds.x + s.bounds.width / 2;
+    const cy = s.bounds.y + s.bounds.height / 2;
+    growRotated(s.vertices, cx, cy, s.rotation || 0);
+  });
+  elements.forEach((el) => {
+    const cx = el.bounds.x + el.bounds.width / 2;
+    const cy = el.bounds.y + el.bounds.height / 2;
+    const corners = [
+      { x: el.bounds.x, y: el.bounds.y },
+      { x: el.bounds.x + el.bounds.width, y: el.bounds.y },
+      { x: el.bounds.x + el.bounds.width, y: el.bounds.y + el.bounds.height },
+      { x: el.bounds.x, y: el.bounds.y + el.bounds.height },
+    ];
+    growRotated(corners, cx, cy, el.rotation || 0);
+  });
+  textElements.forEach((t) => grow(t.x, t.y));
+
+  return isFinite(minX) ? { minX, minY, maxX, maxY } : null;
 }
 
 // Tessela polígono com curvas Bezier em pontos lineares para hit detection
