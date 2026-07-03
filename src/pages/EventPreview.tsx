@@ -57,7 +57,8 @@ import type { Sector, VenueElement, TextElement, Seat } from '@/types/mapStudio'
 import mirageBannerAsset from '@/assets/mirage-banner.png.asset.json';
 
 type Device = 'desktop' | 'mobile';
-type CartItem = { sectorId: string; name: string; price: number; qty: number; color: string };
+// Linha do carrinho: agregada por setor + tipo de ingresso (preços variam por tipo)
+type CartItem = { id: string; sectorId: string; ticketType: string; ticketLabel: string; name: string; price: number; qty: number; color: string };
 // Etapas do fluxo de compra dentro da moldura de preview
 type FlowStep = 'detalhe' | 'ingressos' | 'resumo';
 
@@ -508,36 +509,17 @@ const EventPreview: React.FC = () => {
 
   const selectedSeatIds = useMemo(() => selectedSeats.map((s) => s.id), [selectedSeats]);
 
-  // Clique no assento: se já selecionado, remove; senão adiciona direto (inteira) e coloca no carrinho.
+  // Clique no assento: se já selecionado, remove (e decrementa o carrinho);
+  // senão abre o modal para escolher o tipo de ingresso e ver a perspectiva.
   const onSeatClicked = (seat: Seat, sector: Sector) => {
-    if (selectedSeats.some((s) => s.id === seat.id)) {
+    const existing = selectedSeats.find((s) => s.id === seat.id);
+    if (existing) {
       setSelectedSeats((prev) => prev.filter((s) => s.id !== seat.id));
+      updateQty(cartLineId(sector.id, existing.ticketType), -1);
       return;
     }
-    const sectorForSale = sectorsForSale.find((s) => s.id === sector.id);
-    const basePrice = sectorForSale?.price ?? 0;
-    const tt = TICKET_TYPES[0]; // inteira por padrão
-    const price = Math.round(basePrice * tt.factor);
-    setSelectedSeats((prev) => [
-      ...prev,
-      {
-        id: seat.id,
-        sectorId: sector.id,
-        row: seat.row,
-        number: seat.number,
-        price,
-        sectorName: sector.name,
-        color: sector.color,
-        ticketType: tt.label,
-      },
-    ]);
-    // adiciona ao carrinho automaticamente
-    setCart((prev) => {
-      const found = prev.find((i) => i.sectorId === sector.id);
-      if (found) return prev.map((i) => (i.sectorId === sector.id ? { ...i, qty: i.qty + 1 } : i));
-      return [{ sectorId: sector.id, name: sector.name, price, qty: 1, color: sector.color }, ...prev];
-    });
-    toast.success(`Assento ${seat.row}${seat.number} adicionado ao carrinho`);
+    setPendingTicketType('inteira');
+    setPendingSeat({ seat, sector });
   };
 
   const pendingBasePrice = useMemo(() => {
@@ -554,6 +536,7 @@ const EventPreview: React.FC = () => {
     if (!pendingSeat) return;
     const { seat, sector } = pendingSeat;
     const tt = TICKET_TYPES.find((t) => t.id === pendingTicketType) ?? TICKET_TYPES[0];
+    const price = Math.round(pendingBasePrice * tt.factor);
     setSelectedSeats((prev) => [
       ...prev,
       {
@@ -561,12 +544,14 @@ const EventPreview: React.FC = () => {
         sectorId: sector.id,
         row: seat.row,
         number: seat.number,
-        price: Math.round(pendingBasePrice * tt.factor),
+        price,
         sectorName: sector.name,
         color: sector.color,
-        ticketType: tt.label,
+        ticketType: tt.id,
       },
     ]);
+    addToCart({ sectorId: sector.id, name: sector.name, color: sector.color, ticketType: tt.id, ticketLabel: tt.label, price });
+    toast.success(`Assento ${seat.row}${seat.number} adicionado`, { description: `${sector.name} · ${tt.label}` });
     setPendingSeat(null);
   };
 
@@ -586,18 +571,21 @@ const EventPreview: React.FC = () => {
   const nextLoteDays = 5;
   const loteSavings = minPrice ? Math.round(minPrice * 0.12) : 0;
 
-  const addToCart = (s: { id: string; name: string; price: number; color: string }) => {
+  // id estável da linha do carrinho (setor + tipo de ingresso)
+  const cartLineId = (sectorId: string, ticketType: string) => `${sectorId}::${ticketType}`;
+  const addToCart = (it: { sectorId: string; name: string; color: string; ticketType: string; ticketLabel: string; price: number }) => {
+    const id = cartLineId(it.sectorId, it.ticketType);
     setCart((prev) => {
-      const found = prev.find((i) => i.sectorId === s.id);
-      if (found) return prev.map((i) => (i.sectorId === s.id ? { ...i, qty: i.qty + 1 } : i));
-      return [...prev, { sectorId: s.id, name: s.name, price: s.price, qty: 1, color: s.color }];
+      const found = prev.find((i) => i.id === id);
+      if (found) return prev.map((i) => (i.id === id ? { ...i, qty: i.qty + 1 } : i));
+      return [...prev, { id, sectorId: it.sectorId, ticketType: it.ticketType, ticketLabel: it.ticketLabel, name: it.name, price: it.price, qty: 1, color: it.color }];
     });
   };
   const updateQty = (id: string, delta: number) =>
     setCart((prev) =>
-      prev.map((i) => (i.sectorId === id ? { ...i, qty: Math.max(0, i.qty + delta) } : i)).filter((i) => i.qty > 0),
+      prev.map((i) => (i.id === id ? { ...i, qty: Math.max(0, i.qty + delta) } : i)).filter((i) => i.qty > 0),
     );
-  const removeFromCart = (id: string) => setCart((prev) => prev.filter((i) => i.sectorId !== id));
+  const removeFromCart = (id: string) => setCart((prev) => prev.filter((i) => i.id !== id));
 
   const cartCount = cart.reduce((a, b) => a + b.qty, 0);
   const subtotal = cart.reduce((a, b) => a + b.qty * b.price, 0);
@@ -628,18 +616,20 @@ const EventPreview: React.FC = () => {
     ) : (
       <div className="space-y-3">
         {cart.map((i) => (
-          <div key={i.sectorId} className="flex gap-3 border border-slate-200 rounded-lg p-3">
+          <div key={i.id} className="flex gap-3 border border-slate-200 rounded-lg p-3">
             <div className="h-12 w-12 rounded-md flex items-center justify-center text-white font-bold shrink-0" style={{ background: i.color }}>
               {i.name.slice(0, 2).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-slate-900 truncate">{i.name}</p>
-              <p className="text-xs text-slate-500">{brl(i.price)} cada</p>
+              <p className="text-xs text-slate-500">
+                <span className="font-medium text-slate-600">{i.ticketLabel}</span> · {brl(i.price)} cada
+              </p>
               <div className="flex items-center gap-2 mt-2">
-                <button onClick={() => updateQty(i.sectorId, -1)} className="h-6 w-6 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50"><Minus className="h-3 w-3" /></button>
+                <button onClick={() => updateQty(i.id, -1)} className="h-6 w-6 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50"><Minus className="h-3 w-3" /></button>
                 <span className="text-sm font-medium w-6 text-center">{i.qty}</span>
-                <button onClick={() => updateQty(i.sectorId, 1)} className="h-6 w-6 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50"><Plus className="h-3 w-3" /></button>
-                <button onClick={() => removeFromCart(i.sectorId)} className="ml-auto text-rose-500 hover:text-rose-700"><Trash2 className="h-3.5 w-3.5" /></button>
+                <button onClick={() => updateQty(i.id, 1)} className="h-6 w-6 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50"><Plus className="h-3 w-3" /></button>
+                <button onClick={() => removeFromCart(i.id)} className="ml-auto text-rose-500 hover:text-rose-700"><Trash2 className="h-3.5 w-3.5" /></button>
               </div>
             </div>
             <p className="text-sm font-bold text-slate-900 whitespace-nowrap">{brl(i.qty * i.price)}</p>
@@ -1776,7 +1766,7 @@ const EventPreview: React.FC = () => {
 
                       {sectorsForSale.map((s) => {
                         const isActive = (selectedSectorId || hoveredSectorId) === s.id;
-                        const inCart = cart.find((i) => i.sectorId === s.id);
+                        const inCart = cart.find((i) => i.sectorId === s.id && i.ticketType === 'inteira');
                         const isBest = s.id === bestValueSectorId;
                         return (
                           <div
@@ -1827,12 +1817,12 @@ const EventPreview: React.FC = () => {
                             {inCart ? (
                               <div className="flex items-center gap-1 shrink-0">
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); updateQty(s.id, -1); }}
+                                  onClick={(e) => { e.stopPropagation(); updateQty(cartLineId(s.id, 'inteira'), -1); }}
                                   className="h-8 w-8 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50"
                                 ><Minus className="h-3 w-3" /></button>
                                 <span className="text-sm font-semibold w-5 text-center">{inCart.qty}</span>
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); addToCart(s); }}
+                                  onClick={(e) => { e.stopPropagation(); addToCart({ sectorId: s.id, name: s.name, color: s.color, ticketType: 'inteira', ticketLabel: 'Inteira', price: s.price }); }}
                                   className="h-8 w-8 rounded text-white flex items-center justify-center"
                                   style={{ background: BRAND.green }}
                                 ><Plus className="h-3 w-3" /></button>
@@ -1842,7 +1832,7 @@ const EventPreview: React.FC = () => {
                                 size="sm"
                                 className="text-white h-9 w-9 p-0 rounded-full shrink-0"
                                 style={{ background: BRAND.green }}
-                                onClick={(e) => { e.stopPropagation(); addToCart(s); }}
+                                onClick={(e) => { e.stopPropagation(); addToCart({ sectorId: s.id, name: s.name, color: s.color, ticketType: 'inteira', ticketLabel: 'Inteira', price: s.price }); }}
                                 aria-label="Adicionar ao carrinho"
                               >
                                 <Plus className="h-4 w-4" />

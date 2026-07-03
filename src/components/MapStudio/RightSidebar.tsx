@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3, CircleDot, Maximize2, Info, Link, ArrowLeftRight, ArrowUpDown, Circle, AlignCenter, AlignLeft, AlignRight, FlipHorizontal, FlipVertical, Ban, Bold, Italic, Underline } from 'lucide-react';
+import { Settings, Palette, Type, Move, RotateCw, Minus, Plus, RefreshCw, Grid3X3, CircleDot, Maximize2, Info, Link, ArrowLeftRight, ArrowUpDown, Circle, AlignCenter, AlignLeft, AlignRight, FlipHorizontal, FlipVertical, Ban, Bold, Italic, Underline, Upload } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -1183,18 +1183,46 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
                       </div>
                     </div>
 
-                    {/* Foto da visão do assento para o palco (URL) — exibida no carrinho */}
+                    {/* Foto da visão do assento para o palco — exibida no carrinho/preview (URL ou upload) */}
                     <div>
-                      <Label className="text-[10px] text-muted-foreground">Foto da visão (URL)</Label>
+                      <Label className="text-[10px] text-muted-foreground">Foto da visão (URL ou upload)</Label>
                       <Input
-                        value={selectedSeats[0].viewImageUrl || ''}
+                        value={(selectedSeats[0].viewImageUrl || '').startsWith('data:') ? '' : (selectedSeats[0].viewImageUrl || '')}
                         onChange={(e) => onUpdateSeats([selectedSeats[0].id], { viewImageUrl: e.target.value || undefined })}
-                        placeholder="https://…/vista-do-assento.jpg"
+                        placeholder={(selectedSeats[0].viewImageUrl || '').startsWith('data:') ? 'Imagem carregada do computador' : 'https://…/vista-do-assento.jpg'}
                         className="h-7 text-xs"
                       />
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <label className="inline-flex items-center gap-1.5 h-7 px-2 rounded-md border border-border bg-background hover:bg-accent cursor-pointer text-[11px] font-medium">
+                          <Upload className="w-3 h-3" /> Carregar foto
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const reader = new FileReader();
+                              reader.onload = () => onUpdateSeats([selectedSeats[0].id], { viewImageUrl: reader.result as string });
+                              reader.readAsDataURL(file);
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                        {selectedSeats[0].viewImageUrl && (
+                          <button
+                            type="button"
+                            onClick={() => onUpdateSeats([selectedSeats[0].id], { viewImageUrl: undefined })}
+                            className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border text-[11px] text-muted-foreground hover:text-destructive"
+                          >
+                            <Ban className="w-3 h-3" /> Remover
+                          </button>
+                        )}
+                      </div>
                       {selectedSeats[0].viewImageUrl && (
                         <div className="mt-1.5 rounded-md overflow-hidden border border-border">
                           <img
+                            key={selectedSeats[0].viewImageUrl}
                             src={selectedSeats[0].viewImageUrl}
                             alt="Prévia da visão do assento"
                             className="w-full h-24 object-cover"
