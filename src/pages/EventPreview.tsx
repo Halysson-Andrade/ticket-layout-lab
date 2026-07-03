@@ -1524,7 +1524,7 @@ const EventPreview: React.FC = () => {
           {salesOpen && (
             <div className="fixed inset-0 z-[100] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-0 sm:p-4" onClick={() => setSalesOpen(false)}>
               <div
-                className="bg-white w-full max-w-6xl rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden h-[100dvh] sm:h-[90vh]"
+                className={cn('bg-white w-full max-w-6xl rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden', isMobile ? 'h-full' : 'h-[100dvh] sm:h-[90vh]')}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="border-b bg-slate-50">
