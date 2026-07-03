@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const admin = createClient(supabaseUrl, serviceKey)
 
-    // Simulated sectors for events
+    // Simulated sectors for events (default)
     const simulatedSetores = [
       { id: 'setor-pista', name: 'Pista', color: 'hsl(142, 71%, 45%)' },
       { id: 'setor-vip', name: 'VIP', color: 'hsl(340, 82%, 52%)' },
@@ -27,8 +27,31 @@ Deno.serve(async (req) => {
       { id: 'setor-mezanino', name: 'Mezanino', color: 'hsl(24, 95%, 53%)' },
     ]
 
+    // Event-specific sectors
+    const mirageSetores = [
+      { id: 'mirage-lateral-prata-par',    name: 'Lateral Prata - Numeração Lado Par',    color: '#F2C230' },
+      { id: 'mirage-lateral-prata-impar',  name: 'Lateral Prata - Numeração Lado Ímpar',  color: '#F2C230' },
+      { id: 'mirage-lateral-ouro-par',     name: 'Lateral Ouro - Numeração Lado Par',     color: '#1B7BA6' },
+      { id: 'mirage-lateral-ouro-impar',   name: 'Lateral Ouro - Numeração Lado Ímpar',   color: '#1B7BA6' },
+      { id: 'mirage-central-prata-par',    name: 'Central Prata - Numeração Lado Par',    color: '#A6CE39' },
+      { id: 'mirage-central-prata-impar',  name: 'Central Prata - Numeração Lado Ímpar',  color: '#A6CE39' },
+      { id: 'mirage-central-ouro-par',     name: 'Central Ouro - Numeração Lado Par',     color: '#E6224A' },
+      { id: 'mirage-central-ouro-impar',   name: 'Central Ouro - Numeração Lado Ímpar',   color: '#E6224A' },
+      { id: 'mirage-vip-prata-par',        name: 'VIP Prata - Numeração Lado Par',        color: '#D63BB8' },
+      { id: 'mirage-vip-prata-impar',      name: 'VIP Prata - Numeração Lado Ímpar',      color: '#D63BB8' },
+      { id: 'mirage-vip-ouro-par',         name: 'VIP Ouro - Numeração Lado Par',         color: '#F08A1F' },
+      { id: 'mirage-vip-ouro-impar',       name: 'VIP Ouro - Numeração Lado Ímpar',       color: '#F08A1F' },
+      { id: 'mirage-vip-premium-par',      name: 'VIP Premium - Numeração Lado Par',      color: '#C99A2E' },
+      { id: 'mirage-vip-premium-impar',    name: 'VIP Premium - Numeração Lado Ímpar',    color: '#C99A2E' },
+      { id: 'mirage-camarote-familia-par', name: 'Camarote Família - Numeração Lado Par', color: '#B08423' },
+      { id: 'mirage-camarote-familia-impar', name: 'Camarote Família - Numeração Lado Ímpar', color: '#B08423' },
+      { id: 'mirage-cadeirante',           name: 'Setor Cadeirante',                      color: '#6B7280' },
+    ]
+
     if (action === 'list-setores') {
-      return new Response(JSON.stringify({ setores: simulatedSetores }), {
+      const idEvento = url.searchParams.get('id_evento') || ''
+      const setores = idEvento.toUpperCase().includes('MIRAGE') ? mirageSetores : simulatedSetores
+      return new Response(JSON.stringify({ setores }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }

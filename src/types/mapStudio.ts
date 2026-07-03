@@ -280,19 +280,23 @@ export const SECTOR_COLORS = [
 
 // Lista de setores predefinidos para vincular formas geométricas
 export const PREDEFINED_SECTORS = [
-  { id: 'premium', name: 'Premium', color: 'hsl(340, 82%, 52%)' },
-  { id: 'vip', name: 'VIP', color: 'hsl(262, 83%, 58%)' },
-  { id: 'gold', name: 'Gold', color: 'hsl(45, 93%, 47%)' },
-  { id: 'prata', name: 'Prata', color: 'hsl(0, 0%, 65%)' },
-  { id: 'mezanino', name: 'Mezanino', color: 'hsl(199, 89%, 48%)' },
-  { id: 'arquibancada', name: 'Arquibancada', color: 'hsl(142, 71%, 45%)' },
-  { id: 'impar', name: 'Ímpar', color: 'hsl(24, 95%, 53%)' },
-  { id: 'par', name: 'Par', color: 'hsl(280, 68%, 60%)' },
-  { id: 'bronze', name: 'Bronze', color: 'hsl(30, 60%, 45%)' },
-  { id: 'rosa', name: 'Rosa', color: 'hsl(330, 70%, 65%)' },
-  { id: 'verde', name: 'Verde', color: 'hsl(142, 71%, 45%)' },
-  { id: 'azul', name: 'Azul', color: 'hsl(199, 89%, 48%)' },
-  { id: 'laranja', name: 'Laranja', color: 'hsl(24, 95%, 53%)' },
+  { id: 'lateral-prata-par',      name: 'Lateral Prata - Numeração Lado Par',      color: '#F2C230' },
+  { id: 'lateral-prata-impar',    name: 'Lateral Prata - Numeração Lado Ímpar',    color: '#F2C230' },
+  { id: 'lateral-ouro-par',       name: 'Lateral Ouro - Numeração Lado Par',       color: '#1B7BA6' },
+  { id: 'lateral-ouro-impar',     name: 'Lateral Ouro - Numeração Lado Ímpar',     color: '#1B7BA6' },
+  { id: 'central-prata-par',      name: 'Central Prata - Numeração Lado Par',      color: '#A6CE39' },
+  { id: 'central-prata-impar',    name: 'Central Prata - Numeração Lado Ímpar',    color: '#A6CE39' },
+  { id: 'central-ouro-par',       name: 'Central Ouro - Numeração Lado Par',       color: '#E6224A' },
+  { id: 'central-ouro-impar',     name: 'Central Ouro - Numeração Lado Ímpar',     color: '#E6224A' },
+  { id: 'vip-prata-par',          name: 'VIP Prata - Numeração Lado Par',          color: '#D63BB8' },
+  { id: 'vip-prata-impar',        name: 'VIP Prata - Numeração Lado Ímpar',        color: '#D63BB8' },
+  { id: 'vip-ouro-par',           name: 'VIP Ouro - Numeração Lado Par',           color: '#F08A1F' },
+  { id: 'vip-ouro-impar',         name: 'VIP Ouro - Numeração Lado Ímpar',         color: '#F08A1F' },
+  { id: 'vip-premium-par',        name: 'VIP Premium - Numeração Lado Par',        color: '#C99A2E' },
+  { id: 'vip-premium-impar',      name: 'VIP Premium - Numeração Lado Ímpar',      color: '#C99A2E' },
+  { id: 'camarote-familia-par',   name: 'Camarote Família - Numeração Lado Par',   color: '#B08423' },
+  { id: 'camarote-familia-impar', name: 'Camarote Família - Numeração Lado Ímpar', color: '#B08423' },
+  { id: 'cadeirante',             name: 'Setor Cadeirante',                        color: '#6B7280' },
 ];
 
 export const ELEMENT_ICONS: Record<ElementType, string> = {
