@@ -330,7 +330,7 @@ const EventPreview: React.FC = () => {
       io.disconnect();
       window.clearTimeout(safety);
     };
-  }, [snapshot]);
+  }, [snapshot, device]);
 
   const sectorsForSale = useMemo(() => {
     if (!snapshot) return [] as Array<{ id: string; name: string; color: string; price: number; available: number }>;
