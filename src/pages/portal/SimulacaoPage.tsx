@@ -268,7 +268,7 @@ const SimulacaoPage: React.FC = () => {
               className="overflow-hidden hover:shadow-lg transition-shadow group"
             >
               <div
-                className="relative h-40 bg-muted overflow-hidden cursor-pointer"
+                className="relative h-40 bg-slate-950 overflow-hidden cursor-pointer"
                 onClick={() => handleOpenEvent(evt)}
               >
                 {openingEvent === evt.id && (
@@ -277,11 +277,20 @@ const SimulacaoPage: React.FC = () => {
                   </div>
                 )}
                 {evt.image_url ? (
-                  <img
-                    src={evt.image_url}
-                    alt={evt.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
+                  <>
+                    {/* Blur de fundo para preencher letterbox sem cortar a arte */}
+                    <img
+                      src={evt.image_url}
+                      alt=""
+                      aria-hidden
+                      className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-60"
+                    />
+                    <img
+                      src={evt.image_url}
+                      alt={evt.name}
+                      className="relative w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                     <MapPin className="h-12 w-12" />
