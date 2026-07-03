@@ -20,6 +20,8 @@ interface MapPreviewSVGProps {
   onClickSeat?: (seat: Seat, sector: Sector) => void;
   showSeatLabels?: boolean;
   interactive?: boolean;
+  // Como exibir o nome do setor sobre o mapa: sempre, só no hover (tooltip) ou nunca
+  sectorLabelMode?: 'always' | 'hover' | 'none';
 }
 
 
@@ -56,21 +58,28 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
   onClickSeat,
   showSeatLabels = false,
   interactive = true,
+  sectorLabelMode = 'always',
 }) => {
   const selectedSeatSet = useMemo(() => new Set(selectedSeatIds ?? []), [selectedSeatIds]);
 
-  // Compute fit bounds from visible content
+  // Compute fit bounds from visible content (setores + elementos como palco/telão + textos)
   const bounds = useMemo(() => {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const grow = (x: number, y: number) => {
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    };
     sectors.forEach((s) => {
       if (s.visible === false) return;
-      s.vertices.forEach((v) => {
-        if (v.x < minX) minX = v.x;
-        if (v.y < minY) minY = v.y;
-        if (v.x > maxX) maxX = v.x;
-        if (v.y > maxY) maxY = v.y;
-      });
+      s.vertices.forEach((v) => grow(v.x, v.y));
     });
+    elements.forEach((el) => {
+      grow(el.bounds.x, el.bounds.y);
+      grow(el.bounds.x + el.bounds.width, el.bounds.y + el.bounds.height);
+    });
+    textElements.forEach((t) => grow(t.x, t.y));
     if (!isFinite(minX)) {
       return { x: 0, y: 0, w: width, h: height };
     }
@@ -81,7 +90,7 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
       w: Math.max(100, maxX - minX + pad * 2),
       h: Math.max(100, maxY - minY + pad * 2),
     };
-  }, [sectors, width, height]);
+  }, [sectors, elements, textElements, width, height]);
 
   const finalBounds = focusBounds
     ? { x: focusBounds.x, y: focusBounds.y, w: focusBounds.w, h: focusBounds.h }
@@ -255,8 +264,9 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
                 </g>
               );
             })}
-            {/* Sector label — hide when zoomed in with visible seat labels */}
-            {!showSeatLabels && (
+            {/* Sector label — modo 'always' (padrão) mostra sempre; 'hover' vira tooltip
+                (só aparece ao passar/selecionar); 'none' nunca. Some quando há rótulos de assento. */}
+            {!showSeatLabels && sectorLabelMode !== 'none' && (sectorLabelMode === 'always' || isHover || isSelected) && (
               <text
                 x={cx}
                 y={cy}
@@ -265,7 +275,7 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
                 fill="#0f172a"
                 fontSize={Math.max(14, Math.min(s.bounds.width, s.bounds.height) * 0.12)}
                 fontWeight="bold"
-                style={{ paintOrder: 'stroke', stroke: 'rgba(255,255,255,0.9)', strokeWidth: 3 }}
+                style={{ paintOrder: 'stroke', stroke: 'rgba(255,255,255,0.95)', strokeWidth: 4 }}
                 pointerEvents="none"
               >
                 {s.sectorLabel || s.name}

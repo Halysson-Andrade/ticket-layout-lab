@@ -310,27 +310,35 @@ const EventPreview: React.FC = () => {
     return { x: minX - pad, y: minY - pad, w: w + pad * 2, h: h + pad * 2 };
   }, [snapshot, selectedSectorId]);
 
-  // Bounds do mapa inteiro (fallback quando não há setor selecionado)
+  // Bounds do mapa inteiro (setores + elementos como palco/telão + textos) — garante
+  // que nada seja cortado no enquadramento inicial.
   const wholeMapBounds = useMemo(() => {
     if (!snapshot) return null;
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const grow = (x: number, y: number) => {
+      if (x < minX) minX = x;
+      if (y < minY) minY = y;
+      if (x > maxX) maxX = x;
+      if (y > maxY) maxY = y;
+    };
     snapshot.sectors.forEach((s) => {
       if (s.visible === false) return;
-      s.vertices.forEach((v) => {
-        if (v.x < minX) minX = v.x;
-        if (v.y < minY) minY = v.y;
-        if (v.x > maxX) maxX = v.x;
-        if (v.y > maxY) maxY = v.y;
-      });
+      s.vertices.forEach((v) => grow(v.x, v.y));
     });
+    (snapshot.elements || []).forEach((el) => {
+      grow(el.bounds.x, el.bounds.y);
+      grow(el.bounds.x + el.bounds.width, el.bounds.y + el.bounds.height);
+    });
+    (snapshot.textElements || []).forEach((t) => grow(t.x, t.y));
     if (!isFinite(minX)) return { x: 0, y: 0, w: snapshot.width, h: snapshot.height };
     const pad = Math.max(maxX - minX, maxY - minY) * 0.08;
     return { x: minX - pad, y: minY - pad, w: (maxX - minX) + pad * 2, h: (maxY - minY) + pad * 2 };
   }, [snapshot]);
 
-  // Bounds base (setor focado ou mapa inteiro) + zoom/pan aplicados
+  // Base SEMPRE o mapa inteiro + zoom/pan aplicados. Selecionar um setor apenas
+  // ajusta scale/pan (foco), permitindo navegar/panorâmica por todos os setores.
   const effectiveMapBounds = useMemo(() => {
-    const base = salesFocusBounds ?? wholeMapBounds;
+    const base = wholeMapBounds;
     if (!base) return null;
     const scale = mapView.scale;
     const w = base.w / scale;
@@ -338,35 +346,57 @@ const EventPreview: React.FC = () => {
     const cx = base.x + base.w / 2 - mapView.panX;
     const cy = base.y + base.h / 2 - mapView.panY;
     return { x: cx - w / 2, y: cy - h / 2, w, h };
-  }, [salesFocusBounds, wholeMapBounds, mapView]);
+  }, [wholeMapBounds, mapView]);
 
-  // Reset do zoom/pan ao trocar seleção ou fechar modal
+  // Ao selecionar um setor, dá zoom/centraliza nele (sem travar a base — dá pra panoramizar
+  // até outro setor). Ao fechar o modal ou desmarcar, volta ao mapa inteiro.
   useEffect(() => {
-    setMapView({ scale: 1, panX: 0, panY: 0 });
-  }, [selectedSectorId, salesOpen]);
+    if (!salesOpen || !selectedSectorId || !salesFocusBounds || !wholeMapBounds) {
+      setMapView({ scale: 1, panX: 0, panY: 0 });
+      return;
+    }
+    const targetScale = Math.max(1, Math.min(8, Math.min(
+      (wholeMapBounds.w * 0.75) / salesFocusBounds.w,
+      (wholeMapBounds.h * 0.75) / salesFocusBounds.h,
+    )));
+    const sectorCx = salesFocusBounds.x + salesFocusBounds.w / 2;
+    const sectorCy = salesFocusBounds.y + salesFocusBounds.h / 2;
+    setMapView({
+      scale: targetScale,
+      panX: wholeMapBounds.x + wholeMapBounds.w / 2 - sectorCx,
+      panY: wholeMapBounds.y + wholeMapBounds.h / 2 - sectorCy,
+    });
+  }, [selectedSectorId, salesOpen, salesFocusBounds, wholeMapBounds]);
 
   // Fecha o modal de escolha de ingresso se o modal de vendas fechar
   useEffect(() => {
     if (!salesOpen) setPendingSeat(null);
   }, [salesOpen]);
 
-  // Lock body scroll enquanto o modal de vendas está aberto
+  // Lock body scroll enquanto qualquer overlay (vendas ou carrinho) está aberto
   useEffect(() => {
-    if (!salesOpen) return;
+    if (!salesOpen && !cartOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
-  }, [salesOpen]);
+  }, [salesOpen, cartOpen]);
 
   const zoomBy = (factor: number) => {
-    setMapView((v) => ({ ...v, scale: Math.max(1, Math.min(8, v.scale * factor)) }));
+    setMapView((v) => {
+      const scale = Math.max(1, Math.min(8, v.scale * factor));
+      // Ao voltar ao zoom mínimo, recentraliza o mapa inteiro
+      return scale <= 1.001 ? { scale: 1, panX: 0, panY: 0 } : { ...v, scale };
+    });
   };
   const resetView = () => setMapView({ scale: 1, panX: 0, panY: 0 });
 
   const onMapWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-    setMapView((v) => ({ ...v, scale: Math.max(1, Math.min(8, v.scale * factor)) }));
+    setMapView((v) => {
+      const scale = Math.max(1, Math.min(8, v.scale * factor));
+      return scale <= 1.001 ? { scale: 1, panX: 0, panY: 0 } : { ...v, scale };
+    });
   };
   const onMapMouseDown = (e: React.MouseEvent) => {
     // pan somente com botão do meio ou quando já em zoom (>1). Deixa clique normal para setores/assentos.
@@ -1414,6 +1444,7 @@ const EventPreview: React.FC = () => {
                           }}
                           focusBounds={effectiveMapBounds}
                           showSeatLabels={!!selectedSectorId || mapView.scale >= 2.5}
+                          sectorLabelMode="hover"
                           selectedSeatIds={selectedSeatIds}
                           onClickSeat={(seat, sector) => {
                             if (dragRef.current?.moved) return;
@@ -1656,7 +1687,7 @@ const EventPreview: React.FC = () => {
           {/* ============ MODAL: ESCOLHA DO INGRESSO DO ASSENTO ============ */}
           {pendingSeat && (
             <div
-              className="absolute inset-0 z-[120] bg-slate-900/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
+              className="fixed inset-0 z-[120] bg-slate-900/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4"
               onClick={() => setPendingSeat(null)}
             >
               <div
@@ -1765,7 +1796,7 @@ const EventPreview: React.FC = () => {
 
           {/* ============ CART DRAWER ============ */}
           {cartOpen && (
-            <div className="absolute inset-0 z-[80] flex" onClick={() => setCartOpen(false)}>
+            <div className="fixed inset-0 z-[80] flex" onClick={() => setCartOpen(false)}>
               <div className="flex-1 bg-black/40" />
               <div
                 className={cn('bg-white shadow-2xl flex flex-col', isMobile ? 'w-full' : 'w-[400px]')}
