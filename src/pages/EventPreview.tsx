@@ -1028,22 +1028,8 @@ const EventPreview: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Chips com resumo dos setores (não interativo, só informativo) */}
-                {sectorsForSale.length > 0 && (
-                  <div className="mt-4 flex flex-wrap justify-center gap-2">
-                    {sectorsForSale.map((s) => (
-                      <div
-                        key={s.id}
-                        className="flex items-center gap-2 bg-white border border-slate-200 rounded-full pl-2 pr-3 py-1.5 text-xs"
-                      >
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
-                        <span className="font-semibold text-slate-800">{s.name}</span>
-                        <span className="text-slate-400">·</span>
-                        <span className="font-bold" style={{ color: BRAND.green }}>{brl(s.price)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {/* Setores agora aparecem apenas no modal "Comprar ingresso" (carrinho) */}
+
               </div>
             </section>
 
