@@ -96,7 +96,7 @@ const GW_LOGO = 'https://s3.guicheweb.com.br/nova_marca/logogw.png';
 // Fonte: https://www.guicheweb.com.br/circo-mirage-circus-ribeirao-preto-sp-11jul-as-15h30_52987
 const eventInfo = {
   title: 'Circo Mirage Circus Ribeirão Preto. SP - 11.JUL às 15h30',
-  subtitle: 'Marcos Frota apresenta: Mirage Circus — Tour 2026',
+  subtitle: 'Marcos Frota apresenta: Mirage Circus - Tour 2026',
   date: '11/07/2026',
   doors: '15:30h',
   venue: 'Circo Mirage Circus',
@@ -288,6 +288,25 @@ const EventPreview: React.FC = () => {
       description: 'Você receberá um alerta antes do evento esgotar.',
     });
   };
+
+  // Scroll reveal: adiciona classe is-visible quando o elemento entra na viewport
+  useEffect(() => {
+    const els = document.querySelectorAll<HTMLElement>('.gw-reveal');
+    if (!els.length) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            io.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -60px 0px' }
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [snapshot]);
 
   const sectorsForSale = useMemo(() => {
     if (!snapshot) return [] as Array<{ id: string; name: string; color: string; price: number; available: number }>;
@@ -511,7 +530,7 @@ const EventPreview: React.FC = () => {
     if (cartCount > 0) return { label: 'Finalizar compra', micro: 'Garanta antes que esgote' };
     if (countdown.d <= 2) return { label: 'Garantir meu ingresso', micro: 'Últimas horas · evento se aproxima' };
     if (sectorsForSale.some((s) => s.available <= 20)) return { label: 'Últimos ingressos', micro: 'Setores quase esgotados' };
-    if (nextLoteDays <= 7) return { label: 'Comprar antes da virada de lote', micro: `Lote sobe em ${nextLoteDays} dias` };
+    // "Lote sobe em X dias" removido a pedido do cliente
     return { label: 'Comprar ingresso', micro: 'Compra 100% segura' };
   }, [sectorsForSale, countdown.d, cartCount]);
 
@@ -556,6 +575,9 @@ const EventPreview: React.FC = () => {
         .gw-rise-delay-1 { animation-delay: .08s; }
         .gw-rise-delay-2 { animation-delay: .16s; }
         .gw-rise-delay-3 { animation-delay: .24s; }
+        .gw-reveal { opacity: 0; transform: translateY(28px); transition: opacity .8s cubic-bezier(.22,.61,.36,1), transform .8s cubic-bezier(.22,.61,.36,1); will-change: opacity, transform; }
+        .gw-reveal.is-visible { opacity: 1; transform: translateY(0); }
+        @media (prefers-reduced-motion: reduce) { .gw-reveal { opacity: 1; transform: none; transition: none; } }
         .gw-grad-text { background: linear-gradient(92deg, ${BRAND.green}, ${BRAND.cyan} 45%, ${BRAND.magenta}); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .gw-shimmer-text { background: linear-gradient(90deg, #fff 0%, #fff 40%, ${BRAND.green} 50%, #fff 60%, #fff 100%); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: gw-shimmer 4s linear infinite; }
         .gw-dot-pulse { animation: gw-pulse-dot 1.4s ease-in-out infinite; }
@@ -836,11 +858,10 @@ const EventPreview: React.FC = () => {
                   </div>
 
                   <h1 className={cn(
-                    'gw-display text-slate-900 leading-[1.02] gw-rise break-words',
-                    isMobile ? 'text-[1.75rem]' : 'text-[2.5rem] lg:text-[3rem]'
+                    'gw-display text-slate-900 leading-[1.15] gw-rise break-words tracking-tight',
+                    isMobile ? 'text-[1.25rem]' : 'text-[1.5rem] lg:text-[1.875rem]'
                   )}>
-                    Circo Mirage Circus Ribeirão Preto. SP{' '}
-                    <span className="text-slate-900">— 11.JUL às 15h30</span>
+                    Circo Mirage Circus Ribeirão Preto. SP - 11.JUL às 15h30
                   </h1>
                   <p className="text-base text-slate-500 mt-2 max-w-2xl">{eventInfo.subtitle}</p>
 
@@ -950,14 +971,7 @@ const EventPreview: React.FC = () => {
                     </p>
                     <p className="text-[11px] text-slate-400 mt-0.5">Lote atual · + taxa de serviço</p>
 
-                    {/* Ancoragem: economia antes da virada de lote */}
-                    {loteSavings > 0 && (
-                      <div className="mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold"
-                        style={{ background: `${BRAND.yellow}1f`, color: '#7a5b00' }}>
-                        <TrendingUp className="h-3.5 w-3.5 shrink-0" />
-                        <span>Economize <span className="font-black">{brl(loteSavings)}</span> comprando antes do próximo lote ({nextLoteDays} dias)</span>
-                      </div>
-                    )}
+
 
                     <Button
                       className="gw-cta-glow w-full font-bold h-12 text-white mt-4 rounded-xl border-0"
@@ -984,7 +998,7 @@ const EventPreview: React.FC = () => {
                       <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> Compra 100% segura · SSL
                     </div>
                     <div className="flex items-center gap-2.5 text-xs text-slate-600">
-                      <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> Ingresso digital no e-mail
+                      <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> Ingresso digital através do site
                     </div>
                     <div className="flex items-center gap-2.5 text-xs text-slate-600">
                       <Info className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> Cancelamento grátis em até 7 dias
@@ -1021,7 +1035,7 @@ const EventPreview: React.FC = () => {
             </section>
 
             {/* Mapa do evento — imagem estática + CTA para abrir seleção */}
-            <section id="preview-sectors" className="bg-slate-50">
+            <section id="preview-sectors" className="bg-slate-50 gw-reveal">
               <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl')}>
                 <div className="text-center mb-6">
                   <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Mapa do evento</p>
@@ -1081,7 +1095,7 @@ const EventPreview: React.FC = () => {
             </section>
 
             {/* Vídeo do evento */}
-            <section className="bg-white">
+            <section className="bg-white gw-reveal">
               <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
                 <div className="text-center mb-6">
                   <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Assista</p>
@@ -1128,7 +1142,7 @@ const EventPreview: React.FC = () => {
 
 
             {/* Info + Regras */}
-            <section className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
+            <section className={cn('mx-auto gw-reveal', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
               <div className={cn('grid gap-8', isMobile ? 'grid-cols-1' : 'grid-cols-2')}>
                 <div>
                   <h3 className="font-bold text-xl mb-4 flex items-center gap-2" style={{ color: BRAND.green }}>
