@@ -103,7 +103,7 @@ const eventInfo = {
   city: 'RIBEIRÃO PRETO / SP',
   rating: 4.9,
   reviews: 3120,
-  heroBanner: 'https://s3.guicheweb.com.br/imagenseventos/15-06-2026_12-55-36.jpg',
+  heroBanner: mirageBannerAsset.url,
   posterImage: 'https://s3.guicheweb.com.br/imagenseventos/01-06-2026_21-06-51.png',
   description: `Tour 2026: O gigante está de volta a Ribeirão Preto!
 
