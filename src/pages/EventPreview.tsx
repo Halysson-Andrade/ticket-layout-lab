@@ -1594,7 +1594,7 @@ const EventPreview: React.FC = () => {
                             onMouseLeave={() => setHoveredSectorId(null)}
                             onClick={() => setSelectedSectorId(s.id)}
                             className={cn(
-                              'relative flex items-center gap-3 border rounded-xl p-3 cursor-pointer transition',
+                              'relative flex flex-wrap items-center gap-x-3 gap-y-2 border rounded-xl p-3 cursor-pointer transition',
                               isActive ? 'shadow-md' : 'border-slate-200 hover:border-slate-300',
                               isBest && !isActive && 'border-transparent',
                             )}
@@ -1618,42 +1618,43 @@ const EventPreview: React.FC = () => {
                             >
                               {s.name.slice(0, 2).toUpperCase()}
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5">
+                            <div className="flex-1 min-w-0 basis-[140px]">
+                              <div className="flex items-center gap-1.5 flex-wrap">
                                 <p className="text-sm font-semibold text-slate-900 truncate">{s.name}</p>
                                 {s.available > 0 && s.available <= 20 && (
-                                  <span className="text-[9px] font-bold rounded px-1.5 py-0.5 uppercase tracking-wider flex items-center gap-0.5" style={{ background: `${BRAND.yellow}33`, color: '#7a5b00' }}>
+                                  <span className="text-[9px] font-bold rounded px-1.5 py-0.5 uppercase tracking-wider flex items-center gap-0.5 shrink-0" style={{ background: `${BRAND.yellow}33`, color: '#7a5b00' }}>
                                     <Flame className="h-2.5 w-2.5" /> Últimas
                                   </span>
                                 )}
                               </div>
-                              <p className="text-xs text-slate-500">{s.available} disponíveis · 10x de {brl(s.price / 10)}</p>
+                              <p className="text-xs text-slate-500 truncate">{s.available} disponíveis · 10x de {brl(s.price / 10)}</p>
                             </div>
-                            <div className="text-right mr-2">
-                              <p className="text-[10px] text-slate-400">a partir de</p>
-                              <p className="text-sm font-bold" style={{ color: BRAND.green }}>{brl(s.price)}</p>
+                            <div className="text-right shrink-0 ml-auto">
+                              <p className="text-[10px] text-slate-400 leading-none">a partir de</p>
+                              <p className="text-sm font-bold leading-tight mt-0.5" style={{ color: BRAND.green }}>{brl(s.price)}</p>
                             </div>
                             {inCart ? (
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1 shrink-0">
                                 <button
                                   onClick={(e) => { e.stopPropagation(); updateQty(s.id, -1); }}
-                                  className="h-7 w-7 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50"
+                                  className="h-8 w-8 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50"
                                 ><Minus className="h-3 w-3" /></button>
                                 <span className="text-sm font-semibold w-5 text-center">{inCart.qty}</span>
                                 <button
                                   onClick={(e) => { e.stopPropagation(); addToCart(s); }}
-                                  className="h-7 w-7 rounded text-white flex items-center justify-center"
+                                  className="h-8 w-8 rounded text-white flex items-center justify-center"
                                   style={{ background: BRAND.green }}
                                 ><Plus className="h-3 w-3" /></button>
                               </div>
                             ) : (
                               <Button
                                 size="sm"
-                                className="text-white h-8"
+                                className="text-white h-9 w-9 p-0 rounded-full shrink-0"
                                 style={{ background: BRAND.green }}
                                 onClick={(e) => { e.stopPropagation(); addToCart(s); }}
+                                aria-label="Adicionar ao carrinho"
                               >
-                                <Plus className="h-3 w-3 mr-1" /> Adicionar
+                                <Plus className="h-4 w-4" />
                               </Button>
                             )}
                           </div>
