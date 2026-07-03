@@ -246,7 +246,6 @@ const EventPreview: React.FC = () => {
   const [mapView, setMapView] = useState<{ scale: number; panX: number; panY: number }>({ scale: 1, panX: 0, panY: 0 });
   const [videoPlaying, setVideoPlaying] = useState(false);
   const mapWrapperRef = React.useRef<HTMLDivElement>(null);
-  const frameRef = React.useRef<HTMLDivElement>(null); // moldura de preview (rola internamente no mobile)
   const dragRef = React.useRef<{ x: number; y: number; panX: number; panY: number; moved: boolean } | null>(null);
 
   // === Conversion boosters ===
@@ -255,26 +254,17 @@ const EventPreview: React.FC = () => {
   // Deadline: data simulada do evento (09/Jul/2026 18:00 BRT)
   const deadline = useMemo(() => new Date('2026-07-09T18:00:00-03:00').getTime(), []);
 
-  // Mostrar barra fixa apenas após scroll (sai do hero) e esconder próximo do footer.
-  // No mobile a moldura rola internamente, então ouvimos o scroll do frame (não da janela).
+  // Barra flutuante do DESKTOP aparece após o scroll (na janela). No mobile a barra é sempre visível.
   useEffect(() => {
-    const frameEl = device === 'mobile' ? frameRef.current : null;
     const onScroll = () => {
-      if (frameEl) {
-        const y = frameEl.scrollTop;
-        const nearBottom = y + frameEl.clientHeight > frameEl.scrollHeight - 220;
-        setShowStickyCTA(y > 360 && !nearBottom);
-      } else {
-        const y = window.scrollY;
-        const nearBottom = y + window.innerHeight > document.documentElement.scrollHeight - 220;
-        setShowStickyCTA(y > 360 && !nearBottom);
-      }
+      const y = window.scrollY;
+      const nearBottom = y + window.innerHeight > document.documentElement.scrollHeight - 220;
+      setShowStickyCTA(y > 360 && !nearBottom);
     };
     onScroll();
-    const target: HTMLElement | Window = frameEl ?? window;
-    target.addEventListener('scroll', onScroll, { passive: true });
-    return () => target.removeEventListener('scroll', onScroll);
-  }, [device]);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
 
 
@@ -715,6 +705,8 @@ const EventPreview: React.FC = () => {
         @keyframes gw-step-in { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: none } }
         .gw-step { animation: gw-step-in .35s cubic-bezier(.22,.61,.36,1) both; }
         @media (prefers-reduced-motion: reduce) { .gw-step { animation: none } }
+        .gw-hide-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+        .gw-hide-scroll::-webkit-scrollbar { width: 0; height: 0; display: none; }
         .gw-grad-text { background: linear-gradient(92deg, ${BRAND.green}, ${BRAND.cyan} 45%, ${BRAND.magenta}); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .gw-shimmer-text { background: linear-gradient(90deg, #fff 0%, #fff 40%, ${BRAND.green} 50%, #fff 60%, #fff 100%); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: gw-shimmer 4s linear infinite; }
         .gw-dot-pulse { animation: gw-pulse-dot 1.4s ease-in-out infinite; }
@@ -765,16 +757,15 @@ const EventPreview: React.FC = () => {
       {/* Container da preview (simula viewport) */}
       <div className={cn('flex-1 flex justify-center', isMobile && 'py-6 px-4')}>
         <div
-          ref={frameRef}
           className={cn(
             'bg-white transition-all duration-300 relative flex flex-col',
             isMobile
-              ? cn('w-[390px] h-[844px] shadow-2xl rounded-xl overflow-x-hidden', inFlowStep ? 'overflow-y-hidden' : 'overflow-y-auto')
+              ? cn('w-[390px] shadow-2xl rounded-xl overflow-x-hidden gw-hide-scroll', inFlowStep ? 'overflow-y-hidden' : 'overflow-y-auto')
               : cn('w-full', inFlowStep ? 'h-screen overflow-hidden' : 'min-h-screen'),
           )}
-          // Em mobile: cria containing block para elementos `fixed` internos,
-          // fazendo modais/CTAs ficarem dentro do frame do celular
-          style={isMobile ? { transform: 'translateZ(0)' } : undefined}
+          // Em mobile: cria containing block para elementos `fixed` internos (modais/CTAs ficam
+          // dentro do frame) e altura limitada à viewport para nada ser cortado; barra de rolagem oculta.
+          style={isMobile ? { transform: 'translateZ(0)', height: 'min(844px, calc(100dvh - 3rem))' } : undefined}
         >
           {/* ============ HEADER STICKY ============ */}
           <header className="sticky top-0 z-50 bg-black text-white border-b border-black shadow-sm">
@@ -1475,14 +1466,12 @@ const EventPreview: React.FC = () => {
             </div>
           </footer>
 
-          {/* ============ Mobile bottom bar — aparece ao scroll ============ */}
+          {/* Espaço para a barra fixa mobile não cobrir o rodapé */}
+          {isMobile && <div aria-hidden className="h-20 shrink-0" />}
+
+          {/* ============ Mobile bottom bar — sempre fixa no rodapé, acompanha o scroll ============ */}
           {isMobile && (
-            <div
-              className={cn(
-                'fixed bottom-0 left-0 right-0 z-[60] transition-all duration-300 ease-out',
-                showStickyCTA ? 'translate-y-0 opacity-100' : 'translate-y-[120%] opacity-0 pointer-events-none',
-              )}
-            >
+            <div className="fixed bottom-0 left-0 right-0 z-[60]">
               <div
                 className="mx-3 mb-3 rounded-2xl bg-white border border-slate-200/80 p-2 flex items-center gap-2.5"
                 style={{ boxShadow: '0 -10px 40px -10px rgba(15,23,42,0.18), 0 2px 6px rgba(15,23,42,0.04)' }}
