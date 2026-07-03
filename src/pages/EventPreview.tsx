@@ -1095,7 +1095,7 @@ const EventPreview: React.FC = () => {
             </section>
 
             {/* Vídeo do evento */}
-            <section className="bg-white">
+            <section className="bg-white gw-reveal">
               <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
                 <div className="text-center mb-6">
                   <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Assista</p>
