@@ -905,7 +905,7 @@ const EventPreview: React.FC = () => {
 
           {/* ============ ETAPA: DETALHE DO EVENTO ============ */}
           {flowStep === 'detalhe' && (
-          <div key="detalhe" className="gw-step flex-1 flex flex-col">
+          <>
           {/* ============ MAIN ============ */}
           <main className="flex-1 flex flex-col">
             {/* HERO — estilo Guichê Web: fundo blur da mesma imagem + banner nítido + borda serrilhada */}
@@ -1595,7 +1595,7 @@ const EventPreview: React.FC = () => {
 
 
 
-          </div>
+          </>
           )}
 
           {/* ============ ETAPA: SELEÇÃO DE INGRESSOS ============ */}
