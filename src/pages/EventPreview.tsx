@@ -292,8 +292,8 @@ const EventPreview: React.FC = () => {
   // Scroll reveal: usa IntersectionObserver com detecção do container scrollável
   // (necessário porque a moldura de preview mobile tem seu próprio scroll interno).
   useEffect(() => {
-    const els = Array.from(document.querySelectorAll<HTMLElement>('.gw-reveal'));
-    if (!els.length) return;
+    let io: IntersectionObserver | null = null;
+    let safety: number | undefined;
 
     const findScrollAncestor = (el: HTMLElement): HTMLElement | null => {
       let p = el.parentElement;
@@ -307,30 +307,39 @@ const EventPreview: React.FC = () => {
       return null;
     };
 
-    const root = findScrollAncestor(els[0]);
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
-            io.unobserve(entry.target);
-          }
-        });
-      },
-      { root, threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
-    );
-    els.forEach((el) => io.observe(el));
+    // Aguarda o DOM refletir a troca de device antes de observar
+    const raf = window.requestAnimationFrame(() => {
+      const els = Array.from(document.querySelectorAll<HTMLElement>('.gw-reveal'));
+      if (!els.length) return;
 
-    // Safety net: garante que nada fique invisível se algo der errado no observer
-    const safety = window.setTimeout(() => {
-      document.querySelectorAll<HTMLElement>('.gw-reveal:not(.is-visible)').forEach((el) => el.classList.add('is-visible'));
-    }, 2500);
+      // Reset: garante que a animação toque novamente ao trocar device
+      els.forEach((el) => el.classList.remove('is-visible'));
+
+      const root = findScrollAncestor(els[0]);
+      io = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+              io?.unobserve(entry.target);
+            }
+          });
+        },
+        { root, threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
+      );
+      els.forEach((el) => io!.observe(el));
+
+      safety = window.setTimeout(() => {
+        document.querySelectorAll<HTMLElement>('.gw-reveal:not(.is-visible)').forEach((el) => el.classList.add('is-visible'));
+      }, 2500);
+    });
 
     return () => {
-      io.disconnect();
-      window.clearTimeout(safety);
+      window.cancelAnimationFrame(raf);
+      io?.disconnect();
+      if (safety) window.clearTimeout(safety);
     };
-  }, [snapshot]);
+  }, [snapshot, device]);
 
   const sectorsForSale = useMemo(() => {
     if (!snapshot) return [] as Array<{ id: string; name: string; color: string; price: number; available: number }>;
