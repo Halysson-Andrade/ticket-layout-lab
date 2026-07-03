@@ -289,38 +289,46 @@ const EventPreview: React.FC = () => {
     });
   };
 
-  // Scroll reveal: adiciona classe is-visible ao entrar na viewport
-  // Usa checagem por getBoundingClientRect para funcionar mesmo dentro de containers scrolláveis (moldura mobile)
+  // Scroll reveal: usa IntersectionObserver com detecção do container scrollável
+  // (necessário porque a moldura de preview mobile tem seu próprio scroll interno).
   useEffect(() => {
-    let raf = 0;
-    const check = () => {
-      raf = 0;
-      const els = document.querySelectorAll<HTMLElement>('.gw-reveal:not(.is-visible)');
-      if (!els.length) return;
-      const vh = window.innerHeight || document.documentElement.clientHeight;
-      els.forEach((el) => {
-        const r = el.getBoundingClientRect();
-        if (r.top < vh - 40 && r.bottom > 0) {
-          el.classList.add('is-visible');
+    const els = Array.from(document.querySelectorAll<HTMLElement>('.gw-reveal'));
+    if (!els.length) return;
+
+    const findScrollAncestor = (el: HTMLElement): HTMLElement | null => {
+      let p = el.parentElement;
+      while (p && p !== document.body) {
+        const s = getComputedStyle(p);
+        if (/(auto|scroll)/.test(s.overflowY) && p.scrollHeight > p.clientHeight) {
+          return p;
         }
-      });
+        p = p.parentElement;
+      }
+      return null;
     };
-    const schedule = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(check);
-    };
-    // Fallback: garante que tudo apareça mesmo se listener não disparar (containers exóticos)
-    const fallback = window.setTimeout(() => {
-      document.querySelectorAll<HTMLElement>('.gw-reveal').forEach((el) => el.classList.add('is-visible'));
-    }, 1200);
-    schedule();
-    window.addEventListener('scroll', schedule, true);
-    window.addEventListener('resize', schedule);
+
+    const root = findScrollAncestor(els[0]);
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            io.unobserve(entry.target);
+          }
+        });
+      },
+      { root, threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
+    );
+    els.forEach((el) => io.observe(el));
+
+    // Safety net: garante que nada fique invisível se algo der errado no observer
+    const safety = window.setTimeout(() => {
+      document.querySelectorAll<HTMLElement>('.gw-reveal:not(.is-visible)').forEach((el) => el.classList.add('is-visible'));
+    }, 2500);
+
     return () => {
-      window.removeEventListener('scroll', schedule, true);
-      window.removeEventListener('resize', schedule);
-      if (raf) cancelAnimationFrame(raf);
-      window.clearTimeout(fallback);
+      io.disconnect();
+      window.clearTimeout(safety);
     };
   }, [snapshot]);
 
@@ -466,14 +474,36 @@ const EventPreview: React.FC = () => {
   const selectedSeatIds = useMemo(() => selectedSeats.map((s) => s.id), [selectedSeats]);
   const selectedSeatsTotal = selectedSeats.reduce((sum, s) => sum + s.price, 0);
 
-  // Clique no assento: se já selecionado, remove; senão abre o modal de escolha do ingresso.
+  // Clique no assento: se já selecionado, remove; senão adiciona direto (inteira) e coloca no carrinho.
   const onSeatClicked = (seat: Seat, sector: Sector) => {
     if (selectedSeats.some((s) => s.id === seat.id)) {
       setSelectedSeats((prev) => prev.filter((s) => s.id !== seat.id));
       return;
     }
-    setPendingSeat({ seat, sector });
-    setPendingTicketType('inteira');
+    const sectorForSale = sectorsForSale.find((s) => s.id === sector.id);
+    const basePrice = sectorForSale?.price ?? 0;
+    const tt = TICKET_TYPES[0]; // inteira por padrão
+    const price = Math.round(basePrice * tt.factor);
+    setSelectedSeats((prev) => [
+      ...prev,
+      {
+        id: seat.id,
+        sectorId: sector.id,
+        row: seat.row,
+        number: seat.number,
+        price,
+        sectorName: sector.name,
+        color: sector.color,
+        ticketType: tt.label,
+      },
+    ]);
+    // adiciona ao carrinho automaticamente
+    setCart((prev) => {
+      const found = prev.find((i) => i.sectorId === sector.id);
+      if (found) return prev.map((i) => (i.sectorId === sector.id ? { ...i, qty: i.qty + 1 } : i));
+      return [{ sectorId: sector.id, name: sector.name, price, qty: 1, color: sector.color }, ...prev];
+    });
+    toast.success(`Assento ${seat.row}${seat.number} adicionado ao carrinho`);
   };
 
   const pendingBasePrice = useMemo(() => {
@@ -1494,7 +1524,7 @@ const EventPreview: React.FC = () => {
           {salesOpen && (
             <div className="fixed inset-0 z-[100] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-0 sm:p-4" onClick={() => setSalesOpen(false)}>
               <div
-                className="bg-white w-full max-w-6xl rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden h-[100dvh] sm:h-[90vh]"
+                className={cn('bg-white w-full max-w-6xl rounded-none sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden', isMobile ? 'h-full' : 'h-[100dvh] sm:h-[90vh]')}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="border-b bg-slate-50">
@@ -1934,7 +1964,7 @@ const EventPreview: React.FC = () => {
             <div className="fixed inset-0 z-[80] flex" onClick={() => setCartOpen(false)}>
               <div className="flex-1 bg-black/40" />
               <div
-                className={cn('bg-white shadow-2xl flex flex-col', isMobile ? 'w-full' : 'w-[400px]')}
+                className={cn('bg-white shadow-2xl flex flex-col h-full', isMobile ? 'w-full' : 'w-[400px]')}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between p-4 border-b">
