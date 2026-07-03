@@ -1142,7 +1142,7 @@ const EventPreview: React.FC = () => {
 
 
             {/* Info + Regras */}
-            <section className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
+            <section className={cn('mx-auto gw-reveal', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
               <div className={cn('grid gap-8', isMobile ? 'grid-cols-1' : 'grid-cols-2')}>
                 <div>
                   <h3 className="font-bold text-xl mb-4 flex items-center gap-2" style={{ color: BRAND.green }}>
