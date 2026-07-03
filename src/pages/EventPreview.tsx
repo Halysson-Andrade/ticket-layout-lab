@@ -246,6 +246,7 @@ const EventPreview: React.FC = () => {
   const [mapView, setMapView] = useState<{ scale: number; panX: number; panY: number }>({ scale: 1, panX: 0, panY: 0 });
   const [videoPlaying, setVideoPlaying] = useState(false);
   const mapWrapperRef = React.useRef<HTMLDivElement>(null);
+  const frameRef = React.useRef<HTMLDivElement>(null); // moldura de preview (rola internamente no mobile)
   const dragRef = React.useRef<{ x: number; y: number; panX: number; panY: number; moved: boolean } | null>(null);
 
   // === Conversion boosters ===
@@ -254,19 +255,26 @@ const EventPreview: React.FC = () => {
   // Deadline: data simulada do evento (09/Jul/2026 18:00 BRT)
   const deadline = useMemo(() => new Date('2026-07-09T18:00:00-03:00').getTime(), []);
 
-  // Mostrar barra fixa apenas após scroll (sai do hero) e esconder próximo do footer
+  // Mostrar barra fixa apenas após scroll (sai do hero) e esconder próximo do footer.
+  // No mobile a moldura rola internamente, então ouvimos o scroll do frame (não da janela).
   useEffect(() => {
+    const frameEl = device === 'mobile' ? frameRef.current : null;
     const onScroll = () => {
-      const y = window.scrollY;
-      const docH = document.documentElement.scrollHeight;
-      const winH = window.innerHeight;
-      const nearBottom = y + winH > docH - 220;
-      setShowStickyCTA(y > 360 && !nearBottom);
+      if (frameEl) {
+        const y = frameEl.scrollTop;
+        const nearBottom = y + frameEl.clientHeight > frameEl.scrollHeight - 220;
+        setShowStickyCTA(y > 360 && !nearBottom);
+      } else {
+        const y = window.scrollY;
+        const nearBottom = y + window.innerHeight > document.documentElement.scrollHeight - 220;
+        setShowStickyCTA(y > 360 && !nearBottom);
+      }
     };
     onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+    const target: HTMLElement | Window = frameEl ?? window;
+    target.addEventListener('scroll', onScroll, { passive: true });
+    return () => target.removeEventListener('scroll', onScroll);
+  }, [device]);
 
 
 
@@ -757,6 +765,7 @@ const EventPreview: React.FC = () => {
       {/* Container da preview (simula viewport) */}
       <div className={cn('flex-1 flex justify-center', isMobile && 'py-6 px-4')}>
         <div
+          ref={frameRef}
           className={cn(
             'bg-white transition-all duration-300 relative flex flex-col',
             isMobile
@@ -1178,7 +1187,7 @@ const EventPreview: React.FC = () => {
                 </div>
 
                 <div className="relative bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                  <div className="aspect-[16/9] relative bg-slate-100">
+                  <div className={cn('relative bg-slate-100', isMobile ? 'aspect-[4/3]' : 'aspect-[16/9]')}>
                     {snapshot.backgroundImage ? (
                       <img
                         src={snapshot.backgroundImage}
@@ -1200,26 +1209,51 @@ const EventPreview: React.FC = () => {
                         />
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-transparent pointer-events-none" />
-                    <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-                      <div className="text-center sm:text-left text-white">
-                        <p className="text-[10px] uppercase tracking-widest font-bold text-white/80">Ingressos disponíveis</p>
-                        <p className="text-lg font-black">
+                    {/* No desktop, preço + CTA sobrepõem o mapa; no mobile ficam numa barra abaixo (não cobrem o mapa) */}
+                    {!isMobile && (
+                      <>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-transparent pointer-events-none" />
+                        <div className="absolute bottom-0 left-0 right-0 p-6 flex flex-row items-center justify-between gap-3">
+                          <div className="text-left text-white">
+                            <p className="text-[10px] uppercase tracking-widest font-bold text-white/80">Ingressos disponíveis</p>
+                            <p className="text-lg font-black">
+                              A partir de <span style={{ color: BRAND.green }}>{brl(minPrice)}</span>
+                            </p>
+                          </div>
+                          <Button
+                            size="lg"
+                            className="text-white font-bold shadow-lg"
+                            style={{ background: BRAND.green }}
+                            onClick={() => setFlowStep('ingressos')}
+                            disabled={sectorsForSale.length === 0}
+                          >
+                            <Ticket className="h-4 w-4 mr-2" />
+                            {sectorsForSale.length === 0 ? 'Mapa indisponível' : 'Comprar ingresso'}
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  {isMobile && (
+                    <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-slate-200 bg-white">
+                      <div className="min-w-0">
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Ingressos disponíveis</p>
+                        <p className="text-base font-black text-slate-900">
                           A partir de <span style={{ color: BRAND.green }}>{brl(minPrice)}</span>
                         </p>
                       </div>
                       <Button
-                        size="lg"
-                        className="text-white font-bold shadow-lg"
+                        size="sm"
+                        className="text-white font-bold shrink-0"
                         style={{ background: BRAND.green }}
                         onClick={() => setFlowStep('ingressos')}
                         disabled={sectorsForSale.length === 0}
                       >
-                        <Ticket className="h-4 w-4 mr-2" />
-                        {sectorsForSale.length === 0 ? 'Mapa indisponível' : 'Comprar ingresso'}
+                        <Ticket className="h-4 w-4 mr-1.5" />
+                        {sectorsForSale.length === 0 ? 'Indisponível' : 'Comprar'}
                       </Button>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 {/* Setores agora aparecem apenas no modal "Comprar ingresso" (carrinho) */}
@@ -1612,7 +1646,7 @@ const EventPreview: React.FC = () => {
                     </div>
                   </div>
                   {/* Stepper de progresso (oculto no mobile para dar mais espaço ao mapa) */}
-                  <div className="px-4 sm:px-6 pb-3 hidden sm:flex items-center gap-2 text-[11px] font-semibold">
+                  <div className={cn('px-4 sm:px-6 pb-3 items-center gap-2 text-[11px] font-semibold', isMobile ? 'hidden' : 'flex')}>
                     {[
                       { n: 1, label: 'Setor', done: !!selectedSectorId || cartCount > 0 },
                       { n: 2, label: 'Quantidade', done: cartCount > 0 },
@@ -1735,8 +1769,8 @@ const EventPreview: React.FC = () => {
                         {Math.round(mapView.scale * 100)}%
                       </div>
                     )}
-                    {/* Instrução flutuante */}
-                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-[10px] uppercase tracking-wider text-slate-600 font-bold rounded-full px-3 py-1 shadow z-10">
+                    {/* Instrução flutuante (oculta no mobile para não poluir o mapa) */}
+                    <div className={cn('absolute top-3 right-3 bg-white/90 backdrop-blur text-[10px] uppercase tracking-wider text-slate-600 font-bold rounded-full px-3 py-1 shadow z-10', isMobile && 'hidden')}>
                       {selectedSectorId
                         ? 'Clique nos assentos • arraste para mover'
                         : mapView.scale > 1
@@ -1937,7 +1971,9 @@ const EventPreview: React.FC = () => {
                       onError={(e) => {
                         const el = e.currentTarget as HTMLImageElement;
                         el.style.display = 'none';
-                        el.parentElement?.querySelector('[data-fallback]')?.classList.remove('hidden');
+                        const fb = el.parentElement?.querySelector('[data-fallback]');
+                        fb?.classList.remove('hidden');
+                        fb?.classList.add('flex');
                       }}
                     />
                   ) : null}
@@ -1945,7 +1981,7 @@ const EventPreview: React.FC = () => {
                     data-fallback
                     className={cn(
                       'w-full h-44 flex-col items-center justify-center gap-1 bg-slate-100 text-slate-400',
-                      pendingSeat.seat.viewImageUrl ? 'hidden flex' : 'flex',
+                      pendingSeat.seat.viewImageUrl ? 'hidden' : 'flex',
                     )}
                   >
                     <Eye className="h-7 w-7 opacity-50" />
@@ -2096,7 +2132,7 @@ const EventPreview: React.FC = () => {
                       <p className="text-lg font-black text-slate-900 tabular-nums">{brl(total)}</p>
                     </div>
                     <Button
-                      className="font-bold h-11 px-5 sm:px-6 text-white flex-1 sm:flex-none"
+                      className={cn('font-bold h-11 px-5 sm:px-6 text-white', isMobile ? 'flex-1' : '')}
                       style={{ background: BRAND.green }}
                       disabled={cartCount === 0}
                       onClick={() => {
