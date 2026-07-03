@@ -218,6 +218,7 @@ const EventPreview: React.FC = () => {
   const [pendingTicketType, setPendingTicketType] = useState<string>('inteira');
   // Zoom/pan do mapa dentro do modal
   const [mapView, setMapView] = useState<{ scale: number; panX: number; panY: number }>({ scale: 1, panX: 0, panY: 0 });
+  const [videoPlaying, setVideoPlaying] = useState(false);
   const mapWrapperRef = React.useRef<HTMLDivElement>(null);
   const dragRef = React.useRef<{ x: number; y: number; panX: number; panY: number; moved: boolean } | null>(null);
 
@@ -880,13 +881,45 @@ const EventPreview: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="mt-5 flex items-center gap-2">
+                  <div className="mt-5 flex items-center gap-2 flex-wrap">
                     <button className="h-10 px-4 rounded-full border border-slate-200 flex items-center gap-2 text-sm font-medium text-slate-700 hover:border-rose-300 hover:text-rose-500 hover:bg-rose-50 transition">
                       <Heart className="h-4 w-4" /> Favoritar
                     </button>
                     <button className="h-10 px-4 rounded-full border border-slate-200 flex items-center gap-2 text-sm font-medium text-slate-700 hover:border-slate-400 hover:bg-slate-50 transition">
                       <Share2 className="h-4 w-4" /> Compartilhar
                     </button>
+
+                    <div className="h-8 w-px bg-slate-200 mx-1" />
+
+                    {[
+                      { name: 'Instagram', href: 'https://instagram.com/miragecircus', color: '#E1306C', Icon: Instagram },
+                      { name: 'Facebook', href: 'https://facebook.com/miragecircus', color: '#1877F2', Icon: Facebook },
+                      { name: 'YouTube', href: 'https://youtube.com/@miragecircus', color: '#FF0000', Icon: Youtube },
+                      { name: 'X (Twitter)', href: 'https://x.com/miragecircus', color: '#000000', Icon: null as unknown as typeof Instagram },
+                      { name: 'Spotify', href: 'https://open.spotify.com/', color: '#1DB954', Icon: null as unknown as typeof Instagram },
+                      { name: 'TikTok', href: 'https://tiktok.com/@miragecircus', color: '#010101', Icon: null as unknown as typeof Instagram },
+                    ].map((s) => (
+                      <a
+                        key={s.name}
+                        href={s.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={s.name}
+                        aria-label={s.name}
+                        className="h-10 w-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-600 hover:text-white transition-all hover:scale-110"
+                        style={{ ['--hover-bg' as string]: s.color }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = s.color; e.currentTarget.style.borderColor = s.color; e.currentTarget.style.color = '#fff'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = ''; e.currentTarget.style.borderColor = ''; e.currentTarget.style.color = ''; }}
+                      >
+                        {s.name === 'X (Twitter)' ? (
+                          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                        ) : s.name === 'Spotify' ? (
+                          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+                        ) : (
+                          <s.Icon className="h-4 w-4" />
+                        )}
+                      </a>
+                    ))}
                   </div>
                 </div>
 
@@ -1042,6 +1075,52 @@ const EventPreview: React.FC = () => {
 
                 {/* Setores agora aparecem apenas no modal "Comprar ingresso" (carrinho) */}
 
+              </div>
+            </section>
+
+            {/* Vídeo do evento */}
+            <section className="bg-white">
+              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
+                <div className="text-center mb-6">
+                  <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Assista</p>
+                  <h3 className={cn('gw-display-md text-slate-900', isMobile ? 'text-2xl' : 'text-3xl')}>Veja o espetáculo em ação</h3>
+                </div>
+                <div className="relative rounded-2xl overflow-hidden border border-slate-200 shadow-lg bg-black aspect-video">
+                  {videoPlaying ? (
+                    <iframe
+                      className="absolute inset-0 w-full h-full"
+                      src="https://www.youtube.com/embed/ZueIOvWJQdM?autoplay=1&rel=0"
+                      title="Mirage Circus"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setVideoPlaying(true)}
+                      className="absolute inset-0 w-full h-full group"
+                      aria-label="Reproduzir vídeo"
+                    >
+                      <img
+                        src="https://img.youtube.com/vi/ZueIOvWJQdM/maxresdefault.jpg"
+                        alt="Mirage Circus - vídeo"
+                        className="absolute inset-0 w-full h-full object-cover"
+                        loading="lazy"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://img.youtube.com/vi/ZueIOvWJQdM/hqdefault.jpg'; }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-black/20 group-hover:from-black/70 transition" />
+                      <span className="absolute inset-0 flex items-center justify-center">
+                        <span className="h-20 w-20 rounded-full flex items-center justify-center shadow-2xl transition-transform group-hover:scale-110" style={{ background: '#FF0000' }}>
+                          <svg viewBox="0 0 24 24" className="h-9 w-9 ml-1" fill="#fff" aria-hidden><path d="M8 5v14l11-7z"/></svg>
+                        </span>
+                      </span>
+                      <span className="absolute bottom-4 left-4 right-4 text-left text-white">
+                        <span className="block text-xs font-bold tracking-widest uppercase opacity-80">Trailer oficial</span>
+                        <span className="block text-lg font-black mt-0.5">Circo Mirage Circus</span>
+                      </span>
+                    </button>
+                  )}
+                </div>
               </div>
             </section>
 
