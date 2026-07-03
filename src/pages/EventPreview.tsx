@@ -976,7 +976,7 @@ const EventPreview: React.FC = () => {
                       <ShieldCheck className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> Compra 100% segura · SSL
                     </div>
                     <div className="flex items-center gap-2.5 text-xs text-slate-600">
-                      <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> Ingresso digital no e-mail
+                      <CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> Ingresso digital através do site
                     </div>
                     <div className="flex items-center gap-2.5 text-xs text-slate-600">
                       <Info className="h-4 w-4 shrink-0" style={{ color: BRAND.green }} /> Cancelamento grátis em até 7 dias
