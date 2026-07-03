@@ -289,38 +289,46 @@ const EventPreview: React.FC = () => {
     });
   };
 
-  // Scroll reveal: adiciona classe is-visible ao entrar na viewport
-  // Usa checagem por getBoundingClientRect para funcionar mesmo dentro de containers scrolláveis (moldura mobile)
+  // Scroll reveal: usa IntersectionObserver com detecção do container scrollável
+  // (necessário porque a moldura de preview mobile tem seu próprio scroll interno).
   useEffect(() => {
-    let raf = 0;
-    const check = () => {
-      raf = 0;
-      const els = document.querySelectorAll<HTMLElement>('.gw-reveal:not(.is-visible)');
-      if (!els.length) return;
-      const vh = window.innerHeight || document.documentElement.clientHeight;
-      els.forEach((el) => {
-        const r = el.getBoundingClientRect();
-        if (r.top < vh - 40 && r.bottom > 0) {
-          el.classList.add('is-visible');
+    const els = Array.from(document.querySelectorAll<HTMLElement>('.gw-reveal'));
+    if (!els.length) return;
+
+    const findScrollAncestor = (el: HTMLElement): HTMLElement | null => {
+      let p = el.parentElement;
+      while (p && p !== document.body) {
+        const s = getComputedStyle(p);
+        if (/(auto|scroll)/.test(s.overflowY) && p.scrollHeight > p.clientHeight) {
+          return p;
         }
-      });
+        p = p.parentElement;
+      }
+      return null;
     };
-    const schedule = () => {
-      if (raf) return;
-      raf = requestAnimationFrame(check);
-    };
-    // Fallback: garante que tudo apareça mesmo se listener não disparar (containers exóticos)
-    const fallback = window.setTimeout(() => {
-      document.querySelectorAll<HTMLElement>('.gw-reveal').forEach((el) => el.classList.add('is-visible'));
-    }, 1200);
-    schedule();
-    window.addEventListener('scroll', schedule, true);
-    window.addEventListener('resize', schedule);
+
+    const root = findScrollAncestor(els[0]);
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            io.unobserve(entry.target);
+          }
+        });
+      },
+      { root, threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
+    );
+    els.forEach((el) => io.observe(el));
+
+    // Safety net: garante que nada fique invisível se algo der errado no observer
+    const safety = window.setTimeout(() => {
+      document.querySelectorAll<HTMLElement>('.gw-reveal:not(.is-visible)').forEach((el) => el.classList.add('is-visible'));
+    }, 2500);
+
     return () => {
-      window.removeEventListener('scroll', schedule, true);
-      window.removeEventListener('resize', schedule);
-      if (raf) cancelAnimationFrame(raf);
-      window.clearTimeout(fallback);
+      io.disconnect();
+      window.clearTimeout(safety);
     };
   }, [snapshot]);
 
