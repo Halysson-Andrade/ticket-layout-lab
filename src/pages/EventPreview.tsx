@@ -922,7 +922,7 @@ const EventPreview: React.FC = () => {
 
                 <div className={cn(
                   'relative overflow-hidden group',
-                  isMobile ? 'aspect-[16/10] bg-transparent' : 'rounded-2xl shadow-[0_30px_80px_-30px_rgba(0,0,0,0.55)] ring-1 ring-white/10 aspect-[1920/720] bg-transparent'
+                  isMobile ? 'aspect-[16/10] bg-transparent' : 'aspect-[1920/720] bg-transparent'
                 )}>
                   <img
                     src={eventInfo.heroBanner}
@@ -930,13 +930,8 @@ const EventPreview: React.FC = () => {
                     className="w-full h-full object-contain object-center transition-transform duration-[1400ms] ease-out group-hover:scale-[1.03]"
                     loading="eager"
                   />
-                  <div className="absolute top-4 left-4 sm:top-5 sm:left-5">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 backdrop-blur px-3 py-1.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-900 shadow-sm ring-1 ring-black/5">
-                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: BRAND.green }} />
-                      Tour 2026 · Confirmado
-                    </span>
-                  </div>
                 </div>
+
               </div>
             </section>
 
