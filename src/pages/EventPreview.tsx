@@ -852,13 +852,10 @@ const EventPreview: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Ícones busca/localização */}
+                {/* Ícones busca */}
                 <div className="flex border-b border-slate-200">
                   <button className="flex-1 flex items-center justify-center gap-2 py-3 text-sm text-slate-700 hover:bg-slate-50">
                     <Search className="h-4 w-4" /> Buscar
-                  </button>
-                  <button className="flex-1 flex items-center justify-center gap-2 py-3 text-sm text-slate-700 hover:bg-slate-50 border-l border-slate-200">
-                    <MapPin className="h-4 w-4" /> Cidade
                   </button>
                 </div>
 
@@ -883,16 +880,14 @@ const EventPreview: React.FC = () => {
 
                 {/* Rodapé */}
                 <div className="p-4 border-t border-slate-200">
-                  <Button
-                    className="w-full rounded-full font-semibold text-white"
-                    style={{ background: BRAND.green }}
-                  >
-                    Crie seu evento
-                  </Button>
+                  <button className="w-full text-sm font-medium text-slate-600 hover:text-slate-900">
+                    Entrar ou cadastrar
+                  </button>
                 </div>
               </aside>
             </>
           )}
+
 
           {/* ============ ETAPA: DETALHE DO EVENTO ============ */}
           {flowStep === 'detalhe' && (
