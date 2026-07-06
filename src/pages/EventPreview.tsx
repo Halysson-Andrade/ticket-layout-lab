@@ -916,11 +916,9 @@ const EventPreview: React.FC = () => {
                       <span className="h-1.5 w-1.5 rounded-full gw-dot-pulse" style={{ background: BRAND.green }} />
                       Vendas abertas
                     </span>
-                    <span className="text-[11px] text-white/60 font-medium uppercase tracking-[0.16em]">
-                      Ribeirão Preto · SP · 11 Julho 2026
-                    </span>
                   </div>
                 )}
+
 
                 <div className={cn(
                   'relative overflow-hidden group',
