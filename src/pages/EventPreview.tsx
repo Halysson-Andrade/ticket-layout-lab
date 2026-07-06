@@ -768,7 +768,7 @@ const EventPreview: React.FC = () => {
           style={isMobile ? { transform: 'translateZ(0)', height: '844px', maxHeight: 'calc(100dvh - 3rem)' } : undefined}
         >
           {/* ============ HEADER STICKY ============ */}
-          <header className="sticky top-0 z-50 bg-black text-white border-b border-black shadow-sm">
+          <header className="sticky top-0 z-50 bg-gradient-to-b from-black/90 to-black/70 text-white border-b border-black/60 shadow-sm backdrop-blur-sm">
             <div className={cn('flex items-center justify-between gap-3', isMobile ? 'px-4 h-14' : 'px-8 h-16')}>
               {/* Logo */}
               <div className="flex items-center gap-2">
@@ -785,21 +785,11 @@ const EventPreview: React.FC = () => {
                   <button className="hover:text-[color:var(--brand-green)] flex items-center gap-1" style={{ ['--brand-green' as never]: BRAND.green }}>
                     <Search className="h-4 w-4" /> Buscar evento
                   </button>
-                  <button className="hover:text-[color:var(--brand-green)] flex items-center gap-1" style={{ ['--brand-green' as never]: BRAND.green }}>
-                    <MapPin className="h-4 w-4" /> Localização <ChevronDown className="h-3 w-3" />
-                  </button>
-                  <Button
-                    variant="outline"
-                    className="rounded-full border-2 font-semibold bg-transparent hover:bg-white/10"
-                    style={{ borderColor: BRAND.green, color: BRAND.green }}
-                  >
-                    Crie seu evento
-                  </Button>
                   <div className="flex items-center gap-2 pl-3 border-l border-white/20">
                     <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center">
                       <User className="h-4 w-4 text-white/80" />
                     </div>
-                    <button className="text-sm font-medium hover:underline">Conta</button>
+                    <button className="text-sm font-medium hover:underline">Entrar</button>
                   </div>
                   <button
                     className="relative rounded-full p-2 text-white"
@@ -816,6 +806,7 @@ const EventPreview: React.FC = () => {
                   </button>
                 </nav>
               )}
+
 
               {/* Mobile: cart + hambúrguer */}
               {isMobile && (
