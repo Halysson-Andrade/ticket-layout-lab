@@ -26,7 +26,6 @@ import {
   Trash2,
   ShoppingCart,
   ShieldCheck,
-  CreditCard,
   Info,
   Star,
   Instagram,
@@ -43,13 +42,13 @@ import {
   Eye,
   Bell,
   Flame,
-  Timer,
   Zap,
   TrendingUp,
   Sparkles,
   Award,
   ExternalLink,
 } from 'lucide-react';
+
 import { MapPreviewSVG } from '@/components/MapStudio/MapPreviewSVG';
 import { getMapContentExtent } from '@/lib/mapUtils';
 import type { Sector, VenueElement, TextElement, Seat } from '@/types/mapStudio';
