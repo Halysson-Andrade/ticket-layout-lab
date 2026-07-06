@@ -937,34 +937,8 @@ const EventPreview: React.FC = () => {
 
 
 
-            {/* URGÊNCIA & PROVA SOCIAL (strip discreta) */}
-            <section className="bg-white border-b border-slate-200">
-              <div className={cn('mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-2', isMobile ? 'px-4 py-3 text-[11px]' : 'px-8 py-3.5 text-xs max-w-6xl')}>
-                <div className="flex items-center gap-2 text-slate-600">
-                  <Timer className="h-3.5 w-3.5 gw-dot-pulse" style={{ color: BRAND.green }} />
-                  <span className="font-medium">Faltam</span>
-                  <span className="font-bold text-slate-900 tabular-nums">
-                    {countdown.d}d {String(countdown.h).padStart(2, '0')}:{String(countdown.m).padStart(2, '0')}:<span style={{ color: BRAND.green }}>{String(countdown.s).padStart(2, '0')}</span>
-                  </span>
-                </div>
-                <div className="hidden sm:block h-3 w-px bg-slate-200" />
-                <div className="flex items-center gap-2 text-slate-600">
-                  <ShieldCheck className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
-                  <span>Compra <span className="font-semibold text-slate-900">100% segura</span></span>
-                </div>
-                <div className="hidden sm:block h-3 w-px bg-slate-200" />
-                <div className="flex items-center gap-2 text-slate-600">
-                  <CreditCard className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
-                  <span>Em até <span className="font-semibold text-slate-900">10x sem juros</span></span>
-                </div>
-              </div>
-            </section>
-
-
-
-
-
             {/* Info do evento + card de preço */}
+
             <section className={cn('container mx-auto gw-reveal', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-6xl')}>
               <div className={cn('grid gap-8', isMobile ? 'grid-cols-1' : 'grid-cols-[1fr_360px]')}>
                 <div>
