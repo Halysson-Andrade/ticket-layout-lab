@@ -342,11 +342,6 @@ const EventPreview: React.FC = () => {
     return { d, h, m, s };
   }, [deadline, now]);
 
-  const handleRemindMe = () => {
-    toast.success('Pronto! Vamos te avisar', {
-      description: 'Você receberá um alerta antes do evento esgotar.',
-    });
-  };
 
   // Scroll reveal: usa IntersectionObserver com detecção do container scrollável
   // (necessário porque a moldura de preview mobile tem seu próprio scroll interno).
