@@ -67,6 +67,7 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
   interactive = true,
   sectorLabelMode = 'always',
   dimmedSectorIds,
+  showSeats = true,
 }) => {
   const selectedSeatSet = useMemo(() => new Set(selectedSeatIds ?? []), [selectedSeatIds]);
   const dimmedSet = useMemo(() => new Set(dimmedSectorIds ?? []), [dimmedSectorIds]);
