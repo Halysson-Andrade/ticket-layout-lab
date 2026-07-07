@@ -889,7 +889,7 @@ const EventPreview: React.FC = () => {
               />
               <div aria-hidden className="absolute inset-0 bg-black/30" />
 
-              <div className="relative w-full">
+              <div className={cn('relative w-full', isMobile ? 'pt-14' : 'pt-16')}>
                 <div className={cn(
                   'relative overflow-hidden group w-full',
                   isMobile ? 'aspect-[16/9] bg-transparent' : 'aspect-[1920/560] bg-transparent'
@@ -945,34 +945,13 @@ const EventPreview: React.FC = () => {
             <section className={cn('container mx-auto gw-reveal', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-6xl')}>
               <div className={cn('grid gap-8', isMobile ? 'grid-cols-1' : 'grid-cols-[1fr_360px]')}>
                 <div>
-                  {/* Badge de categoria */}
-                  <div className="flex items-center gap-2 mb-3 gw-reveal gw-reveal-delay-1">
-                    <span
-                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider"
-                      style={{ background: `${BRAND.green}14`, color: BRAND.green }}
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: BRAND.green }} />
-                      Circo · Espetáculo
-                    </span>
-                    <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">11 Julho · 2026 · 15h30</span>
-                  </div>
-
                   <h1 className={cn(
                     'gw-display text-slate-900 leading-[1.15] gw-rise break-words tracking-tight gw-reveal gw-reveal-delay-2',
                     isMobile ? 'text-[1.25rem]' : 'text-[1.5rem] lg:text-[1.875rem]'
                   )}>
                     Circo Mirage Circus Ribeirão Preto. SP - 11.JUL às 15h30
                   </h1>
-                  <p className="text-base text-slate-500 mt-2 max-w-2xl gw-reveal gw-reveal-delay-2">{eventInfo.subtitle}</p>
 
-                  <div className="flex items-center gap-1 mt-4 text-amber-500 gw-reveal gw-reveal-delay-3">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <Star key={i} className={cn('h-4 w-4', i <= Math.round(eventInfo.rating) ? 'fill-amber-500' : '')} />
-                    ))}
-                    <span className="text-xs text-slate-600 ml-2">
-                      <span className="font-bold text-slate-900">{eventInfo.rating}</span> · {eventInfo.reviews.toLocaleString('pt-BR')} avaliações
-                    </span>
-                  </div>
 
                   {/* Meta cards */}
                   <div className={cn('mt-6 grid gap-3 gw-reveal gw-reveal-delay-3', isMobile ? 'grid-cols-1' : 'grid-cols-2')}>
@@ -1055,23 +1034,11 @@ const EventPreview: React.FC = () => {
                   <div className="pointer-events-none absolute -inset-[1px] rounded-[20px] opacity-60 blur-xl"
                     style={{ background: `linear-gradient(140deg, ${BRAND.green}55, ${BRAND.cyan}33, ${BRAND.magenta}33)` }} />
                   <div className="relative rounded-2xl p-6 border border-slate-200 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)]">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[10px] uppercase tracking-[0.15em] font-bold text-slate-400">A partir de</p>
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                        style={{ background: `${BRAND.green}1a`, color: BRAND.green }}>
-                        <span className="h-1.5 w-1.5 rounded-full gw-dot-pulse" style={{ background: BRAND.green }} /> Disponível
-                      </span>
-                    </div>
+                    <p className="text-[10px] uppercase tracking-[0.15em] font-bold text-slate-400">A partir de</p>
                     <div className="flex items-baseline gap-2 mt-1">
                       <p className="text-4xl font-black text-slate-900 leading-none tracking-tight">{minPrice ? brl(minPrice) : '—'}</p>
-                      {maxPrice > minPrice && (
-                        <p className="text-xs text-slate-400 line-through tabular-nums">{brl(maxPrice)}</p>
-                      )}
                     </div>
-                    <p className="text-xs text-slate-500 mt-2">
-                      ou <span className="font-semibold text-slate-700">10x de {brl((minPrice || 0) / 10)}</span> sem juros
-                    </p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">Lote atual · + taxa de serviço</p>
+
 
 
 
@@ -1096,29 +1063,6 @@ const EventPreview: React.FC = () => {
                     </Button>
 
 
-                  {/* Formas de pagamento */}
-                  <div className="mt-4 pt-4 border-t border-slate-100">
-                    <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-2">Formas de pagamento</p>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {[
-                        { name: 'Visa', bg: '#1A1F71', fg: '#F7B600', label: 'VISA' },
-                        { name: 'Master', bg: '#FFFFFF', fg: '#EB001B', label: 'master' },
-                        { name: 'Elo', bg: '#000000', fg: '#FFFFFF', label: 'Elo' },
-                        { name: 'Amex', bg: '#2E77BB', fg: '#FFFFFF', label: 'AMEX' },
-                        { name: 'Pix', bg: '#FFFFFF', fg: '#32BCAD', label: 'pix' },
-                        { name: 'Boleto', bg: '#FFFFFF', fg: '#334155', label: 'Boleto' },
-                      ].map((m) => (
-                        <span
-                          key={m.name}
-                          className="inline-flex items-center justify-center h-7 min-w-[44px] px-2 rounded-md border border-slate-200 text-[11px] font-extrabold tracking-tight shadow-sm"
-                          style={{ background: m.bg, color: m.fg }}
-                          title={m.name}
-                        >
-                          {m.label}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
                   </div>
                 </aside>
 
