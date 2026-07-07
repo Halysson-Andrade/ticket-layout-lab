@@ -771,7 +771,7 @@ const EventPreview: React.FC = () => {
             'z-50 text-white border-b border-white/10',
             inFlowStep
               ? 'sticky top-0 bg-gradient-to-b from-black/90 to-black/70'
-              : 'absolute top-0 left-0 right-0 bg-gradient-to-b from-black/90 via-black/50 to-transparent'
+              : 'fixed top-0 left-0 right-0 bg-gradient-to-b from-black/90 via-black/60 to-black/30 backdrop-blur-sm'
           )}>
 
             <div className={cn('flex items-center justify-between gap-3', isMobile ? 'px-4 h-14' : 'px-8 h-16')}>
@@ -797,39 +797,13 @@ const EventPreview: React.FC = () => {
                     </div>
                     <button className="text-sm font-medium hover:underline">Entrar</button>
                   </div>
-                  <button
-                    className="relative rounded-full p-2 text-white"
-                    style={{ background: BRAND.green }}
-                    onClick={() => { setFlowStep('ingressos'); setCartPanelOpen(true); }}
-                    aria-label="Abrir carrinho"
-                  >
-                    <ShoppingCart className="h-4 w-4" />
-                    {cartCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-white text-[10px] font-bold rounded-full h-4 min-w-4 px-1 flex items-center justify-center" style={{ color: BRAND.green }}>
-                        {cartCount}
-                      </span>
-                    )}
-                  </button>
                 </nav>
               )}
 
 
-              {/* Mobile: cart + hambúrguer */}
+              {/* Mobile: hambúrguer */}
               {isMobile && (
                 <div className="flex items-center gap-2">
-                  <button
-                    className="relative rounded-full p-2 text-white"
-                    style={{ background: BRAND.green }}
-                    onClick={() => { setFlowStep('ingressos'); setCartPanelOpen(true); }}
-                    aria-label="Abrir carrinho"
-                  >
-                    <ShoppingCart className="h-4 w-4" />
-                    {cartCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-white text-[10px] font-bold rounded-full h-4 min-w-4 px-1 flex items-center justify-center" style={{ color: BRAND.green }}>
-                        {cartCount}
-                      </span>
-                    )}
-                  </button>
                   <button
                     onClick={() => setMobileMenuOpen(true)}
                     className="h-10 w-10 rounded-md border border-white/20 flex items-center justify-center text-white"
