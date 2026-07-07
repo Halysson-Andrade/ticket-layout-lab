@@ -767,8 +767,9 @@ const EventPreview: React.FC = () => {
           style={isMobile ? { transform: 'translateZ(0)', height: '844px', maxHeight: 'calc(100dvh - 3rem)' } : undefined}
         >
           {/* ============ HEADER STICKY ============ */}
-          <header className="sticky top-0 z-50 bg-gradient-to-b from-black/90 to-black/70 text-white border-b border-black/60 shadow-sm backdrop-blur-sm">
+          <header className="absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/90 via-black/50 to-transparent text-white border-b border-white/10">
             <div className={cn('flex items-center justify-between gap-3', isMobile ? 'px-4 h-14' : 'px-8 h-16')}>
+
               {/* Logo */}
               <div className="flex items-center gap-2">
                 <img
