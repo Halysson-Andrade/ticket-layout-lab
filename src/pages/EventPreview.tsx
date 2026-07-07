@@ -146,6 +146,15 @@ Informações Técnicas:
 - As portas são abertas cerca de 30 minutos antes do início do espetáculo`,
 };
 
+// Datas disponíveis para o evento (permite múltiplas sessões).
+const eventDates: Array<{ id: string; weekday: string; day: string; month: string; time: string; label: string }> = [
+  { id: 'd1', weekday: 'SEX', day: '10', month: 'JUL', time: '20:30', label: '10 Jul • Sex • 20:30' },
+  { id: 'd2', weekday: 'SÁB', day: '11', month: 'JUL', time: '15:30', label: '11 Jul • Sáb • 15:30' },
+  { id: 'd3', weekday: 'SÁB', day: '11', month: 'JUL', time: '20:30', label: '11 Jul • Sáb • 20:30' },
+  { id: 'd4', weekday: 'DOM', day: '12', month: 'JUL', time: '16:00', label: '12 Jul • Dom • 16:00' },
+  { id: 'd5', weekday: 'DOM', day: '12', month: 'JUL', time: '19:30', label: '12 Jul • Dom • 19:30' },
+];
+
 const upcomingEvents = [
   { title: 'Circo Mirage - Campinas/SP', city: 'Campinas / SP', date: '25 JUL',
     img: 'https://s3.guicheweb.com.br/imagenseventos/01-06-2026_21-06-51.png' },
@@ -234,6 +243,7 @@ const EventPreview: React.FC = () => {
   const [cartPanelOpen, setCartPanelOpen] = useState(false); // carrinho expansível dentro da etapa 'ingressos'
   const [produtorTermOpen, setProdutorTermOpen] = useState(false); // modal de termos do produtor
   const [selectedSectorId, setSelectedSectorId] = useState<string | null>(null);
+  const [selectedDateId, setSelectedDateId] = useState<string>(eventDates[1]?.id ?? eventDates[0].id);
   // Régua de preço (teto de orçamento). null = sem filtro (usa o preço máximo do mapa).
   const [budget, setBudget] = useState<number | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -1613,39 +1623,53 @@ const EventPreview: React.FC = () => {
                       <h4 className="font-bold text-slate-900 text-sm sm:text-base truncate">{eventInfo.title}</h4>
                     </div>
                   </div>
-                  {/* Stepper de progresso (oculto no mobile para dar mais espaço ao mapa) */}
-                  <div className={cn('px-4 sm:px-6 pb-3 items-center gap-2 text-[11px] font-semibold', isMobile ? 'hidden' : 'flex')}>
-                    {[
-                      { n: 1, label: 'Setor', done: !!selectedSectorId || cartCount > 0 },
-                      { n: 2, label: 'Quantidade', done: cartCount > 0 },
-                      { n: 3, label: 'Resumo', done: false },
-                    ].map((step, i, arr) => {
-                      const active = step.done || (i > 0 && arr[i - 1].done && !step.done);
-                      return (
-                        <React.Fragment key={step.n}>
-                          <div className="flex items-center gap-1.5">
-                            <div
-                              className="h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold transition"
-                              style={
-                                step.done
-                                  ? { background: BRAND.green, color: '#fff' }
-                                  : active
-                                  ? { background: '#fff', color: BRAND.green, border: `1.5px solid ${BRAND.green}` }
-                                  : { background: '#e5e7eb', color: '#94a3b8' }
-                              }
+                  {/* Seletor de datas / sessões do evento */}
+                  <div className="px-4 sm:px-6 pb-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Calendar className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
+                      <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
+                        Escolha a data
+                      </p>
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto gw-hide-scroll pb-1 -mx-1 px-1">
+                      {eventDates.map((d) => {
+                        const active = selectedDateId === d.id;
+                        return (
+                          <button
+                            key={d.id}
+                            onClick={() => setSelectedDateId(d.id)}
+                            className={cn(
+                              'shrink-0 flex flex-col items-center rounded-xl border px-3 py-2 min-w-[76px] transition',
+                              active ? 'shadow-md' : 'border-slate-200 bg-white hover:border-slate-300'
+                            )}
+                            style={
+                              active
+                                ? { borderColor: BRAND.green, background: `${BRAND.green}10`, boxShadow: `0 0 0 2px ${BRAND.green}33` }
+                                : undefined
+                            }
+                          >
+                            <span
+                              className="text-[9px] font-bold uppercase tracking-wider"
+                              style={{ color: active ? BRAND.green : '#64748b' }}
                             >
-                              {step.done ? <CheckCircle2 className="h-3 w-3" /> : step.n}
-                            </div>
-                            <span className={cn('uppercase tracking-wider', step.done || active ? 'text-slate-900' : 'text-slate-400')}>
-                              {step.label}
+                              {d.weekday}
                             </span>
-                          </div>
-                          {i < arr.length - 1 && (
-                            <div className="flex-1 h-px" style={{ background: step.done ? BRAND.green : '#e5e7eb' }} />
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
+                            <span className={cn('text-lg font-black leading-none mt-0.5', active ? 'text-slate-900' : 'text-slate-800')}>
+                              {d.day}
+                            </span>
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">
+                              {d.month}
+                            </span>
+                            <span
+                              className="text-[10px] font-bold mt-1"
+                              style={{ color: active ? BRAND.green : '#334155' }}
+                            >
+                              {d.time}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
@@ -1754,6 +1778,7 @@ const EventPreview: React.FC = () => {
                           }}
                           focusBounds={effectiveMapBounds}
                           showSeatLabels={!!selectedSectorId || mapView.scale >= 2.5}
+                          showSeats={!!selectedSectorId}
                           sectorLabelMode="hover"
                           dimmedSectorIds={dimmedSectorIds}
                           selectedSeatIds={selectedSeatIds}
@@ -1763,15 +1788,6 @@ const EventPreview: React.FC = () => {
                           }}
                         />
                       </div>
-                    )}
-                    {/* Controle: voltar do zoom */}
-                    {selectedSectorId && (
-                      <button
-                        onClick={() => setSelectedSectorId(null)}
-                        className="absolute top-3 left-3 bg-white/95 border border-slate-200 rounded-full px-3 py-1 text-[11px] font-bold text-slate-700 shadow hover:bg-white z-10"
-                      >
-                        ← Ver mapa completo
-                      </button>
                     )}
                     {/* Zoom controls */}
                     <div className="absolute bottom-3 right-3 z-10 flex flex-col gap-1 bg-white/95 backdrop-blur border border-slate-200 rounded-full shadow p-1">
@@ -1806,24 +1822,6 @@ const EventPreview: React.FC = () => {
                     {mapView.scale > 1.01 && (
                       <div className="absolute bottom-3 left-3 z-10 bg-slate-900/85 text-white text-[10px] font-bold rounded-full px-2.5 py-1 shadow">
                         {Math.round(mapView.scale * 100)}%
-                      </div>
-                    )}
-                    {/* Instrução flutuante (oculta no mobile para não poluir o mapa) */}
-                    <div className={cn('absolute top-3 right-3 bg-white/90 backdrop-blur text-[10px] uppercase tracking-wider text-slate-600 font-bold rounded-full px-3 py-1 shadow z-10', isMobile && 'hidden')}>
-                      {selectedSectorId
-                        ? 'Clique nos assentos • arraste para mover'
-                        : mapView.scale > 1
-                        ? 'Arraste para mover • scroll para zoom'
-                        : 'Clique em um setor • scroll para zoom'}
-                    </div>
-                    {(hoveredSectorId || selectedSectorId) && (
-                      <div className="absolute bottom-14 left-3 right-3 bg-slate-900/90 text-white text-xs rounded-md px-3 py-2 flex items-center justify-between pointer-events-none z-10">
-                        <span className="font-semibold truncate">
-                          {sectorsForSale.find((s) => s.id === (hoveredSectorId || selectedSectorId))?.name}
-                        </span>
-                        <span className="font-bold" style={{ color: BRAND.green }}>
-                          {brl(sectorsForSale.find((s) => s.id === (hoveredSectorId || selectedSectorId))?.price ?? 0)}
-                        </span>
                       </div>
                     )}
                   </div>

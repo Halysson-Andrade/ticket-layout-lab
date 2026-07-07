@@ -27,6 +27,8 @@ interface MapPreviewSVGProps {
   // Setores a esmaecer (cinza) — ex.: fora do orçamento escolhido na régua de preço.
   // Puramente visual: o setor continua clicável e volta à cor real ao hover/seleção.
   dimmedSectorIds?: string[];
+  // Quando false, não renderiza os assentos e pinta setores 100% opacos (visão de mapa completo).
+  showSeats?: boolean;
 }
 
 
@@ -65,6 +67,7 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
   interactive = true,
   sectorLabelMode = 'always',
   dimmedSectorIds,
+  showSeats = true,
 }) => {
   const selectedSeatSet = useMemo(() => new Set(selectedSeatIds ?? []), [selectedSeatIds]);
   const dimmedSet = useMemo(() => new Set(dimmedSectorIds ?? []), [dimmedSectorIds]);
@@ -164,13 +167,13 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
             <path
               d={verticesToPath(s.vertices)}
               fill={isDimmed ? '#94a3b8' : s.color}
-              fillOpacity={isDimmed ? 0.35 : (isHover || isSelected ? 0.95 : (s.opacity ?? 60) / 100)}
+              fillOpacity={isDimmed ? 0.35 : !showSeats ? 1 : (isHover || isSelected ? 0.95 : (s.opacity ?? 60) / 100)}
               stroke={isSelected ? '#0f172a' : isHover ? '#1e293b' : 'rgba(0,0,0,0.25)'}
               strokeWidth={isSelected ? 3 : 1.5}
               style={{ transition: 'fill-opacity 120ms, stroke 120ms' }}
             />
-            {/* Seats — setor em foco renderiza TODOS os assentos (compra); demais mantêm cap por performance */}
-            {s.seats.slice(0, s.id === selectedSectorId ? s.seats.length : (showSeatLabels ? 2000 : 600)).map((seat) => {
+            {/* Seats — só renderiza quando estamos na visão de setor (zoom); no mapa completo mostramos apenas as cores dos setores */}
+            {showSeats && s.seats.slice(0, s.id === selectedSectorId ? s.seats.length : (showSeatLabels ? 2000 : 600)).map((seat) => {
               const isSeatSelected = selectedSeatSet.has(seat.id);
               const isBlocked = seat.status === 'blocked' || seat.status === 'sold' || seat.type === 'blocked';
               const isSpecial = !isSeatSelected && !isBlocked && !isDimmed && seat.type && seat.type !== 'normal';
