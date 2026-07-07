@@ -527,18 +527,28 @@ const EventPreview: React.FC = () => {
   const zoomBy = (factor: number) => {
     setMapView((v) => {
       const scale = Math.max(1, Math.min(8, v.scale * factor));
-      // Ao voltar ao zoom mínimo, recentraliza o mapa inteiro
-      return scale <= 1.001 ? { scale: 1, panX: 0, panY: 0 } : { ...v, scale };
+      if (scale <= 1.001) {
+        setSelectedSectorId(null);
+        return { scale: 1, panX: 0, panY: 0 };
+      }
+      return { ...v, scale };
     });
   };
-  const resetView = () => setMapView({ scale: 1, panX: 0, panY: 0 });
+  const resetView = () => {
+    setSelectedSectorId(null);
+    setMapView({ scale: 1, panX: 0, panY: 0 });
+  };
 
   const onMapWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
     setMapView((v) => {
       const scale = Math.max(1, Math.min(8, v.scale * factor));
-      return scale <= 1.001 ? { scale: 1, panX: 0, panY: 0 } : { ...v, scale };
+      if (scale <= 1.001) {
+        setSelectedSectorId(null);
+        return { scale: 1, panX: 0, panY: 0 };
+      }
+      return { ...v, scale };
     });
   };
   const onMapMouseDown = (e: React.MouseEvent) => {
