@@ -26,7 +26,6 @@ import {
   Trash2,
   ShoppingCart,
   ShieldCheck,
-  CreditCard,
   Info,
   Star,
   Instagram,
@@ -43,13 +42,13 @@ import {
   Eye,
   Bell,
   Flame,
-  Timer,
   Zap,
   TrendingUp,
   Sparkles,
   Award,
   ExternalLink,
 } from 'lucide-react';
+
 import { MapPreviewSVG } from '@/components/MapStudio/MapPreviewSVG';
 import { getMapContentExtent } from '@/lib/mapUtils';
 import type { Sector, VenueElement, TextElement, Seat } from '@/types/mapStudio';
@@ -768,7 +767,7 @@ const EventPreview: React.FC = () => {
           style={isMobile ? { transform: 'translateZ(0)', height: '844px', maxHeight: 'calc(100dvh - 3rem)' } : undefined}
         >
           {/* ============ HEADER STICKY ============ */}
-          <header className="sticky top-0 z-50 bg-black text-white border-b border-black shadow-sm">
+          <header className="sticky top-0 z-50 bg-gradient-to-b from-black/90 to-black/70 text-white border-b border-black/60 shadow-sm backdrop-blur-sm">
             <div className={cn('flex items-center justify-between gap-3', isMobile ? 'px-4 h-14' : 'px-8 h-16')}>
               {/* Logo */}
               <div className="flex items-center gap-2">
@@ -785,21 +784,11 @@ const EventPreview: React.FC = () => {
                   <button className="hover:text-[color:var(--brand-green)] flex items-center gap-1" style={{ ['--brand-green' as never]: BRAND.green }}>
                     <Search className="h-4 w-4" /> Buscar evento
                   </button>
-                  <button className="hover:text-[color:var(--brand-green)] flex items-center gap-1" style={{ ['--brand-green' as never]: BRAND.green }}>
-                    <MapPin className="h-4 w-4" /> Localização <ChevronDown className="h-3 w-3" />
-                  </button>
-                  <Button
-                    variant="outline"
-                    className="rounded-full border-2 font-semibold bg-transparent hover:bg-white/10"
-                    style={{ borderColor: BRAND.green, color: BRAND.green }}
-                  >
-                    Crie seu evento
-                  </Button>
                   <div className="flex items-center gap-2 pl-3 border-l border-white/20">
                     <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center">
                       <User className="h-4 w-4 text-white/80" />
                     </div>
-                    <button className="text-sm font-medium hover:underline">Conta</button>
+                    <button className="text-sm font-medium hover:underline">Entrar</button>
                   </div>
                   <button
                     className="relative rounded-full p-2 text-white"
@@ -816,6 +805,7 @@ const EventPreview: React.FC = () => {
                   </button>
                 </nav>
               )}
+
 
               {/* Mobile: cart + hambúrguer */}
               {isMobile && (
@@ -861,13 +851,10 @@ const EventPreview: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Ícones busca/localização */}
+                {/* Ícones busca */}
                 <div className="flex border-b border-slate-200">
                   <button className="flex-1 flex items-center justify-center gap-2 py-3 text-sm text-slate-700 hover:bg-slate-50">
                     <Search className="h-4 w-4" /> Buscar
-                  </button>
-                  <button className="flex-1 flex items-center justify-center gap-2 py-3 text-sm text-slate-700 hover:bg-slate-50 border-l border-slate-200">
-                    <MapPin className="h-4 w-4" /> Cidade
                   </button>
                 </div>
 
@@ -892,16 +879,14 @@ const EventPreview: React.FC = () => {
 
                 {/* Rodapé */}
                 <div className="p-4 border-t border-slate-200">
-                  <Button
-                    className="w-full rounded-full font-semibold text-white"
-                    style={{ background: BRAND.green }}
-                  >
-                    Crie seu evento
-                  </Button>
+                  <button className="w-full text-sm font-medium text-slate-600 hover:text-slate-900">
+                    Entrar ou cadastrar
+                  </button>
                 </div>
               </aside>
             </>
           )}
+
 
           {/* ============ ETAPA: DETALHE DO EVENTO ============ */}
           {flowStep === 'detalhe' && (
@@ -930,15 +915,13 @@ const EventPreview: React.FC = () => {
                       <span className="h-1.5 w-1.5 rounded-full gw-dot-pulse" style={{ background: BRAND.green }} />
                       Vendas abertas
                     </span>
-                    <span className="text-[11px] text-white/60 font-medium uppercase tracking-[0.16em]">
-                      Ribeirão Preto · SP · 11 Julho 2026
-                    </span>
                   </div>
                 )}
 
+
                 <div className={cn(
                   'relative overflow-hidden group',
-                  isMobile ? 'aspect-[16/10] bg-transparent' : 'rounded-2xl shadow-[0_30px_80px_-30px_rgba(0,0,0,0.55)] ring-1 ring-white/10 aspect-[1920/720] bg-transparent'
+                  isMobile ? 'aspect-[16/10] bg-transparent' : 'aspect-[1920/720] bg-transparent'
                 )}>
                   <img
                     src={eventInfo.heroBanner}
@@ -946,46 +929,15 @@ const EventPreview: React.FC = () => {
                     className="w-full h-full object-contain object-center transition-transform duration-[1400ms] ease-out group-hover:scale-[1.03]"
                     loading="eager"
                   />
-                  <div className="absolute top-4 left-4 sm:top-5 sm:left-5">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/95 backdrop-blur px-3 py-1.5 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-900 shadow-sm ring-1 ring-black/5">
-                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: BRAND.green }} />
-                      Tour 2026 · Confirmado
-                    </span>
-                  </div>
                 </div>
+
               </div>
             </section>
-
-
-
-            {/* URGÊNCIA & PROVA SOCIAL (strip discreta) */}
-            <section className="bg-white border-b border-slate-200">
-              <div className={cn('mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-2', isMobile ? 'px-4 py-3 text-[11px]' : 'px-8 py-3.5 text-xs max-w-6xl')}>
-                <div className="flex items-center gap-2 text-slate-600">
-                  <Timer className="h-3.5 w-3.5 gw-dot-pulse" style={{ color: BRAND.green }} />
-                  <span className="font-medium">Faltam</span>
-                  <span className="font-bold text-slate-900 tabular-nums">
-                    {countdown.d}d {String(countdown.h).padStart(2, '0')}:{String(countdown.m).padStart(2, '0')}:<span style={{ color: BRAND.green }}>{String(countdown.s).padStart(2, '0')}</span>
-                  </span>
-                </div>
-                <div className="hidden sm:block h-3 w-px bg-slate-200" />
-                <div className="flex items-center gap-2 text-slate-600">
-                  <ShieldCheck className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
-                  <span>Compra <span className="font-semibold text-slate-900">100% segura</span></span>
-                </div>
-                <div className="hidden sm:block h-3 w-px bg-slate-200" />
-                <div className="flex items-center gap-2 text-slate-600">
-                  <CreditCard className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
-                  <span>Em até <span className="font-semibold text-slate-900">10x sem juros</span></span>
-                </div>
-              </div>
-            </section>
-
-
 
 
 
             {/* Info do evento + card de preço */}
+
             <section className={cn('container mx-auto gw-reveal', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-6xl')}>
               <div className={cn('grid gap-8', isMobile ? 'grid-cols-1' : 'grid-cols-[1fr_360px]')}>
                 <div>
