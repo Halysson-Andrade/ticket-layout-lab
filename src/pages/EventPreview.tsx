@@ -1265,7 +1265,7 @@ const EventPreview: React.FC = () => {
             </section>
 
             {/* Pontos de venda */}
-            <section className="bg-slate-50">
+            <section id="tab-pontos" className="bg-slate-50 scroll-mt-24">
               <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
                 <h3 className="font-bold text-xl mb-4" style={{ color: BRAND.green }}>Pontos de venda</h3>
                 <div className={cn('grid gap-3', isMobile ? 'grid-cols-1' : 'grid-cols-4')}>
@@ -1279,6 +1279,25 @@ const EventPreview: React.FC = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Localização */}
+            <section id="tab-localizacao" className="bg-white scroll-mt-24">
+              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
+                <h3 className="font-bold text-xl mb-4 flex items-center gap-2" style={{ color: BRAND.green }}>
+                  <MapPin className="h-5 w-5" /> Localização
+                </h3>
+                <p className="text-sm text-slate-600 mb-4">Ribeirão Preto · SP</p>
+                <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
+                  <iframe
+                    title="Localização do evento"
+                    src="https://www.google.com/maps?q=Ribeir%C3%A3o+Preto+SP&output=embed"
+                    className={cn('w-full border-0', isMobile ? 'h-64' : 'h-96')}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
                 </div>
               </div>
             </section>
