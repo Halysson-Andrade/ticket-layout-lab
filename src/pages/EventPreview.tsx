@@ -1727,42 +1727,56 @@ const EventPreview: React.FC = () => {
                   </div>
                 )}
 
-                {/* Barra de datas horizontal (mobile) */}
+                {/* Barra de datas minimizada (mobile) — abre em popover ao clicar */}
                 {isMobile && (
-                  <div className="border-b bg-white px-3 py-2 shrink-0">
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <Calendar className="h-3 w-3" style={{ color: BRAND.green }} />
-                      <p className="text-[9px] uppercase tracking-wider font-bold text-slate-500">Datas</p>
-                    </div>
-                    <div className="flex gap-1.5 overflow-x-auto gw-hide-scroll">
-                      {eventDates.map((d) => {
-                        const active = selectedDateId === d.id;
-                        return (
-                          <button
-                            key={d.id}
-                            onClick={() => setSelectedDateId(d.id)}
-                            className={cn(
-                              'shrink-0 flex flex-col items-center rounded-lg border px-2.5 py-1.5 min-w-[64px] transition',
-                              active ? 'shadow-sm' : 'border-slate-200 bg-white'
-                            )}
-                            style={
-                              active
-                                ? { borderColor: BRAND.green, background: `${BRAND.green}10` }
-                                : undefined
-                            }
-                          >
-                            <span className="text-[8px] font-bold uppercase tracking-wider" style={{ color: active ? BRAND.green : '#64748b' }}>{d.weekday}</span>
-                            <span className="text-base font-black leading-none mt-0.5 text-slate-900">{d.day}</span>
-                            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">{d.month}</span>
-                            <span className="text-[9px] font-bold mt-0.5" style={{ color: active ? BRAND.green : '#334155' }}>{d.time}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                  <div className="border-b bg-white shrink-0 relative">
+                    <button
+                      type="button"
+                      onClick={() => setMobileDatesOpen((v) => !v)}
+                      className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left"
+                    >
+                      <span className="flex items-center gap-2 min-w-0">
+                        <Calendar className="h-3.5 w-3.5 shrink-0" style={{ color: BRAND.green }} />
+                        <span className="text-[9px] uppercase tracking-wider font-bold text-slate-500">Data</span>
+                        <span className="text-[12px] font-bold text-slate-900 truncate">
+                          {eventDates.find((d) => d.id === selectedDateId)?.label ?? 'Selecionar'}
+                        </span>
+                      </span>
+                      <ChevronDown className={cn('h-4 w-4 text-slate-500 transition-transform', mobileDatesOpen && 'rotate-180')} />
+                    </button>
+                    {mobileDatesOpen && (
+                      <div className="absolute left-0 right-0 top-full z-30 bg-white border-b border-slate-200 shadow-lg px-3 py-2">
+                        <div className="flex gap-1.5 overflow-x-auto gw-hide-scroll">
+                          {eventDates.map((d) => {
+                            const active = selectedDateId === d.id;
+                            return (
+                              <button
+                                key={d.id}
+                                onClick={() => { setSelectedDateId(d.id); setMobileDatesOpen(false); }}
+                                className={cn(
+                                  'shrink-0 flex flex-col items-center rounded-lg border px-2.5 py-1.5 min-w-[64px] transition',
+                                  active ? 'shadow-sm' : 'border-slate-200 bg-white'
+                                )}
+                                style={
+                                  active
+                                    ? { borderColor: BRAND.green, background: `${BRAND.green}10` }
+                                    : undefined
+                                }
+                              >
+                                <span className="text-[8px] font-bold uppercase tracking-wider" style={{ color: active ? BRAND.green : '#64748b' }}>{d.weekday}</span>
+                                <span className="text-base font-black leading-none mt-0.5 text-slate-900">{d.day}</span>
+                                <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">{d.month}</span>
+                                <span className="text-[9px] font-bold mt-0.5" style={{ color: active ? BRAND.green : '#334155' }}>{d.time}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                <div className={cn('flex-1 grid overflow-hidden min-h-0', isMobile ? 'grid-cols-1 grid-rows-[minmax(0,48%)_minmax(0,52%)]' : 'grid-cols-[112px_1.4fr_1fr]')}>
+                <div className={cn('flex-1 grid overflow-hidden min-h-0', isMobile ? 'grid-cols-1 grid-rows-[minmax(0,62%)_minmax(0,38%)]' : 'grid-cols-[112px_1.4fr_1fr]')}>
                   {/* Sidebar lateral de datas (desktop) */}
                   {!isMobile && (
                     <aside className="border-r border-slate-200 bg-slate-50 overflow-y-auto min-h-0 gw-hide-scroll">
