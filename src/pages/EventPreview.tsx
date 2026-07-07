@@ -1134,7 +1134,7 @@ const EventPreview: React.FC = () => {
 
             {/* Mapa do evento — imagem estática + CTA para abrir seleção */}
             <section id="tab-mapa" className="bg-slate-50 gw-reveal scroll-mt-24">
-              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl')}>
+              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl lg:pr-[372px]')}>
                 <div className="text-center mb-6">
                   <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Mapa do evento</p>
                   <p className="text-sm text-slate-500 mt-2">
