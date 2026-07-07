@@ -922,7 +922,7 @@ const EventPreview: React.FC = () => {
                   />
                 </div>
               </div>
-            </section></section>
+            </section>
 
 
 
