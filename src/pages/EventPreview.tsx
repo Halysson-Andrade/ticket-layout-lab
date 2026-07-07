@@ -1094,8 +1094,9 @@ const EventPreview: React.FC = () => {
                       data-price-card
                       className={cn(
                         'w-[340px] z-30',
-                        isPriceSticky ? 'fixed right-6 xl:right-10 top-24' : 'relative top-0'
+                        isPriceSticky ? 'fixed top-24' : 'relative top-0'
                       )}
+                      style={isPriceSticky && priceLeft != null ? { left: priceLeft } : undefined}
                     >
                       <div className="pointer-events-none absolute -inset-[1px] rounded-[20px] opacity-60 blur-xl"
                         style={{ background: `linear-gradient(140deg, ${BRAND.green}55, ${BRAND.cyan}33, ${BRAND.magenta}33)` }} />
