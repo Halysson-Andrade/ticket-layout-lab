@@ -1226,7 +1226,7 @@ const EventPreview: React.FC = () => {
 
             {/* Info + Regras */}
             <section id="tab-informacoes" className={cn('mx-auto gw-reveal scroll-mt-24', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
-              <div className={cn('grid gap-8', isMobile ? 'grid-cols-1' : 'grid-cols-2')}>
+              <div className="grid gap-8 grid-cols-1">
                 <div>
                   <h3 className="font-bold text-xl mb-4 flex items-center gap-2" style={{ color: BRAND.green }}>
                     <Info className="h-5 w-5" /> Informações
