@@ -1219,7 +1219,7 @@ const EventPreview: React.FC = () => {
 
             {/* Vídeo do evento */}
             <section className="bg-white gw-reveal">
-              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
+              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl lg:pr-[372px]')}>
                 <div className="text-center mb-6">
                   <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Assista</p>
                   <h3 className={cn('gw-display-md text-slate-900', isMobile ? 'text-2xl' : 'text-3xl')}>Veja o espetáculo em ação</h3>
@@ -1265,7 +1265,7 @@ const EventPreview: React.FC = () => {
 
 
             {/* Info + Regras */}
-            <section id="tab-informacoes" className={cn('mx-auto gw-reveal scroll-mt-24', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
+            <section id="tab-informacoes" className={cn('mx-auto gw-reveal scroll-mt-24', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl lg:pr-[372px]')}>
               <div className="grid gap-8 grid-cols-1">
                 <div>
                   <h3 className="font-bold text-xl mb-4 flex items-center gap-2" style={{ color: BRAND.green }}>
@@ -1307,7 +1307,7 @@ const EventPreview: React.FC = () => {
 
             {/* Pontos de venda */}
             <section id="tab-pontos" className="bg-slate-50 scroll-mt-24">
-              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
+              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl lg:pr-[372px]')}>
                 <h3 className="font-bold text-xl mb-4" style={{ color: BRAND.green }}>Pontos de venda</h3>
                 <div className={cn('grid gap-3', isMobile ? 'grid-cols-1' : 'grid-cols-4')}>
                   {pointsOfSale.map((p, i) => (
@@ -1326,7 +1326,7 @@ const EventPreview: React.FC = () => {
 
             {/* Localização */}
             <section id="tab-localizacao" className="bg-white scroll-mt-24">
-              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
+              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl lg:pr-[372px]')}>
                 <h3 className="font-bold text-xl mb-4 flex items-center gap-2" style={{ color: BRAND.green }}>
                   <MapPin className="h-5 w-5" /> Localização
                 </h3>
@@ -1345,7 +1345,7 @@ const EventPreview: React.FC = () => {
 
             {/* Você também pode gostar */}
             <section className="bg-white">
-              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl')}>
+              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl lg:pr-[372px]')}>
                 <div className="flex items-end justify-between mb-5">
                   <div>
                     <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Outros eventos</p>
