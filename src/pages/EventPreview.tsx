@@ -955,7 +955,7 @@ const EventPreview: React.FC = () => {
             </nav>
 
             {/* Info do evento + card de preço */}
-            <section className={cn('container mx-auto gw-reveal', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-6xl')}>
+            <section className={cn('container mx-auto', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-6xl')}>
               <div className={cn('grid gap-8 items-start', !isMobile && 'lg:grid-cols-[1fr_340px]')}>
                 <div>
                   <h1 className={cn(
