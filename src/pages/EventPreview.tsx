@@ -1433,7 +1433,6 @@ const EventPreview: React.FC = () => {
               </div>
             </div>
           </footer>
-          </div>
 
           {/* ============ Mobile bottom bar — pinada no rodapé por flex (sempre visível) ============ */}
           {isMobile && (
