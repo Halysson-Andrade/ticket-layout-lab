@@ -1823,24 +1823,6 @@ const EventPreview: React.FC = () => {
                         {Math.round(mapView.scale * 100)}%
                       </div>
                     )}
-                    {/* Instrução flutuante (oculta no mobile para não poluir o mapa) */}
-                    <div className={cn('absolute top-3 right-3 bg-white/90 backdrop-blur text-[10px] uppercase tracking-wider text-slate-600 font-bold rounded-full px-3 py-1 shadow z-10', isMobile && 'hidden')}>
-                      {selectedSectorId
-                        ? 'Clique nos assentos • arraste para mover'
-                        : mapView.scale > 1
-                        ? 'Arraste para mover • scroll para zoom'
-                        : 'Clique em um setor • scroll para zoom'}
-                    </div>
-                    {(hoveredSectorId || selectedSectorId) && (
-                      <div className="absolute bottom-14 left-3 right-3 bg-slate-900/90 text-white text-xs rounded-md px-3 py-2 flex items-center justify-between pointer-events-none z-10">
-                        <span className="font-semibold truncate">
-                          {sectorsForSale.find((s) => s.id === (hoveredSectorId || selectedSectorId))?.name}
-                        </span>
-                        <span className="font-bold" style={{ color: BRAND.green }}>
-                          {brl(sectorsForSale.find((s) => s.id === (hoveredSectorId || selectedSectorId))?.price ?? 0)}
-                        </span>
-                      </div>
-                    )}
                   </div>
 
 
