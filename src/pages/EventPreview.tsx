@@ -945,34 +945,13 @@ const EventPreview: React.FC = () => {
             <section className={cn('container mx-auto gw-reveal', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-6xl')}>
               <div className={cn('grid gap-8', isMobile ? 'grid-cols-1' : 'grid-cols-[1fr_360px]')}>
                 <div>
-                  {/* Badge de categoria */}
-                  <div className="flex items-center gap-2 mb-3 gw-reveal gw-reveal-delay-1">
-                    <span
-                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider"
-                      style={{ background: `${BRAND.green}14`, color: BRAND.green }}
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: BRAND.green }} />
-                      Circo · Espetáculo
-                    </span>
-                    <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">11 Julho · 2026 · 15h30</span>
-                  </div>
-
                   <h1 className={cn(
                     'gw-display text-slate-900 leading-[1.15] gw-rise break-words tracking-tight gw-reveal gw-reveal-delay-2',
                     isMobile ? 'text-[1.25rem]' : 'text-[1.5rem] lg:text-[1.875rem]'
                   )}>
                     Circo Mirage Circus Ribeirão Preto. SP - 11.JUL às 15h30
                   </h1>
-                  <p className="text-base text-slate-500 mt-2 max-w-2xl gw-reveal gw-reveal-delay-2">{eventInfo.subtitle}</p>
 
-                  <div className="flex items-center gap-1 mt-4 text-amber-500 gw-reveal gw-reveal-delay-3">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <Star key={i} className={cn('h-4 w-4', i <= Math.round(eventInfo.rating) ? 'fill-amber-500' : '')} />
-                    ))}
-                    <span className="text-xs text-slate-600 ml-2">
-                      <span className="font-bold text-slate-900">{eventInfo.rating}</span> · {eventInfo.reviews.toLocaleString('pt-BR')} avaliações
-                    </span>
-                  </div>
 
                   {/* Meta cards */}
                   <div className={cn('mt-6 grid gap-3 gw-reveal gw-reveal-delay-3', isMobile ? 'grid-cols-1' : 'grid-cols-2')}>
