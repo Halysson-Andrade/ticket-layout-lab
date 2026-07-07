@@ -1482,10 +1482,7 @@ const EventPreview: React.FC = () => {
           {/* ============ Desktop floating CTA bar — aparece apenas quando há itens no carrinho ============ */}
           {!isMobile && cartCount > 0 && (
             <div
-              className={cn(
-                'fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] transition-all duration-300 ease-out',
-                showStickyCTA ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0 pointer-events-none',
-              )}
+              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] transition-all duration-300 ease-out translate-y-0 opacity-100"
             >
               <div
                 className="flex items-stretch gap-0 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/80 p-2"
