@@ -247,8 +247,10 @@ const EventPreview: React.FC = () => {
   const dragRef = React.useRef<{ x: number; y: number; panX: number; panY: number; moved: boolean } | null>(null);
   const priceCardRef = React.useRef<HTMLDivElement>(null);
   const pricePlaceholderRef = React.useRef<HTMLDivElement>(null);
+  const footerRef = React.useRef<HTMLElement>(null);
   const [isPriceSticky, setIsPriceSticky] = useState(false);
   const [priceLeft, setPriceLeft] = useState<number | null>(null);
+  const [priceTop, setPriceTop] = useState<number | null>(null);
 
   // === Conversion boosters ===
   const [viewers, setViewers] = useState(() => 87 + Math.floor(Math.random() * 60));
