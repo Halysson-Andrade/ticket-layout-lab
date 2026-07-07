@@ -1778,6 +1778,7 @@ const EventPreview: React.FC = () => {
                           }}
                           focusBounds={effectiveMapBounds}
                           showSeatLabels={!!selectedSectorId || mapView.scale >= 2.5}
+                          showSeats={!!selectedSectorId}
                           sectorLabelMode="hover"
                           dimmedSectorIds={dimmedSectorIds}
                           selectedSeatIds={selectedSeatIds}
