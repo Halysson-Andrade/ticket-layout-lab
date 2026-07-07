@@ -50,7 +50,9 @@ import {
 
 import { MapPreviewSVG } from '@/components/MapStudio/MapPreviewSVG';
 import { getMapContentExtent } from '@/lib/mapUtils';
-import type { Sector, VenueElement, TextElement, Seat } from '@/types/mapStudio';
+import { Slider } from '@/components/ui/slider';
+import type { Sector, VenueElement, TextElement, Seat, SeatType } from '@/types/mapStudio';
+import { SEAT_COLORS, SEAT_TYPE_LABELS } from '@/types/mapStudio';
 import mirageBannerAsset from '@/assets/mirage-banner.png.asset.json';
 
 type Device = 'desktop' | 'mobile';
@@ -232,6 +234,8 @@ const EventPreview: React.FC = () => {
   const [cartPanelOpen, setCartPanelOpen] = useState(false); // carrinho expansível dentro da etapa 'ingressos'
   const [produtorTermOpen, setProdutorTermOpen] = useState(false); // modal de termos do produtor
   const [selectedSectorId, setSelectedSectorId] = useState<string | null>(null);
+  // Régua de preço (teto de orçamento). null = sem filtro (usa o preço máximo do mapa).
+  const [budget, setBudget] = useState<number | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mapFocusId, setMapFocusId] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<Array<{ id: string; sectorId: string; row: string; number: string; price: number; sectorName: string; color: string; ticketType: string }>>([]);
@@ -397,6 +401,26 @@ const EventPreview: React.FC = () => {
 
   const minPrice = sectorsForSale.length ? Math.min(...sectorsForSale.map((s) => s.price)) : 0;
   const maxPrice = sectorsForSale.length ? Math.max(...sectorsForSale.map((s) => s.price)) : 0;
+
+  // Teto efetivo do orçamento: enquanto o usuário não mexe na régua, vale o preço máximo (nada esmaecido).
+  const effectiveBudget = budget ?? maxPrice;
+  // Setores acima do orçamento → esmaecidos (apenas visual; continuam clicáveis).
+  const dimmedSectorIds = useMemo(
+    () => sectorsForSale.filter((s) => s.price > effectiveBudget).map((s) => s.id),
+    [sectorsForSale, effectiveBudget],
+  );
+  const dimmedSet = useMemo(() => new Set(dimmedSectorIds), [dimmedSectorIds]);
+  const withinBudgetCount = sectorsForSale.length - dimmedSectorIds.length;
+
+  // Tipos de assento presentes no mapa (para montar a legenda dinâmica).
+  const presentSeatTypes = useMemo(() => {
+    const set = new Set<SeatType>();
+    (snapshot?.sectors ?? []).forEach((s) => s.seats.forEach((seat) => seat.type && set.add(seat.type)));
+    return set;
+  }, [snapshot]);
+  // Tipos especiais (excl. normal/blocked) que aparecem na legenda com cor de tipo.
+  const specialLegendTypes = (['pcd', 'companion', 'obeso', 'vip'] as SeatType[]).filter((t) => presentSeatTypes.has(t));
+  const hasBlockedSeats = presentSeatTypes.has('blocked');
 
   // Focus bounds para "zoom" no setor selecionado no mapa da página
   const mapFocusBounds = useMemo(() => {
@@ -1626,6 +1650,76 @@ const EventPreview: React.FC = () => {
                 </div>
 
 
+                {/* Barra de controles acima dos setores: régua de preço + legenda de tipos de assento */}
+                {(maxPrice > minPrice || specialLegendTypes.length > 0) && (
+                  <div className="border-b bg-white px-4 sm:px-6 py-2.5 shrink-0 flex flex-col gap-2.5">
+                    {/* Régua de preço (teto de orçamento) */}
+                    {maxPrice > minPrice && (
+                      <div className="flex items-center gap-3">
+                        <div className="shrink-0">
+                          <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500 leading-none">Orçamento até</p>
+                          <p className="text-sm font-black text-slate-900 leading-tight mt-0.5">{brl(effectiveBudget)}</p>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <Slider
+                            min={minPrice}
+                            max={maxPrice}
+                            step={5}
+                            value={[effectiveBudget]}
+                            onValueChange={([v]) => setBudget(v)}
+                            aria-label="Orçamento máximo por ingresso"
+                          />
+                          <div className="flex justify-between mt-1 text-[10px] text-slate-400 font-medium">
+                            <span>{brl(minPrice)}</span>
+                            <span>{brl(maxPrice)}</span>
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="text-[11px] font-semibold text-slate-600 leading-tight">
+                            <span style={{ color: BRAND.green }}>{withinBudgetCount}</span> de {sectorsForSale.length} setores
+                          </p>
+                          {budget !== null && (
+                            <button
+                              onClick={() => setBudget(null)}
+                              className="text-[10px] font-bold uppercase tracking-wider hover:underline"
+                              style={{ color: BRAND.green }}
+                            >
+                              Limpar
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Legenda de tipos de assento */}
+                    {specialLegendTypes.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-slate-600">
+                        <span className="uppercase tracking-wider font-bold text-slate-400">Legenda</span>
+                        {specialLegendTypes.map((t) => (
+                          <span key={t} className="inline-flex items-center gap-1.5">
+                            <span className="h-3 w-3 rounded-full border border-black/10 shrink-0" style={{ background: SEAT_COLORS[t] }} />
+                            {SEAT_TYPE_LABELS[t]}
+                          </span>
+                        ))}
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="h-3 w-3 rounded-full border border-slate-300 bg-white shrink-0" />
+                          Disponível
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="h-3 w-3 rounded-full shrink-0" style={{ background: BRAND.green }} />
+                          Selecionado
+                        </span>
+                        {hasBlockedSeats && (
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="h-3 w-3 rounded-full bg-slate-400 shrink-0" />
+                            Indisponível
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className={cn('flex-1 grid overflow-hidden min-h-0', isMobile ? 'grid-cols-1 grid-rows-[minmax(0,48%)_minmax(0,52%)]' : 'grid-cols-[1.4fr_1fr]')}>
                   <div
                     ref={mapWrapperRef}
@@ -1661,6 +1755,7 @@ const EventPreview: React.FC = () => {
                           focusBounds={effectiveMapBounds}
                           showSeatLabels={!!selectedSectorId || mapView.scale >= 2.5}
                           sectorLabelMode="hover"
+                          dimmedSectorIds={dimmedSectorIds}
                           selectedSeatIds={selectedSeatIds}
                           onClickSeat={(seat, sector) => {
                             if (dragRef.current?.moved) return;
@@ -1746,6 +1841,8 @@ const EventPreview: React.FC = () => {
                         const isActive = (selectedSectorId || hoveredSectorId) === s.id;
                         const inCart = cart.find((i) => i.sectorId === s.id && i.ticketType === 'inteira');
                         const isBest = s.id === bestValueSectorId;
+                        // Fora do orçamento: esmaece a linha (mesmo sinal visual do mapa). Continua clicável.
+                        const isDimmed = dimmedSet.has(s.id) && !isActive;
                         return (
                           <div
                             key={s.id}
@@ -1756,6 +1853,7 @@ const EventPreview: React.FC = () => {
                               'relative flex flex-wrap items-center gap-x-3 gap-y-2 border rounded-xl p-3 cursor-pointer transition',
                               isActive ? 'shadow-md' : 'border-slate-200 hover:border-slate-300',
                               isBest && !isActive && 'border-transparent',
+                              isDimmed && 'opacity-50 grayscale',
                             )}
                             style={
                               isActive

@@ -267,6 +267,15 @@ export const SEAT_COLORS: Record<SeatType, string> = {
   blocked: 'hsl(0, 0%, 45%)',
 };
 
+export const SEAT_TYPE_LABELS: Record<SeatType, string> = {
+  normal: 'Normal',
+  pcd: 'PCD',
+  companion: 'Acompanhante',
+  obeso: 'Obeso',
+  vip: 'VIP',
+  blocked: 'Bloqueado',
+};
+
 export const SECTOR_COLORS = [
   'hsl(340, 82%, 52%)',
   'hsl(262, 83%, 58%)',

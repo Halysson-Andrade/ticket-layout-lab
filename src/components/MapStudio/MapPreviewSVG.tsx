@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { getMapContentExtent } from '@/lib/mapUtils';
 import type { Sector, VenueElement, TextElement, Seat } from '@/types/mapStudio';
+import { SEAT_COLORS } from '@/types/mapStudio';
 
 interface MapPreviewSVGProps {
   sectors: Sector[];
@@ -23,6 +24,9 @@ interface MapPreviewSVGProps {
   interactive?: boolean;
   // Como exibir o nome do setor sobre o mapa: sempre, só no hover (tooltip) ou nunca
   sectorLabelMode?: 'always' | 'hover' | 'none';
+  // Setores a esmaecer (cinza) — ex.: fora do orçamento escolhido na régua de preço.
+  // Puramente visual: o setor continua clicável e volta à cor real ao hover/seleção.
+  dimmedSectorIds?: string[];
 }
 
 
@@ -60,8 +64,15 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
   showSeatLabels = false,
   interactive = true,
   sectorLabelMode = 'always',
+  dimmedSectorIds,
 }) => {
   const selectedSeatSet = useMemo(() => new Set(selectedSeatIds ?? []), [selectedSeatIds]);
+  const dimmedSet = useMemo(() => new Set(dimmedSectorIds ?? []), [dimmedSectorIds]);
+
+  // Cor do assento por tipo. 'normal' fica branco (o verde de "selecionado" precisa se
+  // distinguir; SEAT_COLORS.normal também é verde). Demais tipos usam a cor do tipo.
+  const seatTypeFill = (seat: Seat): string =>
+    seat.type && seat.type !== 'normal' ? SEAT_COLORS[seat.type] : 'rgba(255,255,255,0.9)';
 
   // Compute fit bounds from visible content (setores + elementos como palco/telão + textos),
   // considerando a rotação de cada item para não cortar nas laterais.
@@ -135,6 +146,8 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
         if (s.visible === false) return null;
         const isHover = hoveredSectorId === s.id;
         const isSelected = selectedSectorId === s.id;
+        // Esmaecido só quando não está em foco: hover/seleção sempre revelam a cor real.
+        const isDimmed = dimmedSet.has(s.id) && !isHover && !isSelected;
         const cx = s.bounds.x + s.bounds.width / 2;
         const cy = s.bounds.y + s.bounds.height / 2;
         const seatBaseR = Math.max(2, (s.seatSize ?? 14) * 0.35);
@@ -150,8 +163,8 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
           >
             <path
               d={verticesToPath(s.vertices)}
-              fill={s.color}
-              fillOpacity={(isHover || isSelected ? 0.95 : (s.opacity ?? 60) / 100)}
+              fill={isDimmed ? '#94a3b8' : s.color}
+              fillOpacity={isDimmed ? 0.35 : (isHover || isSelected ? 0.95 : (s.opacity ?? 60) / 100)}
               stroke={isSelected ? '#0f172a' : isHover ? '#1e293b' : 'rgba(0,0,0,0.25)'}
               strokeWidth={isSelected ? 3 : 1.5}
               style={{ transition: 'fill-opacity 120ms, stroke 120ms' }}
@@ -160,11 +173,14 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
             {s.seats.slice(0, s.id === selectedSectorId ? s.seats.length : (showSeatLabels ? 2000 : 600)).map((seat) => {
               const isSeatSelected = selectedSeatSet.has(seat.id);
               const isBlocked = seat.status === 'blocked' || seat.status === 'sold' || seat.type === 'blocked';
+              const isSpecial = !isSeatSelected && !isBlocked && !isDimmed && seat.type && seat.type !== 'normal';
               const fill = isSeatSelected
                 ? '#11CC35'
                 : isBlocked
                 ? 'rgba(148,163,184,0.6)'
-                : 'rgba(255,255,255,0.9)';
+                : isDimmed
+                ? 'rgba(203,213,225,0.7)'
+                : seatTypeFill(seat);
               const handleSeatClick = (e: React.MouseEvent) => {
                 if (!interactive || !onClickSeat || isBlocked) return;
                 e.stopPropagation();
@@ -182,8 +198,16 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
                 const tCenterX = seat.x + tW / 2;
                 const tCenterY = seat.y + tH / 2;
                 const defaultColor = seat.furnitureType === 'bistro' ? '#8b5cf6' : '#64748b';
-                const tableFill = isSeatSelected ? '#11CC35' : isBlocked ? 'rgba(148,163,184,0.7)' : (cfg.tableColor || defaultColor);
-                const chairFill = isBlocked ? 'rgba(148,163,184,0.5)' : 'rgba(255,255,255,0.9)';
+                const tableFill = isSeatSelected
+                  ? '#11CC35'
+                  : isBlocked
+                  ? 'rgba(148,163,184,0.7)'
+                  : isDimmed
+                  ? 'rgba(203,213,225,0.7)'
+                  : seat.type && seat.type !== 'normal'
+                  ? SEAT_COLORS[seat.type]
+                  : (cfg.tableColor || defaultColor);
+                const chairFill = isBlocked || isDimmed ? 'rgba(148,163,184,0.5)' : 'rgba(255,255,255,0.9)';
                 const startAngle = ((cfg.chairStartAngle || 0) * Math.PI) / 180;
                 const chairs = [];
                 for (let i = 0; i < (cfg.chairCount || 0); i++) {
@@ -242,7 +266,7 @@ export const MapPreviewSVG: React.FC<MapPreviewSVGProps> = ({
                       dominantBaseline="middle"
                       fontSize={seatR * 0.9}
                       fontWeight={700}
-                      fill={isSeatSelected ? '#fff' : '#0f172a'}
+                      fill={isSeatSelected || isSpecial ? '#fff' : '#0f172a'}
                       pointerEvents="none"
                     >
                       {seat.number}
