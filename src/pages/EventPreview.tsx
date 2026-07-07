@@ -1034,23 +1034,11 @@ const EventPreview: React.FC = () => {
                   <div className="pointer-events-none absolute -inset-[1px] rounded-[20px] opacity-60 blur-xl"
                     style={{ background: `linear-gradient(140deg, ${BRAND.green}55, ${BRAND.cyan}33, ${BRAND.magenta}33)` }} />
                   <div className="relative rounded-2xl p-6 border border-slate-200 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)]">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[10px] uppercase tracking-[0.15em] font-bold text-slate-400">A partir de</p>
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                        style={{ background: `${BRAND.green}1a`, color: BRAND.green }}>
-                        <span className="h-1.5 w-1.5 rounded-full gw-dot-pulse" style={{ background: BRAND.green }} /> Disponível
-                      </span>
-                    </div>
+                    <p className="text-[10px] uppercase tracking-[0.15em] font-bold text-slate-400">A partir de</p>
                     <div className="flex items-baseline gap-2 mt-1">
                       <p className="text-4xl font-black text-slate-900 leading-none tracking-tight">{minPrice ? brl(minPrice) : '—'}</p>
-                      {maxPrice > minPrice && (
-                        <p className="text-xs text-slate-400 line-through tabular-nums">{brl(maxPrice)}</p>
-                      )}
                     </div>
-                    <p className="text-xs text-slate-500 mt-2">
-                      ou <span className="font-semibold text-slate-700">10x de {brl((minPrice || 0) / 10)}</span> sem juros
-                    </p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">Lote atual · + taxa de serviço</p>
+
 
 
 
