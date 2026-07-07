@@ -274,11 +274,20 @@ const EventPreview: React.FC = () => {
       if (!pricePlaceholderRef.current || !priceCardRef.current) return;
       const headerH = 64; // h-16 desktop
       const rect = pricePlaceholderRef.current.getBoundingClientRect();
-      setIsPriceSticky(rect.top <= headerH + 32);
+      const sticky = rect.top <= headerH + 32;
+      setIsPriceSticky(sticky);
+      // Sempre atualiza o "left" a partir do placeholder para manter o card na mesma coluna
+      // (usa a posição do placeholder quando ainda não está sticky; quando sticky, o placeholder
+      // continua no fluxo com a mesma largura, então rect.left permanece consistente).
+      if (!sticky) setPriceLeft(rect.left);
     };
     handle();
     window.addEventListener('scroll', handle, { passive: true });
-    return () => window.removeEventListener('scroll', handle);
+    window.addEventListener('resize', handle);
+    return () => {
+      window.removeEventListener('scroll', handle);
+      window.removeEventListener('resize', handle);
+    };
   }, []);
 
 
