@@ -896,33 +896,23 @@ const EventPreview: React.FC = () => {
           <div className={cn(isMobile ? 'flex-1 min-h-0 overflow-y-auto gw-hide-scroll flex flex-col' : 'flex-1 flex flex-col')}>
           {/* ============ MAIN ============ */}
           <main className="flex-1 flex flex-col">
-            {/* HERO — estilo Guichê Web: fundo blur da mesma imagem + banner nítido + borda serrilhada */}
+                        {/* HERO — banner da frente emergindo da mesma imagem expandida/desfocada no fundo */}
             <section className="relative overflow-hidden">
-              {/* Fundo: mesma imagem em blur escuro (estilo Guichê Web) */}
+              {/* Fundo: mesma imagem expandida e desfocada, mais visível */}
               <div
                 aria-hidden
                 className="absolute inset-0 bg-center bg-cover scale-110"
                 style={{
                   backgroundImage: `url(${eventInfo.heroBanner})`,
-                  filter: 'blur(28px) brightness(0.45) saturate(1.1)',
+                  filter: 'blur(28px) brightness(0.75) saturate(1.1)',
                 }}
               />
-              <div aria-hidden className="absolute inset-0 bg-black/55" />
+              <div aria-hidden className="absolute inset-0 bg-black/30" />
 
-              <div className={cn('relative mx-auto w-full', isMobile ? 'px-0 pt-0 pb-0' : 'px-8 pt-8 pb-8 max-w-6xl')}>
-                {!isMobile && (
-                  <div className="flex items-center gap-3 mb-5">
-                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur border border-white/15 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/90">
-                      <span className="h-1.5 w-1.5 rounded-full gw-dot-pulse" style={{ background: BRAND.green }} />
-                      Vendas abertas
-                    </span>
-                  </div>
-                )}
-
-
+              <div className="relative w-full">
                 <div className={cn(
-                  'relative overflow-hidden group',
-                  isMobile ? 'aspect-[16/10] bg-transparent' : 'aspect-[1920/720] bg-transparent'
+                  'relative overflow-hidden group w-full',
+                  isMobile ? 'aspect-[16/9] bg-transparent' : 'aspect-[1920/560] bg-transparent'
                 )}>
                   <img
                     src={eventInfo.heroBanner}
@@ -931,9 +921,8 @@ const EventPreview: React.FC = () => {
                     loading="eager"
                   />
                 </div>
-
               </div>
-            </section>
+            </section></section>
 
 
 
