@@ -1359,8 +1359,8 @@ const EventPreview: React.FC = () => {
                 </div>
               </div>
             </section>
-            </div>
           </main>
+          </div>
 
           {/* ============ FOOTER ============ */}
           <footer className="bg-black text-[#B3B3B3]">
