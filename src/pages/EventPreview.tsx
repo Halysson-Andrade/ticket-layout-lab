@@ -1075,20 +1075,13 @@ const EventPreview: React.FC = () => {
                           style={{ background: `linear-gradient(120deg, ${BRAND.green}, #0fb02e)` }}
                           onClick={() => setFlowStep('ingressos')}
                         >
-                          <ShoppingCart className="h-4 w-4 mr-2" />
-                          {dynamicCta.label}
+                          <Ticket className="h-4 w-4 mr-2" />
+                          Ingressos
                         </Button>
                         <p className="text-[11px] text-center text-slate-500 mt-1.5 flex items-center justify-center gap-1">
                           <ShieldCheck className="h-3 w-3" style={{ color: BRAND.green }} />
-                          {dynamicCta.micro}
+                          Compra 100% segura
                         </p>
-                        <Button
-                          variant="ghost"
-                          className="w-full mt-1 h-9 text-xs font-semibold text-slate-500 hover:text-slate-900"
-                          onClick={handleRemindMe}
-                        >
-                          <Bell className="h-3.5 w-3.5 mr-1.5" /> Lembre-me deste evento
-                        </Button>
                       </div>
                     </div>
                   )}
