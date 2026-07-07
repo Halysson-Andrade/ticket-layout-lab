@@ -904,9 +904,43 @@ const EventPreview: React.FC = () => {
               </div>
             </section>
 
-
+            {/* Abas de navegação — sticky abaixo do header */}
+            <nav
+              className={cn(
+                'sticky z-40 bg-white/95 backdrop-blur border-b border-slate-200',
+                isMobile ? 'top-14' : 'top-16',
+              )}
+            >
+              <div
+                className={cn(
+                  'mx-auto flex items-center gap-1 overflow-x-auto gw-hide-scroll',
+                  isMobile ? 'px-2' : 'px-8 max-w-6xl',
+                )}
+              >
+                {[
+                  { id: 'tab-mapa', label: 'Mapa' },
+                  { id: 'tab-informacoes', label: 'Informações' },
+                  { id: 'tab-pontos', label: 'Pontos de venda' },
+                  { id: 'tab-localizacao', label: 'Localização' },
+                ].map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => {
+                      const el = document.getElementById(t.id);
+                      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    className="px-4 py-3 text-sm font-medium text-slate-600 hover:text-slate-900 border-b-2 border-transparent hover:border-slate-300 whitespace-nowrap transition"
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </nav>
 
             {/* Info do evento + card de preço */}
+
+
 
             <section className={cn('container mx-auto gw-reveal', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-6xl')}>
               <div className={cn('grid gap-8', isMobile ? 'grid-cols-1' : 'grid-cols-[1fr_360px]')}>
