@@ -1485,8 +1485,8 @@ const EventPreview: React.FC = () => {
             </div>
           )}
 
-          {/* ============ Desktop floating CTA bar — aparece ao scroll ============ */}
-          {!isMobile && (
+          {/* ============ Desktop floating CTA bar — aparece apenas quando há itens no carrinho ============ */}
+          {!isMobile && cartCount > 0 && (
             <div
               className={cn(
                 'fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] transition-all duration-300 ease-out',
