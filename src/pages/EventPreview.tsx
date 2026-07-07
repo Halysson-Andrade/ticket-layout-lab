@@ -233,7 +233,6 @@ const EventPreview: React.FC = () => {
   const [produtorTermOpen, setProdutorTermOpen] = useState(false); // modal de termos do produtor
   const [selectedSectorId, setSelectedSectorId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showStickyCTA, setShowStickyCTA] = useState(false);
   const [mapFocusId, setMapFocusId] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<Array<{ id: string; sectorId: string; row: string; number: string; price: number; sectorName: string; color: string; ticketType: string }>>([]);
   // Modal de escolha do ingresso ao clicar num assento
