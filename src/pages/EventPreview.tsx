@@ -1075,9 +1075,10 @@ const EventPreview: React.FC = () => {
                 {/* Card de preço desktop: placeholder mantém o espaço; card gruda quando chega ao topo */}
                 {!isMobile && (
                   <div ref={pricePlaceholderRef} className="relative hidden lg:block">
-                    <div
-                      ref={priceCardRef}
-                      className={cn(
+                  <div
+                    ref={priceCardRef}
+                    data-price-card
+                    className={cn(
                         'w-[340px] z-30 gw-rise gw-rise-delay-2 transition-[top]',
                         isPriceSticky ? 'fixed right-6 xl:right-10 top-24' : 'relative top-0'
                       )}
