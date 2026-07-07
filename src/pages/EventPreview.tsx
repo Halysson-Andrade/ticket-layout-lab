@@ -1335,6 +1335,7 @@ const EventPreview: React.FC = () => {
                 </div>
               </div>
             </section>
+            </div>
           </main>
 
           {/* ============ FOOTER ============ */}
