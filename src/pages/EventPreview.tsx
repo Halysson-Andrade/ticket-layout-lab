@@ -1079,7 +1079,7 @@ const EventPreview: React.FC = () => {
                     ref={priceCardRef}
                     data-price-card
                     className={cn(
-                        'w-[340px] z-30 gw-rise gw-rise-delay-2 transition-[top]',
+                        'w-[340px] z-30 gw-rise gw-rise-delay-2',
                         isPriceSticky ? 'fixed right-6 xl:right-10 top-24' : 'relative top-0'
                       )}
                     >
