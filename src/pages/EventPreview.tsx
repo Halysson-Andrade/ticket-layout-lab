@@ -1788,15 +1788,6 @@ const EventPreview: React.FC = () => {
                         />
                       </div>
                     )}
-                    {/* Controle: voltar do zoom */}
-                    {selectedSectorId && (
-                      <button
-                        onClick={() => setSelectedSectorId(null)}
-                        className="absolute top-3 left-3 bg-white/95 border border-slate-200 rounded-full px-3 py-1 text-[11px] font-bold text-slate-700 shadow hover:bg-white z-10"
-                      >
-                        ← Ver mapa completo
-                      </button>
-                    )}
                     {/* Zoom controls */}
                     <div className="absolute bottom-3 right-3 z-10 flex flex-col gap-1 bg-white/95 backdrop-blur border border-slate-200 rounded-full shadow p-1">
                       <button
