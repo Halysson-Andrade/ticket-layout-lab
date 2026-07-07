@@ -248,6 +248,7 @@ const EventPreview: React.FC = () => {
   const priceCardRef = React.useRef<HTMLDivElement>(null);
   const pricePlaceholderRef = React.useRef<HTMLDivElement>(null);
   const [isPriceSticky, setIsPriceSticky] = useState(false);
+  const [priceLeft, setPriceLeft] = useState<number | null>(null);
 
   // === Conversion boosters ===
   const [viewers, setViewers] = useState(() => 87 + Math.floor(Math.random() * 60));
@@ -273,11 +274,20 @@ const EventPreview: React.FC = () => {
       if (!pricePlaceholderRef.current || !priceCardRef.current) return;
       const headerH = 64; // h-16 desktop
       const rect = pricePlaceholderRef.current.getBoundingClientRect();
-      setIsPriceSticky(rect.top <= headerH + 32);
+      const sticky = rect.top <= headerH + 32;
+      setIsPriceSticky(sticky);
+      // Sempre atualiza o "left" a partir do placeholder para manter o card na mesma coluna
+      // (usa a posição do placeholder quando ainda não está sticky; quando sticky, o placeholder
+      // continua no fluxo com a mesma largura, então rect.left permanece consistente).
+      if (!sticky) setPriceLeft(rect.left);
     };
     handle();
     window.addEventListener('scroll', handle, { passive: true });
-    return () => window.removeEventListener('scroll', handle);
+    window.addEventListener('resize', handle);
+    return () => {
+      window.removeEventListener('scroll', handle);
+      window.removeEventListener('resize', handle);
+    };
   }, []);
 
 
@@ -1084,8 +1094,9 @@ const EventPreview: React.FC = () => {
                       data-price-card
                       className={cn(
                         'w-[340px] z-30',
-                        isPriceSticky ? 'fixed right-6 xl:right-10 top-24' : 'relative top-0'
+                        isPriceSticky ? 'fixed top-24' : 'relative top-0'
                       )}
+                      style={isPriceSticky && priceLeft != null ? { left: priceLeft } : undefined}
                     >
                       <div className="pointer-events-none absolute -inset-[1px] rounded-[20px] opacity-60 blur-xl"
                         style={{ background: `linear-gradient(140deg, ${BRAND.green}55, ${BRAND.cyan}33, ${BRAND.magenta}33)` }} />
@@ -1123,7 +1134,7 @@ const EventPreview: React.FC = () => {
 
             {/* Mapa do evento — imagem estática + CTA para abrir seleção */}
             <section id="tab-mapa" className="bg-slate-50 gw-reveal scroll-mt-24">
-              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl')}>
+              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl lg:pr-[372px]')}>
                 <div className="text-center mb-6">
                   <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Mapa do evento</p>
                   <p className="text-sm text-slate-500 mt-2">
@@ -1208,7 +1219,7 @@ const EventPreview: React.FC = () => {
 
             {/* Vídeo do evento */}
             <section className="bg-white gw-reveal">
-              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
+              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl lg:pr-[372px]')}>
                 <div className="text-center mb-6">
                   <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Assista</p>
                   <h3 className={cn('gw-display-md text-slate-900', isMobile ? 'text-2xl' : 'text-3xl')}>Veja o espetáculo em ação</h3>
@@ -1254,7 +1265,7 @@ const EventPreview: React.FC = () => {
 
 
             {/* Info + Regras */}
-            <section id="tab-informacoes" className={cn('mx-auto gw-reveal scroll-mt-24', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
+            <section id="tab-informacoes" className={cn('mx-auto gw-reveal scroll-mt-24', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl lg:pr-[372px]')}>
               <div className="grid gap-8 grid-cols-1">
                 <div>
                   <h3 className="font-bold text-xl mb-4 flex items-center gap-2" style={{ color: BRAND.green }}>
@@ -1296,7 +1307,7 @@ const EventPreview: React.FC = () => {
 
             {/* Pontos de venda */}
             <section id="tab-pontos" className="bg-slate-50 scroll-mt-24">
-              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
+              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl lg:pr-[372px]')}>
                 <h3 className="font-bold text-xl mb-4" style={{ color: BRAND.green }}>Pontos de venda</h3>
                 <div className={cn('grid gap-3', isMobile ? 'grid-cols-1' : 'grid-cols-4')}>
                   {pointsOfSale.map((p, i) => (
@@ -1315,7 +1326,7 @@ const EventPreview: React.FC = () => {
 
             {/* Localização */}
             <section id="tab-localizacao" className="bg-white scroll-mt-24">
-              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl')}>
+              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-5xl lg:pr-[372px]')}>
                 <h3 className="font-bold text-xl mb-4 flex items-center gap-2" style={{ color: BRAND.green }}>
                   <MapPin className="h-5 w-5" /> Localização
                 </h3>
@@ -1334,7 +1345,7 @@ const EventPreview: React.FC = () => {
 
             {/* Você também pode gostar */}
             <section className="bg-white">
-              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl')}>
+              <div className={cn('mx-auto', isMobile ? 'px-4 py-8' : 'px-8 py-12 max-w-6xl lg:pr-[372px]')}>
                 <div className="flex items-end justify-between mb-5">
                   <div>
                     <p className="text-xs font-bold tracking-widest uppercase" style={{ color: BRAND.green }}>Outros eventos</p>
