@@ -40,7 +40,6 @@ import {
   Ticket,
   UserCircle,
   Eye,
-  Bell,
   Flame,
   Zap,
   TrendingUp,
