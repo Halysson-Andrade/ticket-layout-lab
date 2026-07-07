@@ -267,6 +267,19 @@ const EventPreview: React.FC = () => {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Preço desktop: começa no fluxo normal e só gruda quando o placeholder atinge o topo
+  useEffect(() => {
+    const handle = () => {
+      if (!pricePlaceholderRef.current || !priceCardRef.current) return;
+      const headerH = 64; // h-16 desktop
+      const rect = pricePlaceholderRef.current.getBoundingClientRect();
+      setIsPriceSticky(rect.top <= headerH + 32);
+    };
+    handle();
+    window.addEventListener('scroll', handle, { passive: true });
+    return () => window.removeEventListener('scroll', handle);
+  }, []);
+
 
 
 
