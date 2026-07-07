@@ -245,6 +245,9 @@ const EventPreview: React.FC = () => {
   const [videoPlaying, setVideoPlaying] = useState(false);
   const mapWrapperRef = React.useRef<HTMLDivElement>(null);
   const dragRef = React.useRef<{ x: number; y: number; panX: number; panY: number; moved: boolean } | null>(null);
+  const priceCardRef = React.useRef<HTMLDivElement>(null);
+  const pricePlaceholderRef = React.useRef<HTMLDivElement>(null);
+  const [isPriceSticky, setIsPriceSticky] = useState(false);
 
   // === Conversion boosters ===
   const [viewers, setViewers] = useState(() => 87 + Math.floor(Math.random() * 60));
