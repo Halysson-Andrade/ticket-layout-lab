@@ -1074,14 +1074,15 @@ const EventPreview: React.FC = () => {
 
                 {/* Card de preço desktop: placeholder mantém o espaço; card gruda quando chega ao topo */}
                 {!isMobile && (
-                  <div ref={pricePlaceholderRef} className="relative hidden lg:block">
-                  <div
-                    ref={priceCardRef}
-                    data-price-card
-                    className={cn(
+                  <div ref={pricePlaceholderRef} className="relative hidden lg:block" style={{ minHeight: isPriceSticky ? priceCardRef.current?.offsetHeight : undefined }}>
+                    <div
+                      ref={priceCardRef}
+                      data-price-card
+                      className={cn(
                         'w-[340px] z-30',
-                        isPriceSticky ? 'fixed right-6 xl:right-10 top-24' : 'relative top-0'
+                        isPriceSticky ? 'fixed' : 'relative'
                       )}
+                      style={isPriceSticky ? { top: 96, right: 24 } : undefined}
                     >
                       <div className="pointer-events-none absolute -inset-[1px] rounded-[20px] opacity-60 blur-xl"
                         style={{ background: `linear-gradient(140deg, ${BRAND.green}55, ${BRAND.cyan}33, ${BRAND.magenta}33)` }} />
