@@ -972,13 +972,16 @@ const EventPreview: React.FC = () => {
 
               <div className={cn('relative w-full', isMobile ? 'pt-14' : 'pt-16')}>
                 <div className={cn(
-                  'relative overflow-hidden group w-full',
-                  isMobile ? 'aspect-[16/9] bg-transparent' : 'aspect-[1920/560] bg-transparent'
+                  'relative overflow-hidden group w-full bg-transparent',
+                  isMobile ? '' : 'aspect-[1920/560]'
                 )}>
                   <img
                     src={eventInfo.heroBanner}
                     alt={eventInfo.title}
-                    className="w-full h-full object-contain object-center transition-transform duration-[1400ms] ease-out group-hover:scale-[1.03]"
+                    className={cn(
+                      'w-full block transition-transform duration-[1400ms] ease-out group-hover:scale-[1.03]',
+                      isMobile ? 'h-auto' : 'h-full object-contain object-center'
+                    )}
                     loading="eager"
                   />
                 </div>
