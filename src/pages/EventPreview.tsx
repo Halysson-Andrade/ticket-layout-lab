@@ -1580,6 +1580,7 @@ const EventPreview: React.FC = () => {
 
 
 
+          </div>
           </>
           )}
 
