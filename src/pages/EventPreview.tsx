@@ -497,9 +497,9 @@ const EventPreview: React.FC = () => {
       setMapView({ scale: 1, panX: 0, panY: 0 });
       return;
     }
-    const targetScale = Math.max(1, Math.min(8, Math.min(
-      (wholeMapBounds.w * 0.75) / salesFocusBounds.w,
-      (wholeMapBounds.h * 0.75) / salesFocusBounds.h,
+    const targetScale = Math.max(2, Math.min(8, Math.min(
+      (wholeMapBounds.w * 0.42) / salesFocusBounds.w,
+      (wholeMapBounds.h * 0.42) / salesFocusBounds.h,
     )));
     const sectorCx = salesFocusBounds.x + salesFocusBounds.w / 2;
     const sectorCy = salesFocusBounds.y + salesFocusBounds.h / 2;
@@ -1623,54 +1623,6 @@ const EventPreview: React.FC = () => {
                       <h4 className="font-bold text-slate-900 text-sm sm:text-base truncate">{eventInfo.title}</h4>
                     </div>
                   </div>
-                  {/* Seletor de datas / sessões do evento */}
-                  <div className="px-4 sm:px-6 pb-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Calendar className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
-                      <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
-                        Escolha a data
-                      </p>
-                    </div>
-                    <div className="flex gap-2 overflow-x-auto gw-hide-scroll pb-1 -mx-1 px-1">
-                      {eventDates.map((d) => {
-                        const active = selectedDateId === d.id;
-                        return (
-                          <button
-                            key={d.id}
-                            onClick={() => setSelectedDateId(d.id)}
-                            className={cn(
-                              'shrink-0 flex flex-col items-center rounded-xl border px-3 py-2 min-w-[76px] transition',
-                              active ? 'shadow-md' : 'border-slate-200 bg-white hover:border-slate-300'
-                            )}
-                            style={
-                              active
-                                ? { borderColor: BRAND.green, background: `${BRAND.green}10`, boxShadow: `0 0 0 2px ${BRAND.green}33` }
-                                : undefined
-                            }
-                          >
-                            <span
-                              className="text-[9px] font-bold uppercase tracking-wider"
-                              style={{ color: active ? BRAND.green : '#64748b' }}
-                            >
-                              {d.weekday}
-                            </span>
-                            <span className={cn('text-lg font-black leading-none mt-0.5', active ? 'text-slate-900' : 'text-slate-800')}>
-                              {d.day}
-                            </span>
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">
-                              {d.month}
-                            </span>
-                            <span
-                              className="text-[10px] font-bold mt-1"
-                              style={{ color: active ? BRAND.green : '#334155' }}
-                            >
-                              {d.time}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
                 </div>
 
 
@@ -1744,7 +1696,76 @@ const EventPreview: React.FC = () => {
                   </div>
                 )}
 
-                <div className={cn('flex-1 grid overflow-hidden min-h-0', isMobile ? 'grid-cols-1 grid-rows-[minmax(0,48%)_minmax(0,52%)]' : 'grid-cols-[1.4fr_1fr]')}>
+                {/* Barra de datas horizontal (mobile) */}
+                {isMobile && (
+                  <div className="border-b bg-white px-3 py-2 shrink-0">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Calendar className="h-3 w-3" style={{ color: BRAND.green }} />
+                      <p className="text-[9px] uppercase tracking-wider font-bold text-slate-500">Datas</p>
+                    </div>
+                    <div className="flex gap-1.5 overflow-x-auto gw-hide-scroll">
+                      {eventDates.map((d) => {
+                        const active = selectedDateId === d.id;
+                        return (
+                          <button
+                            key={d.id}
+                            onClick={() => setSelectedDateId(d.id)}
+                            className={cn(
+                              'shrink-0 flex flex-col items-center rounded-lg border px-2.5 py-1.5 min-w-[64px] transition',
+                              active ? 'shadow-sm' : 'border-slate-200 bg-white'
+                            )}
+                            style={
+                              active
+                                ? { borderColor: BRAND.green, background: `${BRAND.green}10` }
+                                : undefined
+                            }
+                          >
+                            <span className="text-[8px] font-bold uppercase tracking-wider" style={{ color: active ? BRAND.green : '#64748b' }}>{d.weekday}</span>
+                            <span className="text-base font-black leading-none mt-0.5 text-slate-900">{d.day}</span>
+                            <span className="text-[8px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">{d.month}</span>
+                            <span className="text-[9px] font-bold mt-0.5" style={{ color: active ? BRAND.green : '#334155' }}>{d.time}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className={cn('flex-1 grid overflow-hidden min-h-0', isMobile ? 'grid-cols-1 grid-rows-[minmax(0,48%)_minmax(0,52%)]' : 'grid-cols-[112px_1.4fr_1fr]')}>
+                  {/* Sidebar lateral de datas (desktop) */}
+                  {!isMobile && (
+                    <aside className="border-r border-slate-200 bg-slate-50 overflow-y-auto min-h-0 gw-hide-scroll">
+                      <div className="sticky top-0 bg-slate-50 border-b border-slate-200 px-3 py-2.5 flex items-center gap-1.5 z-10">
+                        <Calendar className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
+                        <p className="text-[9px] uppercase tracking-wider font-bold text-slate-500 leading-none">Datas</p>
+                      </div>
+                      <div className="p-2 flex flex-col gap-2">
+                        {eventDates.map((d) => {
+                          const active = selectedDateId === d.id;
+                          return (
+                            <button
+                              key={d.id}
+                              onClick={() => setSelectedDateId(d.id)}
+                              className={cn(
+                                'w-full flex flex-col items-center rounded-xl border px-2 py-2 transition',
+                                active ? 'shadow-md' : 'border-slate-200 bg-white hover:border-slate-300'
+                              )}
+                              style={
+                                active
+                                  ? { borderColor: BRAND.green, background: `${BRAND.green}10`, boxShadow: `0 0 0 2px ${BRAND.green}33` }
+                                  : undefined
+                              }
+                            >
+                              <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: active ? BRAND.green : '#64748b' }}>{d.weekday}</span>
+                              <span className="text-xl font-black leading-none mt-0.5 text-slate-900">{d.day}</span>
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">{d.month}</span>
+                              <span className="text-[10px] font-bold mt-1" style={{ color: active ? BRAND.green : '#334155' }}>{d.time}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </aside>
+                  )}
                   <div
                     ref={mapWrapperRef}
                     className="relative bg-slate-50 border-r border-b sm:border-b-0 border-slate-200 overflow-hidden select-none min-h-0"
@@ -1778,7 +1799,7 @@ const EventPreview: React.FC = () => {
                           }}
                           focusBounds={effectiveMapBounds}
                           showSeatLabels={!!selectedSectorId || mapView.scale >= 2.5}
-                          showSeats={!!selectedSectorId}
+                          showSeats={!!selectedSectorId || mapView.scale > 1.01}
                           sectorLabelMode="hover"
                           dimmedSectorIds={dimmedSectorIds}
                           selectedSeatIds={selectedSeatIds}
