@@ -146,6 +146,15 @@ Informações Técnicas:
 - As portas são abertas cerca de 30 minutos antes do início do espetáculo`,
 };
 
+// Datas disponíveis para o evento (permite múltiplas sessões).
+const eventDates: Array<{ id: string; weekday: string; day: string; month: string; time: string; label: string }> = [
+  { id: 'd1', weekday: 'SEX', day: '10', month: 'JUL', time: '20:30', label: '10 Jul • Sex • 20:30' },
+  { id: 'd2', weekday: 'SÁB', day: '11', month: 'JUL', time: '15:30', label: '11 Jul • Sáb • 15:30' },
+  { id: 'd3', weekday: 'SÁB', day: '11', month: 'JUL', time: '20:30', label: '11 Jul • Sáb • 20:30' },
+  { id: 'd4', weekday: 'DOM', day: '12', month: 'JUL', time: '16:00', label: '12 Jul • Dom • 16:00' },
+  { id: 'd5', weekday: 'DOM', day: '12', month: 'JUL', time: '19:30', label: '12 Jul • Dom • 19:30' },
+];
+
 const upcomingEvents = [
   { title: 'Circo Mirage - Campinas/SP', city: 'Campinas / SP', date: '25 JUL',
     img: 'https://s3.guicheweb.com.br/imagenseventos/01-06-2026_21-06-51.png' },
