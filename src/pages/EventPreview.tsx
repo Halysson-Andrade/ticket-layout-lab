@@ -1623,39 +1623,53 @@ const EventPreview: React.FC = () => {
                       <h4 className="font-bold text-slate-900 text-sm sm:text-base truncate">{eventInfo.title}</h4>
                     </div>
                   </div>
-                  {/* Stepper de progresso (oculto no mobile para dar mais espaço ao mapa) */}
-                  <div className={cn('px-4 sm:px-6 pb-3 items-center gap-2 text-[11px] font-semibold', isMobile ? 'hidden' : 'flex')}>
-                    {[
-                      { n: 1, label: 'Setor', done: !!selectedSectorId || cartCount > 0 },
-                      { n: 2, label: 'Quantidade', done: cartCount > 0 },
-                      { n: 3, label: 'Resumo', done: false },
-                    ].map((step, i, arr) => {
-                      const active = step.done || (i > 0 && arr[i - 1].done && !step.done);
-                      return (
-                        <React.Fragment key={step.n}>
-                          <div className="flex items-center gap-1.5">
-                            <div
-                              className="h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-bold transition"
-                              style={
-                                step.done
-                                  ? { background: BRAND.green, color: '#fff' }
-                                  : active
-                                  ? { background: '#fff', color: BRAND.green, border: `1.5px solid ${BRAND.green}` }
-                                  : { background: '#e5e7eb', color: '#94a3b8' }
-                              }
+                  {/* Seletor de datas / sessões do evento */}
+                  <div className="px-4 sm:px-6 pb-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Calendar className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
+                      <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
+                        Escolha a data
+                      </p>
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto gw-hide-scroll pb-1 -mx-1 px-1">
+                      {eventDates.map((d) => {
+                        const active = selectedDateId === d.id;
+                        return (
+                          <button
+                            key={d.id}
+                            onClick={() => setSelectedDateId(d.id)}
+                            className={cn(
+                              'shrink-0 flex flex-col items-center rounded-xl border px-3 py-2 min-w-[76px] transition',
+                              active ? 'shadow-md' : 'border-slate-200 bg-white hover:border-slate-300'
+                            )}
+                            style={
+                              active
+                                ? { borderColor: BRAND.green, background: `${BRAND.green}10`, boxShadow: `0 0 0 2px ${BRAND.green}33` }
+                                : undefined
+                            }
+                          >
+                            <span
+                              className="text-[9px] font-bold uppercase tracking-wider"
+                              style={{ color: active ? BRAND.green : '#64748b' }}
                             >
-                              {step.done ? <CheckCircle2 className="h-3 w-3" /> : step.n}
-                            </div>
-                            <span className={cn('uppercase tracking-wider', step.done || active ? 'text-slate-900' : 'text-slate-400')}>
-                              {step.label}
+                              {d.weekday}
                             </span>
-                          </div>
-                          {i < arr.length - 1 && (
-                            <div className="flex-1 h-px" style={{ background: step.done ? BRAND.green : '#e5e7eb' }} />
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
+                            <span className={cn('text-lg font-black leading-none mt-0.5', active ? 'text-slate-900' : 'text-slate-800')}>
+                              {d.day}
+                            </span>
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">
+                              {d.month}
+                            </span>
+                            <span
+                              className="text-[10px] font-bold mt-1"
+                              style={{ color: active ? BRAND.green : '#334155' }}
+                            >
+                              {d.time}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
