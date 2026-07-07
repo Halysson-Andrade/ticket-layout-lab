@@ -302,6 +302,23 @@ const EventPreview: React.FC = () => {
     };
   }, []);
 
+  // Ao alternar entre etapas (detalhe ↔ ingressos), o card do preço é remontado.
+  // Reseta o estado sticky e força um recálculo depois do próximo paint para não
+  // ficar preso "fixed" no topo em cima do banner ao voltar.
+  useEffect(() => {
+    setIsPriceSticky(false);
+    setPriceTop(null);
+    const id = requestAnimationFrame(() => {
+      if (!pricePlaceholderRef.current) return;
+      const rect = pricePlaceholderRef.current.getBoundingClientRect();
+      setPriceLeft(rect.left);
+      const threshold = 96;
+      setIsPriceSticky(rect.top <= threshold);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [flowStep]);
+
+
 
 
 
