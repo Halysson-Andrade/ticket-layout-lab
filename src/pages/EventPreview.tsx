@@ -40,7 +40,6 @@ import {
   Ticket,
   UserCircle,
   Eye,
-  Bell,
   Flame,
   Zap,
   TrendingUp,
@@ -234,7 +233,6 @@ const EventPreview: React.FC = () => {
   const [produtorTermOpen, setProdutorTermOpen] = useState(false); // modal de termos do produtor
   const [selectedSectorId, setSelectedSectorId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showStickyCTA, setShowStickyCTA] = useState(false);
   const [mapFocusId, setMapFocusId] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<Array<{ id: string; sectorId: string; row: string; number: string; price: number; sectorName: string; color: string; ticketType: string }>>([]);
   // Modal de escolha do ingresso ao clicar num assento
@@ -247,8 +245,10 @@ const EventPreview: React.FC = () => {
   const dragRef = React.useRef<{ x: number; y: number; panX: number; panY: number; moved: boolean } | null>(null);
   const priceCardRef = React.useRef<HTMLDivElement>(null);
   const pricePlaceholderRef = React.useRef<HTMLDivElement>(null);
+  const footerRef = React.useRef<HTMLElement>(null);
   const [isPriceSticky, setIsPriceSticky] = useState(false);
   const [priceLeft, setPriceLeft] = useState<number | null>(null);
+  const [priceTop, setPriceTop] = useState<number | null>(null);
 
   // === Conversion boosters ===
   const [viewers, setViewers] = useState(() => 87 + Math.floor(Math.random() * 60));
@@ -256,30 +256,28 @@ const EventPreview: React.FC = () => {
   // Deadline: data simulada do evento (09/Jul/2026 18:00 BRT)
   const deadline = useMemo(() => new Date('2026-07-09T18:00:00-03:00').getTime(), []);
 
-  // Barra flutuante do DESKTOP aparece após o scroll (na janela). No mobile a barra é sempre visível.
-  useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY;
-      const nearBottom = y + window.innerHeight > document.documentElement.scrollHeight - 220;
-      setShowStickyCTA(y > 360 && !nearBottom);
-    };
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
   // Preço desktop: começa no fluxo normal e só gruda quando o placeholder atinge o topo
   useEffect(() => {
     const handle = () => {
       if (!pricePlaceholderRef.current || !priceCardRef.current) return;
       const headerH = 64; // h-16 desktop
+      const margin = 32;
+      const threshold = headerH + margin; // 96px
       const rect = pricePlaceholderRef.current.getBoundingClientRect();
-      const sticky = rect.top <= headerH + 32;
+      const sticky = rect.top <= threshold;
       setIsPriceSticky(sticky);
       // Sempre atualiza o "left" a partir do placeholder para manter o card na mesma coluna
-      // (usa a posição do placeholder quando ainda não está sticky; quando sticky, o placeholder
-      // continua no fluxo com a mesma largura, então rect.left permanece consistente).
       if (!sticky) setPriceLeft(rect.left);
+
+      // Limita a descida para não ultrapassar o rodapé
+      if (sticky && footerRef.current) {
+        const cardHeight = priceCardRef.current.offsetHeight;
+        const footerTop = footerRef.current.getBoundingClientRect().top;
+        const maxTop = footerTop - cardHeight - margin;
+        setPriceTop(maxTop < threshold ? maxTop : threshold);
+      } else {
+        setPriceTop(null);
+      }
     };
     handle();
     window.addEventListener('scroll', handle, { passive: true });
@@ -331,11 +329,6 @@ const EventPreview: React.FC = () => {
     return { d, h, m, s };
   }, [deadline, now]);
 
-  const handleRemindMe = () => {
-    toast.success('Pronto! Vamos te avisar', {
-      description: 'Você receberá um alerta antes do evento esgotar.',
-    });
-  };
 
   // Scroll reveal: usa IntersectionObserver com detecção do container scrollável
   // (necessário porque a moldura de preview mobile tem seu próprio scroll interno).
@@ -1063,20 +1056,13 @@ const EventPreview: React.FC = () => {
                           style={{ background: `linear-gradient(120deg, ${BRAND.green}, #0fb02e)` }}
                           onClick={() => setFlowStep('ingressos')}
                         >
-                          <ShoppingCart className="h-4 w-4 mr-2" />
-                          {dynamicCta.label}
+                          <Ticket className="h-4 w-4 mr-2" />
+                          Ingressos
                         </Button>
                         <p className="text-[11px] text-center text-slate-500 mt-1.5 flex items-center justify-center gap-1">
                           <ShieldCheck className="h-3 w-3" style={{ color: BRAND.green }} />
-                          {dynamicCta.micro}
+                          Compra 100% segura
                         </p>
-                        <Button
-                          variant="ghost"
-                          className="w-full mt-1 h-9 text-xs font-semibold text-slate-500 hover:text-slate-900"
-                          onClick={handleRemindMe}
-                        >
-                          <Bell className="h-3.5 w-3.5 mr-1.5" /> Lembre-me deste evento
-                        </Button>
                       </div>
                     </div>
                   )}
@@ -1094,9 +1080,9 @@ const EventPreview: React.FC = () => {
                       data-price-card
                       className={cn(
                         'w-[340px] z-30',
-                        isPriceSticky ? 'fixed top-24' : 'relative top-0'
+                        isPriceSticky ? 'fixed' : 'relative top-0'
                       )}
-                      style={isPriceSticky && priceLeft != null ? { left: priceLeft } : undefined}
+                      style={isPriceSticky && priceLeft != null ? { left: priceLeft, top: priceTop ?? 96 } : undefined}
                     >
                       <div className="pointer-events-none absolute -inset-[1px] rounded-[20px] opacity-60 blur-xl"
                         style={{ background: `linear-gradient(140deg, ${BRAND.green}55, ${BRAND.cyan}33, ${BRAND.magenta}33)` }} />
@@ -1110,20 +1096,13 @@ const EventPreview: React.FC = () => {
                           style={{ background: `linear-gradient(120deg, ${BRAND.green}, #0fb02e)` }}
                           onClick={() => setFlowStep('ingressos')}
                         >
-                          <ShoppingCart className="h-4 w-4 mr-2" />
-                          {dynamicCta.label}
+                          <Ticket className="h-4 w-4 mr-2" />
+                          Ingressos
                         </Button>
                         <p className="text-[11px] text-center text-slate-500 mt-1.5 flex items-center justify-center gap-1">
                           <ShieldCheck className="h-3 w-3" style={{ color: BRAND.green }} />
-                          {dynamicCta.micro}
+                          Compra 100% segura
                         </p>
-                        <Button
-                          variant="ghost"
-                          className="w-full mt-1 h-9 text-xs font-semibold text-slate-500 hover:text-slate-900"
-                          onClick={handleRemindMe}
-                        >
-                          <Bell className="h-3.5 w-3.5 mr-1.5" /> Lembre-me deste evento
-                        </Button>
                       </div>
                     </div>
                   </div>
@@ -1378,7 +1357,7 @@ const EventPreview: React.FC = () => {
           </main>
 
           {/* ============ FOOTER ============ */}
-          <footer className="bg-black text-[#B3B3B3]">
+          <footer ref={footerRef} className="bg-black text-[#B3B3B3]">
             <div className={cn('mx-auto', isMobile ? 'px-4 py-6' : 'px-8 py-10 max-w-6xl')}>
               {/* Topo: logo + sociais + badges */}
               <div className={cn('flex gap-6 pb-6 border-b border-white/10', isMobile ? 'flex-col' : 'flex-row items-center justify-between')}>
@@ -1487,13 +1466,10 @@ const EventPreview: React.FC = () => {
             </div>
           )}
 
-          {/* ============ Desktop floating CTA bar — aparece ao scroll ============ */}
-          {!isMobile && (
+          {/* ============ Desktop floating CTA bar — aparece apenas quando há itens no carrinho ============ */}
+          {!isMobile && cartCount > 0 && (
             <div
-              className={cn(
-                'fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] transition-all duration-300 ease-out',
-                showStickyCTA ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0 pointer-events-none',
-              )}
+              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] transition-all duration-300 ease-out translate-y-0 opacity-100"
             >
               <div
                 className="flex items-stretch gap-0 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/80 p-2"
