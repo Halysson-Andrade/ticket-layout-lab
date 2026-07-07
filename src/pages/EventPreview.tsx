@@ -256,18 +256,6 @@ const EventPreview: React.FC = () => {
   // Deadline: data simulada do evento (09/Jul/2026 18:00 BRT)
   const deadline = useMemo(() => new Date('2026-07-09T18:00:00-03:00').getTime(), []);
 
-  // Barra flutuante do DESKTOP aparece após o scroll (na janela). No mobile a barra é sempre visível.
-  useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY;
-      const nearBottom = y + window.innerHeight > document.documentElement.scrollHeight - 220;
-      setShowStickyCTA(y > 360 && !nearBottom);
-    };
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
   // Preço desktop: começa no fluxo normal e só gruda quando o placeholder atinge o topo
   useEffect(() => {
     const handle = () => {
