@@ -247,6 +247,7 @@ const EventPreview: React.FC = () => {
   // Régua de preço (teto de orçamento). null = sem filtro (usa o preço máximo do mapa).
   const [budget, setBudget] = useState<number | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileDatesOpen, setMobileDatesOpen] = useState(false);
   const [mapFocusId, setMapFocusId] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<Array<{ id: string; sectorId: string; row: string; number: string; price: number; sectorName: string; color: string; ticketType: string }>>([]);
   // Modal de escolha do ingresso ao clicar num assento
