@@ -27,6 +27,8 @@ interface MapPreviewSVGProps {
   // Setores a esmaecer (cinza) — ex.: fora do orçamento escolhido na régua de preço.
   // Puramente visual: o setor continua clicável e volta à cor real ao hover/seleção.
   dimmedSectorIds?: string[];
+  // Quando false, não renderiza os assentos e pinta setores 100% opacos (visão de mapa completo).
+  showSeats?: boolean;
 }
 
 
