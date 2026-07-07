@@ -1895,11 +1895,6 @@ const EventPreview: React.FC = () => {
 
                   <div className={cn('bg-white min-h-0 overflow-y-auto', isMobile && 'gw-hide-scroll')}>
                     <div className="p-4 space-y-2">
-                      <p className="text-xs text-slate-500 mb-1">
-                        {selectedSectorId
-                          ? 'Clique nos assentos do mapa para adicioná-los ao carrinho.'
-                          : 'Clique em um setor — no mapa ou na lista — para dar zoom e escolher os assentos.'}
-                      </p>
 
                       {sectorsForSale.map((s) => {
                         const isActive = (selectedSectorId || hoveredSectorId) === s.id;
