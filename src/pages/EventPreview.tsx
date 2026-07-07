@@ -1623,54 +1623,6 @@ const EventPreview: React.FC = () => {
                       <h4 className="font-bold text-slate-900 text-sm sm:text-base truncate">{eventInfo.title}</h4>
                     </div>
                   </div>
-                  {/* Seletor de datas / sessões do evento */}
-                  <div className="px-4 sm:px-6 pb-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Calendar className="h-3.5 w-3.5" style={{ color: BRAND.green }} />
-                      <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
-                        Escolha a data
-                      </p>
-                    </div>
-                    <div className="flex gap-2 overflow-x-auto gw-hide-scroll pb-1 -mx-1 px-1">
-                      {eventDates.map((d) => {
-                        const active = selectedDateId === d.id;
-                        return (
-                          <button
-                            key={d.id}
-                            onClick={() => setSelectedDateId(d.id)}
-                            className={cn(
-                              'shrink-0 flex flex-col items-center rounded-xl border px-3 py-2 min-w-[76px] transition',
-                              active ? 'shadow-md' : 'border-slate-200 bg-white hover:border-slate-300'
-                            )}
-                            style={
-                              active
-                                ? { borderColor: BRAND.green, background: `${BRAND.green}10`, boxShadow: `0 0 0 2px ${BRAND.green}33` }
-                                : undefined
-                            }
-                          >
-                            <span
-                              className="text-[9px] font-bold uppercase tracking-wider"
-                              style={{ color: active ? BRAND.green : '#64748b' }}
-                            >
-                              {d.weekday}
-                            </span>
-                            <span className={cn('text-lg font-black leading-none mt-0.5', active ? 'text-slate-900' : 'text-slate-800')}>
-                              {d.day}
-                            </span>
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">
-                              {d.month}
-                            </span>
-                            <span
-                              className="text-[10px] font-bold mt-1"
-                              style={{ color: active ? BRAND.green : '#334155' }}
-                            >
-                              {d.time}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
                 </div>
 
 
