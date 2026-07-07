@@ -497,9 +497,9 @@ const EventPreview: React.FC = () => {
       setMapView({ scale: 1, panX: 0, panY: 0 });
       return;
     }
-    const targetScale = Math.max(1, Math.min(8, Math.min(
-      (wholeMapBounds.w * 0.75) / salesFocusBounds.w,
-      (wholeMapBounds.h * 0.75) / salesFocusBounds.h,
+    const targetScale = Math.max(2, Math.min(8, Math.min(
+      (wholeMapBounds.w * 0.42) / salesFocusBounds.w,
+      (wholeMapBounds.h * 0.42) / salesFocusBounds.h,
     )));
     const sectorCx = salesFocusBounds.x + salesFocusBounds.w / 2;
     const sectorCy = salesFocusBounds.y + salesFocusBounds.h / 2;
