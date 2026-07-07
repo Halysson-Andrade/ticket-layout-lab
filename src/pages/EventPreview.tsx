@@ -1063,29 +1063,6 @@ const EventPreview: React.FC = () => {
                     </Button>
 
 
-                  {/* Formas de pagamento */}
-                  <div className="mt-4 pt-4 border-t border-slate-100">
-                    <p className="text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-2">Formas de pagamento</p>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {[
-                        { name: 'Visa', bg: '#1A1F71', fg: '#F7B600', label: 'VISA' },
-                        { name: 'Master', bg: '#FFFFFF', fg: '#EB001B', label: 'master' },
-                        { name: 'Elo', bg: '#000000', fg: '#FFFFFF', label: 'Elo' },
-                        { name: 'Amex', bg: '#2E77BB', fg: '#FFFFFF', label: 'AMEX' },
-                        { name: 'Pix', bg: '#FFFFFF', fg: '#32BCAD', label: 'pix' },
-                        { name: 'Boleto', bg: '#FFFFFF', fg: '#334155', label: 'Boleto' },
-                      ].map((m) => (
-                        <span
-                          key={m.name}
-                          className="inline-flex items-center justify-center h-7 min-w-[44px] px-2 rounded-md border border-slate-200 text-[11px] font-extrabold tracking-tight shadow-sm"
-                          style={{ background: m.bg, color: m.fg }}
-                          title={m.name}
-                        >
-                          {m.label}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
                   </div>
                 </aside>
 
