@@ -766,8 +766,14 @@ const EventPreview: React.FC = () => {
           // translateZ(0) mantém os modais `fixed` contidos dentro da moldura do celular.
           style={isMobile ? { transform: 'translateZ(0)', height: '844px', maxHeight: 'calc(100dvh - 3rem)' } : undefined}
         >
-          {/* ============ HEADER STICKY ============ */}
-          <header className="absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/90 via-black/50 to-transparent text-white border-b border-white/10">
+          {/* ============ HEADER ============ */}
+          <header className={cn(
+            'z-50 text-white border-b border-white/10',
+            inFlowStep
+              ? 'sticky top-0 bg-gradient-to-b from-black/90 to-black/70'
+              : 'absolute top-0 left-0 right-0 bg-gradient-to-b from-black/90 via-black/50 to-transparent'
+          )}>
+
             <div className={cn('flex items-center justify-between gap-3', isMobile ? 'px-4 h-14' : 'px-8 h-16')}>
 
               {/* Logo */}
