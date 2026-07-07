@@ -243,6 +243,7 @@ const EventPreview: React.FC = () => {
   const [cartPanelOpen, setCartPanelOpen] = useState(false); // carrinho expansível dentro da etapa 'ingressos'
   const [produtorTermOpen, setProdutorTermOpen] = useState(false); // modal de termos do produtor
   const [selectedSectorId, setSelectedSectorId] = useState<string | null>(null);
+  const [selectedDateId, setSelectedDateId] = useState<string>(eventDates[1]?.id ?? eventDates[0].id);
   // Régua de preço (teto de orçamento). null = sem filtro (usa o preço máximo do mapa).
   const [budget, setBudget] = useState<number | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
