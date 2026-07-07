@@ -889,7 +889,7 @@ const EventPreview: React.FC = () => {
               />
               <div aria-hidden className="absolute inset-0 bg-black/30" />
 
-              <div className="relative w-full">
+              <div className={cn('relative w-full', isMobile ? 'pt-14' : 'pt-16')}>
                 <div className={cn(
                   'relative overflow-hidden group w-full',
                   isMobile ? 'aspect-[16/9] bg-transparent' : 'aspect-[1920/560] bg-transparent'
