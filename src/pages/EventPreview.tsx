@@ -849,7 +849,7 @@ const EventPreview: React.FC = () => {
         >
           {/* ============ HEADER ============ */}
           <header className={cn(
-            'z-50 text-white border-b border-white/10',
+            'z-50 text-white',
             inFlowStep
               ? 'sticky top-0 bg-gradient-to-b from-black/90 to-black/70'
               : 'fixed top-0 left-0 right-0 bg-gradient-to-b from-black/90 via-black/60 to-black/30 backdrop-blur-sm'
