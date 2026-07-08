@@ -2255,8 +2255,6 @@ const EventPreview: React.FC = () => {
                       <p className="text-lg font-black text-slate-900 tabular-nums">{brl(pendingFinalPrice)}</p>
                     )}
                   </div>
-                    <p className="text-lg font-black text-slate-900 tabular-nums">{brl(pendingFinalPrice)}</p>
-                  </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => setPendingSeat(null)}>Cancelar</Button>
                     <Button size="sm" className="text-white font-bold" style={{ background: BRAND.green }} onClick={confirmSeatSelection}>
