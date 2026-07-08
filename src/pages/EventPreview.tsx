@@ -1859,6 +1859,12 @@ const EventPreview: React.FC = () => {
                           onHoverSector={setHoveredSectorId}
                           onClickSector={(id) => {
                             if (dragRef.current?.moved) return;
+                            const rawSector = snapshot.sectors.find((x) => x.id === id);
+                            if (rawSector && rawSector.seats.length === 0) {
+                              setPendingTicketType('inteira');
+                              setPendingSeat({ seat: null, sector: rawSector });
+                              return;
+                            }
                             setSelectedSectorId((prev) => (prev === id ? null : id));
                           }}
                           focusBounds={effectiveMapBounds}
