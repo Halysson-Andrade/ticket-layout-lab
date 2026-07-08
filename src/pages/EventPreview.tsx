@@ -2047,29 +2047,39 @@ const EventPreview: React.FC = () => {
                                 <p className="text-sm font-bold leading-tight mt-0.5" style={{ color: BRAND.green }}>{brl(s.price)}</p>
                               )}
                             </div>
-                            {inCart ? (
-                              <div className="flex items-center gap-1 shrink-0">
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); updateQty(cartLineId(s.id, 'inteira'), -1); }}
-                                  className="h-8 w-8 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50"
-                                ><Minus className="h-3 w-3" /></button>
-                                <span className="text-sm font-semibold w-5 text-center">{inCart.qty}</span>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); addToCart({ sectorId: s.id, name: s.name, color: s.color, ticketType: 'inteira', ticketLabel: 'Inteira', price: discountPrice(s.price) }); }}
-                                  className="h-8 w-8 rounded text-white flex items-center justify-center"
+                            {!s.hasSeats && (
+                              inCart ? (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); updateQty(cartLineId(s.id, 'inteira'), -1); }}
+                                    className="h-8 w-8 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50"
+                                  ><Minus className="h-3 w-3" /></button>
+                                  <span className="text-sm font-semibold w-5 text-center">{inCart.qty}</span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const raw = snapshot?.sectors.find((x) => x.id === s.id);
+                                      if (raw) { setPendingTicketType('inteira'); setPendingSeat({ seat: null, sector: raw }); }
+                                    }}
+                                    className="h-8 w-8 rounded text-white flex items-center justify-center"
+                                    style={{ background: BRAND.green }}
+                                  ><Plus className="h-3 w-3" /></button>
+                                </div>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  className="text-white h-9 w-9 p-0 rounded-full shrink-0"
                                   style={{ background: BRAND.green }}
-                                ><Plus className="h-3 w-3" /></button>
-                              </div>
-                            ) : (
-                              <Button
-                                size="sm"
-                                className="text-white h-9 w-9 p-0 rounded-full shrink-0"
-                                style={{ background: BRAND.green }}
-                                onClick={(e) => { e.stopPropagation(); addToCart({ sectorId: s.id, name: s.name, color: s.color, ticketType: 'inteira', ticketLabel: 'Inteira', price: discountPrice(s.price) }); }}
-                                aria-label="Adicionar ao carrinho"
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const raw = snapshot?.sectors.find((x) => x.id === s.id);
+                                    if (raw) { setPendingTicketType('inteira'); setPendingSeat({ seat: null, sector: raw }); }
+                                  }}
+                                  aria-label="Escolher ingresso"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              )
                             )}
                           </div>
                         );
