@@ -2019,11 +2019,17 @@ const EventPreview: React.FC = () => {
                                   </span>
                                 )}
                               </div>
-                              <p className="text-xs text-slate-500 truncate">{s.available} disponíveis · 10x de {brl(s.price / 10)}</p>
                             </div>
                             <div className="text-right shrink-0 ml-auto">
                               <p className="text-[10px] text-slate-400 leading-none">a partir de</p>
-                              <p className="text-sm font-bold leading-tight mt-0.5" style={{ color: BRAND.green }}>{brl(s.price)}</p>
+                              {couponType === 'discount' ? (
+                                <div className="flex items-baseline gap-1.5 justify-end mt-0.5">
+                                  <span className="text-[11px] text-slate-400 line-through tabular-nums">{brl(s.price)}</span>
+                                  <span className="text-sm font-bold leading-tight tabular-nums" style={{ color: BRAND.green }}>{brl(discountPrice(s.price))}</span>
+                                </div>
+                              ) : (
+                                <p className="text-sm font-bold leading-tight mt-0.5" style={{ color: BRAND.green }}>{brl(s.price)}</p>
+                              )}
                             </div>
                             {inCart ? (
                               <div className="flex items-center gap-1 shrink-0">
@@ -2033,7 +2039,7 @@ const EventPreview: React.FC = () => {
                                 ><Minus className="h-3 w-3" /></button>
                                 <span className="text-sm font-semibold w-5 text-center">{inCart.qty}</span>
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); addToCart({ sectorId: s.id, name: s.name, color: s.color, ticketType: 'inteira', ticketLabel: 'Inteira', price: s.price }); }}
+                                  onClick={(e) => { e.stopPropagation(); addToCart({ sectorId: s.id, name: s.name, color: s.color, ticketType: 'inteira', ticketLabel: 'Inteira', price: discountPrice(s.price) }); }}
                                   className="h-8 w-8 rounded text-white flex items-center justify-center"
                                   style={{ background: BRAND.green }}
                                 ><Plus className="h-3 w-3" /></button>
@@ -2043,7 +2049,7 @@ const EventPreview: React.FC = () => {
                                 size="sm"
                                 className="text-white h-9 w-9 p-0 rounded-full shrink-0"
                                 style={{ background: BRAND.green }}
-                                onClick={(e) => { e.stopPropagation(); addToCart({ sectorId: s.id, name: s.name, color: s.color, ticketType: 'inteira', ticketLabel: 'Inteira', price: s.price }); }}
+                                onClick={(e) => { e.stopPropagation(); addToCart({ sectorId: s.id, name: s.name, color: s.color, ticketType: 'inteira', ticketLabel: 'Inteira', price: discountPrice(s.price) }); }}
                                 aria-label="Adicionar ao carrinho"
                               >
                                 <Plus className="h-4 w-4" />
