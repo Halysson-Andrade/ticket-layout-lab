@@ -1653,48 +1653,32 @@ const EventPreview: React.FC = () => {
                     <Button variant="ghost" size="sm" className="h-8 gap-1 px-2 text-slate-600 hover:text-slate-900 shrink-0" onClick={() => setFlowStep('detalhe')}>
                       <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Voltar</span>
                     </Button>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-[10px] uppercase tracking-wider font-bold" style={{ color: BRAND.green }}>Escolha seu lugar</p>
                       <h4 className="font-bold text-slate-900 text-sm sm:text-base truncate">{eventInfo.title}</h4>
                     </div>
-                  </div>
-                </div>
-
-
-                {/* Barra de controles acima dos setores: cupom de desconto (esquerda) + orçamento (direita) */}
-                {(maxPrice > minPrice || specialLegendTypes.length > 0) && (
-                  <div className={cn(
-                    'border-b bg-white shrink-0',
-                    isMobile
-                      ? 'px-4 py-2.5 flex flex-col gap-2.5'
-                      : 'grid grid-cols-[112px_1.4fr_1fr]'
-                  )}>
-                    {/* Coluna vazia alinhada à sidebar de datas (desktop) */}
-                    {!isMobile && <div className="border-r border-slate-200" />}
-
-                    {/* Coluna do MAPA: botão Aplicar desconto / campo de cupom */}
-                    <div className={cn(
-                      'flex items-center gap-2',
-                      !isMobile && 'px-4 sm:px-6 py-2.5 border-r border-slate-200'
-                    )}>
+                    {/* Aplicar desconto — canto direito do header da etapa */}
+                    <div className="flex items-center gap-2 shrink-0">
                       {!discountOpen && !couponApplied && (
                         <button
                           type="button"
                           onClick={() => setDiscountOpen(true)}
-                          className="inline-flex items-center gap-2 h-9 px-3.5 rounded-full text-xs font-bold uppercase tracking-wider border-2 transition"
+                          className="inline-flex items-center gap-1.5 h-8 sm:h-9 px-2.5 sm:px-3.5 rounded-full text-[11px] sm:text-xs font-bold uppercase tracking-wider border-2 transition"
                           style={{ borderColor: BRAND.green, color: BRAND.green, background: `${BRAND.green}0a` }}
                         >
-                          <Ticket className="h-3.5 w-3.5" /> Aplicar desconto
+                          <Ticket className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Aplicar desconto</span>
+                          <span className="sm:hidden">Cupom</span>
                         </button>
                       )}
                       {discountOpen && !couponApplied && (
-                        <div className="flex items-center gap-1.5 w-full max-w-sm">
+                        <div className="flex items-center gap-1.5">
                           <input
                             type="text"
                             value={couponCode}
                             onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                            placeholder="Digite o cupom"
-                            className="flex-1 h-9 px-3 rounded-lg border border-slate-300 text-sm outline-none focus:border-slate-500"
+                            placeholder="Cupom"
+                            className="h-9 w-28 sm:w-40 px-3 rounded-lg border border-slate-300 text-sm outline-none focus:border-slate-500"
                             maxLength={20}
                             autoFocus
                           />
@@ -1708,7 +1692,7 @@ const EventPreview: React.FC = () => {
                                 toast.error('Cupom inválido.');
                               }
                             }}
-                            className="h-9 px-3.5 rounded-lg text-xs font-bold uppercase tracking-wider text-white"
+                            className="h-9 px-3 rounded-lg text-xs font-bold uppercase tracking-wider text-white"
                             style={{ background: BRAND.green }}
                           >
                             Aplicar
@@ -1724,12 +1708,14 @@ const EventPreview: React.FC = () => {
                         </div>
                       )}
                       {couponApplied && (
-                        <div className="inline-flex items-center gap-2 h-9 px-3 rounded-full text-xs font-bold uppercase tracking-wider text-white" style={{ background: BRAND.green }}>
-                          <Ticket className="h-3.5 w-3.5" /> Cupom aplicado
+                        <div className="inline-flex items-center gap-1.5 h-8 sm:h-9 px-2.5 sm:px-3 rounded-full text-[11px] sm:text-xs font-bold uppercase tracking-wider text-white" style={{ background: BRAND.green }}>
+                          <Ticket className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Cupom aplicado</span>
+                          <span className="sm:hidden">Aplicado</span>
                           <button
                             type="button"
                             onClick={() => { setCouponApplied(false); setCouponCode(''); setDiscountOpen(false); }}
-                            className="ml-1 text-white/80 hover:text-white"
+                            className="ml-0.5 text-white/80 hover:text-white"
                             aria-label="Remover cupom"
                           >
                             ✕
@@ -1737,69 +1723,10 @@ const EventPreview: React.FC = () => {
                         </div>
                       )}
                     </div>
-
-                    {/* Coluna dos SETORES: régua de orçamento + legenda */}
-                    <div className={cn('flex flex-col gap-2', !isMobile && 'px-4 py-2.5')}>
-                      {maxPrice > minPrice && (
-                        <div className="flex items-center gap-2.5">
-                          <div className="shrink-0">
-                            <p className="text-[9px] uppercase tracking-wider font-bold text-slate-500 leading-none">Orçamento até</p>
-                            <p className="text-xs font-black text-slate-900 leading-tight mt-0.5">{brl(effectiveBudget)}</p>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <Slider
-                              min={minPrice}
-                              max={maxPrice}
-                              step={5}
-                              value={[effectiveBudget]}
-                              onValueChange={([v]) => setBudget(v)}
-                              aria-label="Orçamento máximo por ingresso"
-                            />
-                          </div>
-                          <div className="shrink-0 text-right">
-                            <p className="text-[10px] font-semibold text-slate-600 leading-tight">
-                              <span style={{ color: BRAND.green }}>{withinBudgetCount}</span>/{sectorsForSale.length}
-                            </p>
-                            {budget !== null && (
-                              <button
-                                onClick={() => setBudget(null)}
-                                className="text-[9px] font-bold uppercase tracking-wider hover:underline"
-                                style={{ color: BRAND.green }}
-                              >
-                                Limpar
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {specialLegendTypes.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] text-slate-600">
-                          {specialLegendTypes.map((t) => (
-                            <span key={t} className="inline-flex items-center gap-1">
-                              <span className="h-2.5 w-2.5 rounded-full border border-black/10 shrink-0" style={{ background: SEAT_COLORS[t] }} />
-                              {SEAT_TYPE_LABELS[t]}
-                            </span>
-                          ))}
-                          <span className="inline-flex items-center gap-1">
-                            <span className="h-2.5 w-2.5 rounded-full border border-slate-300 bg-white shrink-0" />
-                            Disponível
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: BRAND.green }} />
-                            Selecionado
-                          </span>
-                          {hasBlockedSeats && (
-                            <span className="inline-flex items-center gap-1">
-                              <span className="h-2.5 w-2.5 rounded-full bg-slate-400 shrink-0" />
-                              Indisponível
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
                   </div>
-                )}
+                </div>
+
+
 
 
                 {/* Barra de datas minimizada (mobile) — abre em popover ao clicar */}
