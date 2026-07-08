@@ -1992,10 +1992,16 @@ const EventPreview: React.FC = () => {
                                 : undefined
                             }
                           >
-                            {isExclusive && (
+                            {couponType === 'exclusive' && (
                               <span className="absolute -top-2 left-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-white shadow"
                                 style={{ background: BRAND.green }}>
                                 <Award className="h-2.5 w-2.5" /> Exclusivo
+                              </span>
+                            )}
+                            {couponType === 'discount' && (
+                              <span className="absolute -top-2 left-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-white shadow"
+                                style={{ background: '#dc2626' }}>
+                                <Ticket className="h-2.5 w-2.5" /> Desconto -10%
                               </span>
                             )}
                             <div
