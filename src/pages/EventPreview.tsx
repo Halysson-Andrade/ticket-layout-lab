@@ -246,6 +246,10 @@ const EventPreview: React.FC = () => {
   const [selectedDateId, setSelectedDateId] = useState<string>(eventDates[1]?.id ?? eventDates[0].id);
   // Régua de preço (teto de orçamento). null = sem filtro (usa o preço máximo do mapa).
   const [budget, setBudget] = useState<number | null>(null);
+  // Cupom de desconto (5 dígitos). Ao aplicar "12345", todos os setores recebem a tag "Exclusivo".
+  const [discountOpen, setDiscountOpen] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponApplied, setCouponApplied] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileDatesOpen, setMobileDatesOpen] = useState(false);
   const [mapFocusId, setMapFocusId] = useState<string | null>(null);
@@ -849,7 +853,7 @@ const EventPreview: React.FC = () => {
         >
           {/* ============ HEADER ============ */}
           <header className={cn(
-            'z-50 text-white border-b border-white/10',
+            'z-50 text-white',
             inFlowStep
               ? 'sticky top-0 bg-gradient-to-b from-black/90 to-black/70'
               : 'fixed top-0 left-0 right-0 bg-gradient-to-b from-black/90 via-black/60 to-black/30 backdrop-blur-sm'
@@ -1657,75 +1661,146 @@ const EventPreview: React.FC = () => {
                 </div>
 
 
-                {/* Barra de controles acima dos setores: régua de preço + legenda de tipos de assento */}
+                {/* Barra de controles acima dos setores: cupom de desconto (esquerda) + orçamento (direita) */}
                 {(maxPrice > minPrice || specialLegendTypes.length > 0) && (
-                  <div className="border-b bg-white px-4 sm:px-6 py-2.5 shrink-0 flex flex-col gap-2.5">
-                    {/* Régua de preço (teto de orçamento) */}
-                    {maxPrice > minPrice && (
-                      <div className="flex items-center gap-3">
-                        <div className="shrink-0">
-                          <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500 leading-none">Orçamento até</p>
-                          <p className="text-sm font-black text-slate-900 leading-tight mt-0.5">{brl(effectiveBudget)}</p>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <Slider
-                            min={minPrice}
-                            max={maxPrice}
-                            step={5}
-                            value={[effectiveBudget]}
-                            onValueChange={([v]) => setBudget(v)}
-                            aria-label="Orçamento máximo por ingresso"
+                  <div className={cn(
+                    'border-b bg-white shrink-0',
+                    isMobile
+                      ? 'px-4 py-2.5 flex flex-col gap-2.5'
+                      : 'grid grid-cols-[112px_1.4fr_1fr]'
+                  )}>
+                    {/* Coluna vazia alinhada à sidebar de datas (desktop) */}
+                    {!isMobile && <div className="border-r border-slate-200" />}
+
+                    {/* Coluna do MAPA: botão Aplicar desconto / campo de cupom */}
+                    <div className={cn(
+                      'flex items-center gap-2',
+                      !isMobile && 'px-4 sm:px-6 py-2.5 border-r border-slate-200'
+                    )}>
+                      {!discountOpen && !couponApplied && (
+                        <button
+                          type="button"
+                          onClick={() => setDiscountOpen(true)}
+                          className="inline-flex items-center gap-2 h-9 px-3.5 rounded-full text-xs font-bold uppercase tracking-wider border-2 transition"
+                          style={{ borderColor: BRAND.green, color: BRAND.green, background: `${BRAND.green}0a` }}
+                        >
+                          <Ticket className="h-3.5 w-3.5" /> Aplicar desconto
+                        </button>
+                      )}
+                      {discountOpen && !couponApplied && (
+                        <div className="flex items-center gap-1.5 w-full max-w-sm">
+                          <input
+                            type="text"
+                            value={couponCode}
+                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                            placeholder="Digite o cupom"
+                            className="flex-1 h-9 px-3 rounded-lg border border-slate-300 text-sm outline-none focus:border-slate-500"
+                            maxLength={20}
+                            autoFocus
                           />
-                          <div className="flex justify-between mt-1 text-[10px] text-slate-400 font-medium">
-                            <span>{brl(minPrice)}</span>
-                            <span>{brl(maxPrice)}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (couponCode.trim() === '12345') {
+                                setCouponApplied(true);
+                                toast.success('Cupom aplicado! Setores exclusivos liberados.');
+                              } else {
+                                toast.error('Cupom inválido.');
+                              }
+                            }}
+                            className="h-9 px-3.5 rounded-lg text-xs font-bold uppercase tracking-wider text-white"
+                            style={{ background: BRAND.green }}
+                          >
+                            Aplicar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setDiscountOpen(false); setCouponCode(''); }}
+                            className="h-9 w-9 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 flex items-center justify-center"
+                            aria-label="Cancelar"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
+                      {couponApplied && (
+                        <div className="inline-flex items-center gap-2 h-9 px-3 rounded-full text-xs font-bold uppercase tracking-wider text-white" style={{ background: BRAND.green }}>
+                          <Ticket className="h-3.5 w-3.5" /> Cupom aplicado
+                          <button
+                            type="button"
+                            onClick={() => { setCouponApplied(false); setCouponCode(''); setDiscountOpen(false); }}
+                            className="ml-1 text-white/80 hover:text-white"
+                            aria-label="Remover cupom"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Coluna dos SETORES: régua de orçamento + legenda */}
+                    <div className={cn('flex flex-col gap-2', !isMobile && 'px-4 py-2.5')}>
+                      {maxPrice > minPrice && (
+                        <div className="flex items-center gap-2.5">
+                          <div className="shrink-0">
+                            <p className="text-[9px] uppercase tracking-wider font-bold text-slate-500 leading-none">Orçamento até</p>
+                            <p className="text-xs font-black text-slate-900 leading-tight mt-0.5">{brl(effectiveBudget)}</p>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <Slider
+                              min={minPrice}
+                              max={maxPrice}
+                              step={5}
+                              value={[effectiveBudget]}
+                              onValueChange={([v]) => setBudget(v)}
+                              aria-label="Orçamento máximo por ingresso"
+                            />
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className="text-[10px] font-semibold text-slate-600 leading-tight">
+                              <span style={{ color: BRAND.green }}>{withinBudgetCount}</span>/{sectorsForSale.length}
+                            </p>
+                            {budget !== null && (
+                              <button
+                                onClick={() => setBudget(null)}
+                                className="text-[9px] font-bold uppercase tracking-wider hover:underline"
+                                style={{ color: BRAND.green }}
+                              >
+                                Limpar
+                              </button>
+                            )}
                           </div>
                         </div>
-                        <div className="shrink-0 text-right">
-                          <p className="text-[11px] font-semibold text-slate-600 leading-tight">
-                            <span style={{ color: BRAND.green }}>{withinBudgetCount}</span> de {sectorsForSale.length} setores
-                          </p>
-                          {budget !== null && (
-                            <button
-                              onClick={() => setBudget(null)}
-                              className="text-[10px] font-bold uppercase tracking-wider hover:underline"
-                              style={{ color: BRAND.green }}
-                            >
-                              Limpar
-                            </button>
+                      )}
+
+                      {specialLegendTypes.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] text-slate-600">
+                          {specialLegendTypes.map((t) => (
+                            <span key={t} className="inline-flex items-center gap-1">
+                              <span className="h-2.5 w-2.5 rounded-full border border-black/10 shrink-0" style={{ background: SEAT_COLORS[t] }} />
+                              {SEAT_TYPE_LABELS[t]}
+                            </span>
+                          ))}
+                          <span className="inline-flex items-center gap-1">
+                            <span className="h-2.5 w-2.5 rounded-full border border-slate-300 bg-white shrink-0" />
+                            Disponível
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: BRAND.green }} />
+                            Selecionado
+                          </span>
+                          {hasBlockedSeats && (
+                            <span className="inline-flex items-center gap-1">
+                              <span className="h-2.5 w-2.5 rounded-full bg-slate-400 shrink-0" />
+                              Indisponível
+                            </span>
                           )}
                         </div>
-                      </div>
-                    )}
-
-                    {/* Legenda de tipos de assento */}
-                    {specialLegendTypes.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-slate-600">
-                        <span className="uppercase tracking-wider font-bold text-slate-400">Legenda</span>
-                        {specialLegendTypes.map((t) => (
-                          <span key={t} className="inline-flex items-center gap-1.5">
-                            <span className="h-3 w-3 rounded-full border border-black/10 shrink-0" style={{ background: SEAT_COLORS[t] }} />
-                            {SEAT_TYPE_LABELS[t]}
-                          </span>
-                        ))}
-                        <span className="inline-flex items-center gap-1.5">
-                          <span className="h-3 w-3 rounded-full border border-slate-300 bg-white shrink-0" />
-                          Disponível
-                        </span>
-                        <span className="inline-flex items-center gap-1.5">
-                          <span className="h-3 w-3 rounded-full shrink-0" style={{ background: BRAND.green }} />
-                          Selecionado
-                        </span>
-                        {hasBlockedSeats && (
-                          <span className="inline-flex items-center gap-1.5">
-                            <span className="h-3 w-3 rounded-full bg-slate-400 shrink-0" />
-                            Indisponível
-                          </span>
-                        )}
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 )}
+
 
                 {/* Barra de datas minimizada (mobile) — abre em popover ao clicar */}
                 {isMobile && (
@@ -1899,7 +1974,7 @@ const EventPreview: React.FC = () => {
                       {sectorsForSale.map((s) => {
                         const isActive = (selectedSectorId || hoveredSectorId) === s.id;
                         const inCart = cart.find((i) => i.sectorId === s.id && i.ticketType === 'inteira');
-                        const isBest = s.id === bestValueSectorId;
+                        const isExclusive = couponApplied;
                         // Fora do orçamento: esmaece a linha (mesmo sinal visual do mapa). Continua clicável.
                         const isDimmed = dimmedSet.has(s.id) && !isActive;
                         return (
@@ -1911,21 +1986,21 @@ const EventPreview: React.FC = () => {
                             className={cn(
                               'relative flex flex-wrap items-center gap-x-3 gap-y-2 border rounded-xl p-3 cursor-pointer transition',
                               isActive ? 'shadow-md' : 'border-slate-200 hover:border-slate-300',
-                              isBest && !isActive && 'border-transparent',
+                              isExclusive && !isActive && 'border-transparent',
                               isDimmed && 'opacity-50 grayscale',
                             )}
                             style={
                               isActive
                                 ? { borderColor: BRAND.green, boxShadow: `0 0 0 3px ${BRAND.green}26` }
-                                : isBest
+                                : isExclusive
                                 ? { background: `linear-gradient(180deg, ${BRAND.green}08, #fff)`, boxShadow: `0 0 0 1.5px ${BRAND.green}55` }
                                 : undefined
                             }
                           >
-                            {isBest && (
+                            {isExclusive && (
                               <span className="absolute -top-2 left-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-white shadow"
                                 style={{ background: BRAND.green }}>
-                                <Award className="h-2.5 w-2.5" /> Melhor escolha
+                                <Award className="h-2.5 w-2.5" /> Exclusivo
                               </span>
                             )}
                             <div
