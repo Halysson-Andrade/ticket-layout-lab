@@ -1688,9 +1688,13 @@ const EventPreview: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => {
-                              if (couponCode.trim() === '12345') {
-                                setCouponApplied(true);
+                              const code = couponCode.trim();
+                              if (code === '12345') {
+                                setCouponType('exclusive');
                                 toast.success('Cupom aplicado! Setores exclusivos liberados.');
+                              } else if (code === '123') {
+                                setCouponType('discount');
+                                toast.success('Cupom aplicado! 10% de desconto em todos os setores.');
                               } else {
                                 toast.error('Cupom inválido.');
                               }
