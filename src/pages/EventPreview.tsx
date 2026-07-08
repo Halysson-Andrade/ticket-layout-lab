@@ -246,10 +246,13 @@ const EventPreview: React.FC = () => {
   const [selectedDateId, setSelectedDateId] = useState<string>(eventDates[1]?.id ?? eventDates[0].id);
   // Régua de preço (teto de orçamento). null = sem filtro (usa o preço máximo do mapa).
   const [budget, setBudget] = useState<number | null>(null);
-  // Cupom de desconto (5 dígitos). Ao aplicar "12345", todos os setores recebem a tag "Exclusivo".
+  // Cupom de desconto. "12345" → tag Exclusivo. "123" → 10% de desconto + tag Desconto.
   const [discountOpen, setDiscountOpen] = useState(false);
   const [couponCode, setCouponCode] = useState('');
-  const [couponApplied, setCouponApplied] = useState(false);
+  const [couponType, setCouponType] = useState<null | 'exclusive' | 'discount'>(null);
+  const couponApplied = couponType !== null;
+  const DISCOUNT_RATE = 0.10;
+  const discountPrice = (p: number) => couponType === 'discount' ? Math.round(p * (1 - DISCOUNT_RATE) * 100) / 100 : p;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileDatesOpen, setMobileDatesOpen] = useState(false);
   const [mapFocusId, setMapFocusId] = useState<string | null>(null);
