@@ -2204,7 +2204,8 @@ const EventPreview: React.FC = () => {
                     <div className="space-y-1.5">
                       {TICKET_TYPES.map((tt) => {
                         const active = pendingTicketType === tt.id;
-                        const price = Math.round(pendingBasePrice * tt.factor);
+                        const originalPrice = Math.round(pendingBasePrice * tt.factor);
+                        const price = Math.round(discountPrice(pendingBasePrice) * tt.factor);
                         return (
                           <button
                             key={tt.id}
