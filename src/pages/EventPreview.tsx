@@ -624,7 +624,7 @@ const EventPreview: React.FC = () => {
     if (!pendingSeat) return;
     const { seat, sector } = pendingSeat;
     const tt = TICKET_TYPES.find((t) => t.id === pendingTicketType) ?? TICKET_TYPES[0];
-    const price = Math.round(pendingBasePrice * tt.factor);
+    const price = Math.round(discountPrice(pendingBasePrice) * tt.factor);
     setSelectedSeats((prev) => [
       ...prev,
       {
