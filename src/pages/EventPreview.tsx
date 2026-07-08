@@ -258,7 +258,7 @@ const EventPreview: React.FC = () => {
   const [mapFocusId, setMapFocusId] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<Array<{ id: string; sectorId: string; row: string; number: string; price: number; sectorName: string; color: string; ticketType: string }>>([]);
   // Modal de escolha do ingresso ao clicar num assento
-  const [pendingSeat, setPendingSeat] = useState<{ seat: Seat; sector: Sector } | null>(null);
+  const [pendingSeat, setPendingSeat] = useState<{ seat: Seat | null; sector: Sector } | null>(null);
   const [pendingTicketType, setPendingTicketType] = useState<string>('inteira');
   // Zoom/pan do mapa dentro do modal
   const [mapView, setMapView] = useState<{ scale: number; panX: number; panY: number }>({ scale: 1, panX: 0, panY: 0 });
@@ -422,7 +422,7 @@ const EventPreview: React.FC = () => {
   }, [snapshot, device, flowStep]);
 
   const sectorsForSale = useMemo(() => {
-    if (!snapshot) return [] as Array<{ id: string; name: string; color: string; price: number; available: number }>;
+    if (!snapshot) return [] as Array<{ id: string; name: string; color: string; price: number; available: number; hasSeats: boolean }>;
     return snapshot.sectors
       .filter((s) => s.visible !== false)
       .map((s, idx) => ({
@@ -431,6 +431,7 @@ const EventPreview: React.FC = () => {
         color: s.color,
         price: getSectorPrice(s, idx),
         available: s.seats.length || 50,
+        hasSeats: s.seats.length > 0,
       }));
   }, [snapshot]);
 
@@ -625,21 +626,26 @@ const EventPreview: React.FC = () => {
     const { seat, sector } = pendingSeat;
     const tt = TICKET_TYPES.find((t) => t.id === pendingTicketType) ?? TICKET_TYPES[0];
     const price = Math.round(discountPrice(pendingBasePrice) * tt.factor);
-    setSelectedSeats((prev) => [
-      ...prev,
-      {
-        id: seat.id,
-        sectorId: sector.id,
-        row: seat.row,
-        number: seat.number,
-        price,
-        sectorName: sector.name,
-        color: sector.color,
-        ticketType: tt.id,
-      },
-    ]);
-    addToCart({ sectorId: sector.id, name: sector.name, color: sector.color, ticketType: tt.id, ticketLabel: tt.label, price });
-    toast.success(`Assento ${seat.row}${seat.number} adicionado`, { description: `${sector.name} · ${tt.label}` });
+    if (seat) {
+      setSelectedSeats((prev) => [
+        ...prev,
+        {
+          id: seat.id,
+          sectorId: sector.id,
+          row: seat.row,
+          number: seat.number,
+          price,
+          sectorName: sector.name,
+          color: sector.color,
+          ticketType: tt.id,
+        },
+      ]);
+      addToCart({ sectorId: sector.id, name: sector.name, color: sector.color, ticketType: tt.id, ticketLabel: tt.label, price });
+      toast.success(`Assento ${seat.row}${seat.number} adicionado`, { description: `${sector.name} · ${tt.label}` });
+    } else {
+      addToCart({ sectorId: sector.id, name: sector.name, color: sector.color, ticketType: tt.id, ticketLabel: tt.label, price });
+      toast.success(`Ingresso adicionado`, { description: `${sector.name} · ${tt.label}` });
+    }
     setPendingSeat(null);
   };
 
@@ -1853,6 +1859,12 @@ const EventPreview: React.FC = () => {
                           onHoverSector={setHoveredSectorId}
                           onClickSector={(id) => {
                             if (dragRef.current?.moved) return;
+                            const rawSector = snapshot.sectors.find((x) => x.id === id);
+                            if (rawSector && rawSector.seats.length === 0) {
+                              setPendingTicketType('inteira');
+                              setPendingSeat({ seat: null, sector: rawSector });
+                              return;
+                            }
                             setSelectedSectorId((prev) => (prev === id ? null : id));
                           }}
                           focusBounds={effectiveMapBounds}
@@ -2035,29 +2047,39 @@ const EventPreview: React.FC = () => {
                                 <p className="text-sm font-bold leading-tight mt-0.5" style={{ color: BRAND.green }}>{brl(s.price)}</p>
                               )}
                             </div>
-                            {inCart ? (
-                              <div className="flex items-center gap-1 shrink-0">
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); updateQty(cartLineId(s.id, 'inteira'), -1); }}
-                                  className="h-8 w-8 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50"
-                                ><Minus className="h-3 w-3" /></button>
-                                <span className="text-sm font-semibold w-5 text-center">{inCart.qty}</span>
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); addToCart({ sectorId: s.id, name: s.name, color: s.color, ticketType: 'inteira', ticketLabel: 'Inteira', price: discountPrice(s.price) }); }}
-                                  className="h-8 w-8 rounded text-white flex items-center justify-center"
+                            {!s.hasSeats && (
+                              inCart ? (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); updateQty(cartLineId(s.id, 'inteira'), -1); }}
+                                    className="h-8 w-8 rounded border border-slate-200 flex items-center justify-center hover:bg-slate-50"
+                                  ><Minus className="h-3 w-3" /></button>
+                                  <span className="text-sm font-semibold w-5 text-center">{inCart.qty}</span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const raw = snapshot?.sectors.find((x) => x.id === s.id);
+                                      if (raw) { setPendingTicketType('inteira'); setPendingSeat({ seat: null, sector: raw }); }
+                                    }}
+                                    className="h-8 w-8 rounded text-white flex items-center justify-center"
+                                    style={{ background: BRAND.green }}
+                                  ><Plus className="h-3 w-3" /></button>
+                                </div>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  className="text-white h-9 w-9 p-0 rounded-full shrink-0"
                                   style={{ background: BRAND.green }}
-                                ><Plus className="h-3 w-3" /></button>
-                              </div>
-                            ) : (
-                              <Button
-                                size="sm"
-                                className="text-white h-9 w-9 p-0 rounded-full shrink-0"
-                                style={{ background: BRAND.green }}
-                                onClick={(e) => { e.stopPropagation(); addToCart({ sectorId: s.id, name: s.name, color: s.color, ticketType: 'inteira', ticketLabel: 'Inteira', price: discountPrice(s.price) }); }}
-                                aria-label="Adicionar ao carrinho"
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const raw = snapshot?.sectors.find((x) => x.id === s.id);
+                                    if (raw) { setPendingTicketType('inteira'); setPendingSeat({ seat: null, sector: raw }); }
+                                  }}
+                                  aria-label="Escolher ingresso"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              )
                             )}
                           </div>
                         );
@@ -2148,55 +2170,74 @@ const EventPreview: React.FC = () => {
                 className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh]"
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Cabeçalho + foto da visão do assento */}
-                <div className="relative">
-                  {pendingSeat.seat.viewImageUrl ? (
-                    <img
-                      src={pendingSeat.seat.viewImageUrl}
-                      alt="Visão do assento para o palco"
-                      className="w-full h-44 object-cover bg-slate-100"
-                      onError={(e) => {
-                        const el = e.currentTarget as HTMLImageElement;
-                        el.style.display = 'none';
-                        const fb = el.parentElement?.querySelector('[data-fallback]');
-                        fb?.classList.remove('hidden');
-                        fb?.classList.add('flex');
-                      }}
-                    />
-                  ) : null}
-                  <div
-                    data-fallback
-                    className={cn(
-                      'w-full h-44 flex-col items-center justify-center gap-1 bg-slate-100 text-slate-400',
-                      pendingSeat.seat.viewImageUrl ? 'hidden' : 'flex',
-                    )}
-                  >
-                    <Eye className="h-7 w-7 opacity-50" />
-                    <span className="text-xs font-medium">Sem foto da visão cadastrada</span>
+                {/* Cabeçalho + foto da visão do assento (oculta se setor sem assentos) */}
+                {pendingSeat.seat && (
+                  <div className="relative">
+                    {pendingSeat.seat.viewImageUrl ? (
+                      <img
+                        src={pendingSeat.seat.viewImageUrl}
+                        alt="Visão do assento para o palco"
+                        className="w-full h-44 object-cover bg-slate-100"
+                        onError={(e) => {
+                          const el = e.currentTarget as HTMLImageElement;
+                          el.style.display = 'none';
+                          const fb = el.parentElement?.querySelector('[data-fallback]');
+                          fb?.classList.remove('hidden');
+                          fb?.classList.add('flex');
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      data-fallback
+                      className={cn(
+                        'w-full h-44 flex-col items-center justify-center gap-1 bg-slate-100 text-slate-400',
+                        pendingSeat.seat.viewImageUrl ? 'hidden' : 'flex',
+                      )}
+                    >
+                      <Eye className="h-7 w-7 opacity-50" />
+                      <span className="text-xs font-medium">Sem foto da visão cadastrada</span>
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 py-2">
+                      <p className="text-[10px] uppercase tracking-wider font-bold text-white/80">Visão do assento para o palco</p>
+                    </div>
+                    <button
+                      onClick={() => setPendingSeat(null)}
+                      className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white/90 flex items-center justify-center text-slate-700 hover:bg-white shadow"
+                      aria-label="Fechar"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 py-2">
-                    <p className="text-[10px] uppercase tracking-wider font-bold text-white/80">Visão do assento para o palco</p>
+                )}
+                {!pendingSeat.seat && (
+                  <div className="relative flex items-center justify-between px-4 py-3 border-b bg-slate-50">
+                    <p className="text-sm font-bold text-slate-900">Escolha seu ingresso</p>
+                    <button
+                      onClick={() => setPendingSeat(null)}
+                      className="h-8 w-8 rounded-full bg-white flex items-center justify-center text-slate-700 hover:bg-slate-100 shadow-sm border border-slate-200"
+                      aria-label="Fechar"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setPendingSeat(null)}
-                    className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white/90 flex items-center justify-center text-slate-700 hover:bg-white shadow"
-                    aria-label="Fechar"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
+                )}
 
                 <div className="p-4 space-y-3 overflow-y-auto">
-                  {/* Resumo do assento */}
+                  {/* Resumo do assento / setor */}
                   <div className="flex items-center gap-2">
                     <span className="h-3 w-3 rounded-full shrink-0" style={{ background: pendingSeat.sector.color }} />
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-slate-900 text-sm truncate">{pendingSeat.sector.name}</p>
-                      <p className="text-xs text-slate-500">
-                        Fila {pendingSeat.seat.row || '—'} · Nº {pendingSeat.seat.number || '—'}
-                      </p>
+                      {pendingSeat.seat ? (
+                        <p className="text-xs text-slate-500">
+                          Fila {pendingSeat.seat.row || '—'} · Nº {pendingSeat.seat.number || '—'}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-500">Setor sem lugar marcado</p>
+                      )}
                     </div>
                   </div>
+
 
                   {/* Tipo do ingresso */}
                   <div>
