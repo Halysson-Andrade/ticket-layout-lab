@@ -1974,7 +1974,7 @@ const EventPreview: React.FC = () => {
                       {sectorsForSale.map((s) => {
                         const isActive = (selectedSectorId || hoveredSectorId) === s.id;
                         const inCart = cart.find((i) => i.sectorId === s.id && i.ticketType === 'inteira');
-                        const isBest = s.id === bestValueSectorId;
+                        const isExclusive = couponApplied;
                         // Fora do orçamento: esmaece a linha (mesmo sinal visual do mapa). Continua clicável.
                         const isDimmed = dimmedSet.has(s.id) && !isActive;
                         return (
@@ -1986,21 +1986,21 @@ const EventPreview: React.FC = () => {
                             className={cn(
                               'relative flex flex-wrap items-center gap-x-3 gap-y-2 border rounded-xl p-3 cursor-pointer transition',
                               isActive ? 'shadow-md' : 'border-slate-200 hover:border-slate-300',
-                              isBest && !isActive && 'border-transparent',
+                              isExclusive && !isActive && 'border-transparent',
                               isDimmed && 'opacity-50 grayscale',
                             )}
                             style={
                               isActive
                                 ? { borderColor: BRAND.green, boxShadow: `0 0 0 3px ${BRAND.green}26` }
-                                : isBest
+                                : isExclusive
                                 ? { background: `linear-gradient(180deg, ${BRAND.green}08, #fff)`, boxShadow: `0 0 0 1.5px ${BRAND.green}55` }
                                 : undefined
                             }
                           >
-                            {isBest && (
+                            {isExclusive && (
                               <span className="absolute -top-2 left-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-white shadow"
                                 style={{ background: BRAND.green }}>
-                                <Award className="h-2.5 w-2.5" /> Melhor escolha
+                                <Award className="h-2.5 w-2.5" /> Exclusivo
                               </span>
                             )}
                             <div
