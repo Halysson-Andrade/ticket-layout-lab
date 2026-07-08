@@ -258,7 +258,7 @@ const EventPreview: React.FC = () => {
   const [mapFocusId, setMapFocusId] = useState<string | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<Array<{ id: string; sectorId: string; row: string; number: string; price: number; sectorName: string; color: string; ticketType: string }>>([]);
   // Modal de escolha do ingresso ao clicar num assento
-  const [pendingSeat, setPendingSeat] = useState<{ seat: Seat; sector: Sector } | null>(null);
+  const [pendingSeat, setPendingSeat] = useState<{ seat: Seat | null; sector: Sector } | null>(null);
   const [pendingTicketType, setPendingTicketType] = useState<string>('inteira');
   // Zoom/pan do mapa dentro do modal
   const [mapView, setMapView] = useState<{ scale: number; panX: number; panY: number }>({ scale: 1, panX: 0, panY: 0 });
