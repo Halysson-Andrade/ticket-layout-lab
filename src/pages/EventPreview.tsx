@@ -1721,7 +1721,7 @@ const EventPreview: React.FC = () => {
                           <span className="sm:hidden">Aplicado</span>
                           <button
                             type="button"
-                            onClick={() => { setCouponApplied(false); setCouponCode(''); setDiscountOpen(false); }}
+                            onClick={() => { setCouponType(null); setCouponCode(''); setDiscountOpen(false); }}
                             className="ml-0.5 text-white/80 hover:text-white"
                             aria-label="Remover cupom"
                           >
