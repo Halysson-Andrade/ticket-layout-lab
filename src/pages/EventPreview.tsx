@@ -613,6 +613,10 @@ const EventPreview: React.FC = () => {
 
   const pendingFinalPrice = useMemo(() => {
     const tt = TICKET_TYPES.find((t) => t.id === pendingTicketType) ?? TICKET_TYPES[0];
+    return Math.round(discountPrice(pendingBasePrice) * tt.factor);
+  }, [pendingBasePrice, pendingTicketType, couponType]);
+  const pendingOriginalPrice = useMemo(() => {
+    const tt = TICKET_TYPES.find((t) => t.id === pendingTicketType) ?? TICKET_TYPES[0];
     return Math.round(pendingBasePrice * tt.factor);
   }, [pendingBasePrice, pendingTicketType]);
 
