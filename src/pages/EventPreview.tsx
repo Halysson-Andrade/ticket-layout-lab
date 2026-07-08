@@ -422,7 +422,7 @@ const EventPreview: React.FC = () => {
   }, [snapshot, device, flowStep]);
 
   const sectorsForSale = useMemo(() => {
-    if (!snapshot) return [] as Array<{ id: string; name: string; color: string; price: number; available: number }>;
+    if (!snapshot) return [] as Array<{ id: string; name: string; color: string; price: number; available: number; hasSeats: boolean }>;
     return snapshot.sectors
       .filter((s) => s.visible !== false)
       .map((s, idx) => ({
