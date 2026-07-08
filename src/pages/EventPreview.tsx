@@ -431,6 +431,7 @@ const EventPreview: React.FC = () => {
         color: s.color,
         price: getSectorPrice(s, idx),
         available: s.seats.length || 50,
+        hasSeats: s.seats.length > 0,
       }));
   }, [snapshot]);
 
