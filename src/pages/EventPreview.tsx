@@ -246,10 +246,13 @@ const EventPreview: React.FC = () => {
   const [selectedDateId, setSelectedDateId] = useState<string>(eventDates[1]?.id ?? eventDates[0].id);
   // Régua de preço (teto de orçamento). null = sem filtro (usa o preço máximo do mapa).
   const [budget, setBudget] = useState<number | null>(null);
-  // Cupom de desconto (5 dígitos). Ao aplicar "12345", todos os setores recebem a tag "Exclusivo".
+  // Cupom de desconto. "12345" → tag Exclusivo. "123" → 10% de desconto + tag Desconto.
   const [discountOpen, setDiscountOpen] = useState(false);
   const [couponCode, setCouponCode] = useState('');
-  const [couponApplied, setCouponApplied] = useState(false);
+  const [couponType, setCouponType] = useState<null | 'exclusive' | 'discount'>(null);
+  const couponApplied = couponType !== null;
+  const DISCOUNT_RATE = 0.10;
+  const discountPrice = (p: number) => couponType === 'discount' ? Math.round(p * (1 - DISCOUNT_RATE) * 100) / 100 : p;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileDatesOpen, setMobileDatesOpen] = useState(false);
   const [mapFocusId, setMapFocusId] = useState<string | null>(null);
@@ -610,6 +613,10 @@ const EventPreview: React.FC = () => {
 
   const pendingFinalPrice = useMemo(() => {
     const tt = TICKET_TYPES.find((t) => t.id === pendingTicketType) ?? TICKET_TYPES[0];
+    return Math.round(discountPrice(pendingBasePrice) * tt.factor);
+  }, [pendingBasePrice, pendingTicketType, couponType]);
+  const pendingOriginalPrice = useMemo(() => {
+    const tt = TICKET_TYPES.find((t) => t.id === pendingTicketType) ?? TICKET_TYPES[0];
     return Math.round(pendingBasePrice * tt.factor);
   }, [pendingBasePrice, pendingTicketType]);
 
@@ -617,7 +624,7 @@ const EventPreview: React.FC = () => {
     if (!pendingSeat) return;
     const { seat, sector } = pendingSeat;
     const tt = TICKET_TYPES.find((t) => t.id === pendingTicketType) ?? TICKET_TYPES[0];
-    const price = Math.round(pendingBasePrice * tt.factor);
+    const price = Math.round(discountPrice(pendingBasePrice) * tt.factor);
     setSelectedSeats((prev) => [
       ...prev,
       {
@@ -1685,9 +1692,13 @@ const EventPreview: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => {
-                              if (couponCode.trim() === '12345') {
-                                setCouponApplied(true);
+                              const code = couponCode.trim();
+                              if (code === '12345') {
+                                setCouponType('exclusive');
                                 toast.success('Cupom aplicado! Setores exclusivos liberados.');
+                              } else if (code === '123') {
+                                setCouponType('discount');
+                                toast.success('Cupom aplicado! 10% de desconto em todos os setores.');
                               } else {
                                 toast.error('Cupom inválido.');
                               }
@@ -1714,7 +1725,7 @@ const EventPreview: React.FC = () => {
                           <span className="sm:hidden">Aplicado</span>
                           <button
                             type="button"
-                            onClick={() => { setCouponApplied(false); setCouponCode(''); setDiscountOpen(false); }}
+                            onClick={() => { setCouponType(null); setCouponCode(''); setDiscountOpen(false); }}
                             className="ml-0.5 text-white/80 hover:text-white"
                             aria-label="Remover cupom"
                           >
@@ -1985,10 +1996,16 @@ const EventPreview: React.FC = () => {
                                 : undefined
                             }
                           >
-                            {isExclusive && (
+                            {couponType === 'exclusive' && (
                               <span className="absolute -top-2 left-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-white shadow"
                                 style={{ background: BRAND.green }}>
                                 <Award className="h-2.5 w-2.5" /> Exclusivo
+                              </span>
+                            )}
+                            {couponType === 'discount' && (
+                              <span className="absolute -top-2 left-3 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full text-white shadow"
+                                style={{ background: '#dc2626' }}>
+                                <Ticket className="h-2.5 w-2.5" /> Desconto -10%
                               </span>
                             )}
                             <div
@@ -2006,11 +2023,17 @@ const EventPreview: React.FC = () => {
                                   </span>
                                 )}
                               </div>
-                              <p className="text-xs text-slate-500 truncate">{s.available} disponíveis · 10x de {brl(s.price / 10)}</p>
                             </div>
                             <div className="text-right shrink-0 ml-auto">
                               <p className="text-[10px] text-slate-400 leading-none">a partir de</p>
-                              <p className="text-sm font-bold leading-tight mt-0.5" style={{ color: BRAND.green }}>{brl(s.price)}</p>
+                              {couponType === 'discount' ? (
+                                <div className="flex items-baseline gap-1.5 justify-end mt-0.5">
+                                  <span className="text-[11px] text-slate-400 line-through tabular-nums">{brl(s.price)}</span>
+                                  <span className="text-sm font-bold leading-tight tabular-nums" style={{ color: BRAND.green }}>{brl(discountPrice(s.price))}</span>
+                                </div>
+                              ) : (
+                                <p className="text-sm font-bold leading-tight mt-0.5" style={{ color: BRAND.green }}>{brl(s.price)}</p>
+                              )}
                             </div>
                             {inCart ? (
                               <div className="flex items-center gap-1 shrink-0">
@@ -2020,7 +2043,7 @@ const EventPreview: React.FC = () => {
                                 ><Minus className="h-3 w-3" /></button>
                                 <span className="text-sm font-semibold w-5 text-center">{inCart.qty}</span>
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); addToCart({ sectorId: s.id, name: s.name, color: s.color, ticketType: 'inteira', ticketLabel: 'Inteira', price: s.price }); }}
+                                  onClick={(e) => { e.stopPropagation(); addToCart({ sectorId: s.id, name: s.name, color: s.color, ticketType: 'inteira', ticketLabel: 'Inteira', price: discountPrice(s.price) }); }}
                                   className="h-8 w-8 rounded text-white flex items-center justify-center"
                                   style={{ background: BRAND.green }}
                                 ><Plus className="h-3 w-3" /></button>
@@ -2030,7 +2053,7 @@ const EventPreview: React.FC = () => {
                                 size="sm"
                                 className="text-white h-9 w-9 p-0 rounded-full shrink-0"
                                 style={{ background: BRAND.green }}
-                                onClick={(e) => { e.stopPropagation(); addToCart({ sectorId: s.id, name: s.name, color: s.color, ticketType: 'inteira', ticketLabel: 'Inteira', price: s.price }); }}
+                                onClick={(e) => { e.stopPropagation(); addToCart({ sectorId: s.id, name: s.name, color: s.color, ticketType: 'inteira', ticketLabel: 'Inteira', price: discountPrice(s.price) }); }}
                                 aria-label="Adicionar ao carrinho"
                               >
                                 <Plus className="h-4 w-4" />
@@ -2181,7 +2204,8 @@ const EventPreview: React.FC = () => {
                     <div className="space-y-1.5">
                       {TICKET_TYPES.map((tt) => {
                         const active = pendingTicketType === tt.id;
-                        const price = Math.round(pendingBasePrice * tt.factor);
+                        const originalPrice = Math.round(pendingBasePrice * tt.factor);
+                        const price = Math.round(discountPrice(pendingBasePrice) * tt.factor);
                         return (
                           <button
                             key={tt.id}
@@ -2202,7 +2226,14 @@ const EventPreview: React.FC = () => {
                               <p className="text-sm font-semibold text-slate-800">{tt.label}</p>
                               <p className="text-[10px] text-slate-500 truncate">{tt.hint}</p>
                             </div>
-                            <span className="text-sm font-black text-slate-900 tabular-nums">{brl(price)}</span>
+                            {couponType === 'discount' ? (
+                              <span className="flex items-baseline gap-1.5">
+                                <span className="text-xs text-slate-400 line-through tabular-nums">{brl(originalPrice)}</span>
+                                <span className="text-sm font-black tabular-nums" style={{ color: BRAND.green }}>{brl(price)}</span>
+                              </span>
+                            ) : (
+                              <span className="text-sm font-black text-slate-900 tabular-nums">{brl(price)}</span>
+                            )}
                           </button>
                         );
                       })}
@@ -2214,7 +2245,15 @@ const EventPreview: React.FC = () => {
                 <div className="border-t bg-slate-50 px-4 py-3 flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[10px] text-slate-500">Valor do ingresso</p>
-                    <p className="text-lg font-black text-slate-900 tabular-nums">{brl(pendingFinalPrice)}</p>
+                    {couponType === 'discount' ? (
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-sm text-slate-400 line-through tabular-nums">{brl(pendingOriginalPrice)}</span>
+                        <span className="text-lg font-black tabular-nums" style={{ color: BRAND.green }}>{brl(pendingFinalPrice)}</span>
+                        <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded text-white" style={{ background: '#dc2626' }}>-10%</span>
+                      </div>
+                    ) : (
+                      <p className="text-lg font-black text-slate-900 tabular-nums">{brl(pendingFinalPrice)}</p>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => setPendingSeat(null)}>Cancelar</Button>
