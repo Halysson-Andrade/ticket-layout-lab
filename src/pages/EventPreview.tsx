@@ -2226,7 +2226,14 @@ const EventPreview: React.FC = () => {
                               <p className="text-sm font-semibold text-slate-800">{tt.label}</p>
                               <p className="text-[10px] text-slate-500 truncate">{tt.hint}</p>
                             </div>
-                            <span className="text-sm font-black text-slate-900 tabular-nums">{brl(price)}</span>
+                            {couponType === 'discount' ? (
+                              <span className="flex items-baseline gap-1.5">
+                                <span className="text-xs text-slate-400 line-through tabular-nums">{brl(originalPrice)}</span>
+                                <span className="text-sm font-black tabular-nums" style={{ color: BRAND.green }}>{brl(price)}</span>
+                              </span>
+                            ) : (
+                              <span className="text-sm font-black text-slate-900 tabular-nums">{brl(price)}</span>
+                            )}
                           </button>
                         );
                       })}
