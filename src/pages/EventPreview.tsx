@@ -2245,6 +2245,16 @@ const EventPreview: React.FC = () => {
                 <div className="border-t bg-slate-50 px-4 py-3 flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[10px] text-slate-500">Valor do ingresso</p>
+                    {couponType === 'discount' ? (
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-sm text-slate-400 line-through tabular-nums">{brl(pendingOriginalPrice)}</span>
+                        <span className="text-lg font-black tabular-nums" style={{ color: BRAND.green }}>{brl(pendingFinalPrice)}</span>
+                        <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded text-white" style={{ background: '#dc2626' }}>-10%</span>
+                      </div>
+                    ) : (
+                      <p className="text-lg font-black text-slate-900 tabular-nums">{brl(pendingFinalPrice)}</p>
+                    )}
+                  </div>
                     <p className="text-lg font-black text-slate-900 tabular-nums">{brl(pendingFinalPrice)}</p>
                   </div>
                   <div className="flex gap-2">
