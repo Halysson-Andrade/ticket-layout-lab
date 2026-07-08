@@ -1895,8 +1895,69 @@ const EventPreview: React.FC = () => {
                   </div>
 
 
-                  <div className={cn('bg-white min-h-0 overflow-y-auto', isMobile && 'gw-hide-scroll')}>
-                    <div className="p-4 space-y-2">
+                  <div className={cn('bg-white min-h-0 overflow-y-auto flex flex-col', isMobile && 'gw-hide-scroll')}>
+                    {/* Régua de orçamento + legenda no topo do container de setores */}
+                    {(maxPrice > minPrice || specialLegendTypes.length > 0) && (
+                      <div className="border-b border-slate-200 bg-white px-4 py-2.5 shrink-0 flex flex-col gap-2">
+                        {maxPrice > minPrice && (
+                          <div className="flex items-center gap-2.5">
+                            <div className="shrink-0">
+                              <p className="text-[9px] uppercase tracking-wider font-bold text-slate-500 leading-none">Orçamento</p>
+                              <p className="text-xs font-black text-slate-900 leading-tight mt-0.5">{brl(effectiveBudget)}</p>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <Slider
+                                min={minPrice}
+                                max={maxPrice}
+                                step={5}
+                                value={[effectiveBudget]}
+                                onValueChange={([v]) => setBudget(v)}
+                                aria-label="Orçamento máximo por ingresso"
+                              />
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className="text-[10px] font-semibold text-slate-600 leading-tight">
+                                <span style={{ color: BRAND.green }}>{withinBudgetCount}</span>/{sectorsForSale.length}
+                              </p>
+                              {budget !== null && (
+                                <button
+                                  onClick={() => setBudget(null)}
+                                  className="text-[9px] font-bold uppercase tracking-wider hover:underline"
+                                  style={{ color: BRAND.green }}
+                                >
+                                  Limpar
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        {specialLegendTypes.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[10px] text-slate-600">
+                            {specialLegendTypes.map((t) => (
+                              <span key={t} className="inline-flex items-center gap-1">
+                                <span className="h-2.5 w-2.5 rounded-full border border-black/10 shrink-0" style={{ background: SEAT_COLORS[t] }} />
+                                {SEAT_TYPE_LABELS[t]}
+                              </span>
+                            ))}
+                            <span className="inline-flex items-center gap-1">
+                              <span className="h-2.5 w-2.5 rounded-full border border-slate-300 bg-white shrink-0" />
+                              Disponível
+                            </span>
+                            <span className="inline-flex items-center gap-1">
+                              <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: BRAND.green }} />
+                              Selecionado
+                            </span>
+                            {hasBlockedSeats && (
+                              <span className="inline-flex items-center gap-1">
+                                <span className="h-2.5 w-2.5 rounded-full bg-slate-400 shrink-0" />
+                                Indisponível
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <div className="p-4 space-y-2 flex-1 overflow-y-auto gw-hide-scroll">
 
                       {sectorsForSale.map((s) => {
                         const isActive = (selectedSectorId || hoveredSectorId) === s.id;
