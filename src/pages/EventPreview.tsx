@@ -626,21 +626,26 @@ const EventPreview: React.FC = () => {
     const { seat, sector } = pendingSeat;
     const tt = TICKET_TYPES.find((t) => t.id === pendingTicketType) ?? TICKET_TYPES[0];
     const price = Math.round(discountPrice(pendingBasePrice) * tt.factor);
-    setSelectedSeats((prev) => [
-      ...prev,
-      {
-        id: seat.id,
-        sectorId: sector.id,
-        row: seat.row,
-        number: seat.number,
-        price,
-        sectorName: sector.name,
-        color: sector.color,
-        ticketType: tt.id,
-      },
-    ]);
-    addToCart({ sectorId: sector.id, name: sector.name, color: sector.color, ticketType: tt.id, ticketLabel: tt.label, price });
-    toast.success(`Assento ${seat.row}${seat.number} adicionado`, { description: `${sector.name} · ${tt.label}` });
+    if (seat) {
+      setSelectedSeats((prev) => [
+        ...prev,
+        {
+          id: seat.id,
+          sectorId: sector.id,
+          row: seat.row,
+          number: seat.number,
+          price,
+          sectorName: sector.name,
+          color: sector.color,
+          ticketType: tt.id,
+        },
+      ]);
+      addToCart({ sectorId: sector.id, name: sector.name, color: sector.color, ticketType: tt.id, ticketLabel: tt.label, price });
+      toast.success(`Assento ${seat.row}${seat.number} adicionado`, { description: `${sector.name} · ${tt.label}` });
+    } else {
+      addToCart({ sectorId: sector.id, name: sector.name, color: sector.color, ticketType: tt.id, ticketLabel: tt.label, price });
+      toast.success(`Ingresso adicionado`, { description: `${sector.name} · ${tt.label}` });
+    }
     setPendingSeat(null);
   };
 
