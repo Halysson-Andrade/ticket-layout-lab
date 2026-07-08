@@ -2170,55 +2170,74 @@ const EventPreview: React.FC = () => {
                 className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92dvh]"
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Cabeçalho + foto da visão do assento */}
-                <div className="relative">
-                  {pendingSeat.seat.viewImageUrl ? (
-                    <img
-                      src={pendingSeat.seat.viewImageUrl}
-                      alt="Visão do assento para o palco"
-                      className="w-full h-44 object-cover bg-slate-100"
-                      onError={(e) => {
-                        const el = e.currentTarget as HTMLImageElement;
-                        el.style.display = 'none';
-                        const fb = el.parentElement?.querySelector('[data-fallback]');
-                        fb?.classList.remove('hidden');
-                        fb?.classList.add('flex');
-                      }}
-                    />
-                  ) : null}
-                  <div
-                    data-fallback
-                    className={cn(
-                      'w-full h-44 flex-col items-center justify-center gap-1 bg-slate-100 text-slate-400',
-                      pendingSeat.seat.viewImageUrl ? 'hidden' : 'flex',
-                    )}
-                  >
-                    <Eye className="h-7 w-7 opacity-50" />
-                    <span className="text-xs font-medium">Sem foto da visão cadastrada</span>
+                {/* Cabeçalho + foto da visão do assento (oculta se setor sem assentos) */}
+                {pendingSeat.seat && (
+                  <div className="relative">
+                    {pendingSeat.seat.viewImageUrl ? (
+                      <img
+                        src={pendingSeat.seat.viewImageUrl}
+                        alt="Visão do assento para o palco"
+                        className="w-full h-44 object-cover bg-slate-100"
+                        onError={(e) => {
+                          const el = e.currentTarget as HTMLImageElement;
+                          el.style.display = 'none';
+                          const fb = el.parentElement?.querySelector('[data-fallback]');
+                          fb?.classList.remove('hidden');
+                          fb?.classList.add('flex');
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      data-fallback
+                      className={cn(
+                        'w-full h-44 flex-col items-center justify-center gap-1 bg-slate-100 text-slate-400',
+                        pendingSeat.seat.viewImageUrl ? 'hidden' : 'flex',
+                      )}
+                    >
+                      <Eye className="h-7 w-7 opacity-50" />
+                      <span className="text-xs font-medium">Sem foto da visão cadastrada</span>
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 py-2">
+                      <p className="text-[10px] uppercase tracking-wider font-bold text-white/80">Visão do assento para o palco</p>
+                    </div>
+                    <button
+                      onClick={() => setPendingSeat(null)}
+                      className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white/90 flex items-center justify-center text-slate-700 hover:bg-white shadow"
+                      aria-label="Fechar"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 py-2">
-                    <p className="text-[10px] uppercase tracking-wider font-bold text-white/80">Visão do assento para o palco</p>
+                )}
+                {!pendingSeat.seat && (
+                  <div className="relative flex items-center justify-between px-4 py-3 border-b bg-slate-50">
+                    <p className="text-sm font-bold text-slate-900">Escolha seu ingresso</p>
+                    <button
+                      onClick={() => setPendingSeat(null)}
+                      className="h-8 w-8 rounded-full bg-white flex items-center justify-center text-slate-700 hover:bg-slate-100 shadow-sm border border-slate-200"
+                      aria-label="Fechar"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setPendingSeat(null)}
-                    className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white/90 flex items-center justify-center text-slate-700 hover:bg-white shadow"
-                    aria-label="Fechar"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
+                )}
 
                 <div className="p-4 space-y-3 overflow-y-auto">
-                  {/* Resumo do assento */}
+                  {/* Resumo do assento / setor */}
                   <div className="flex items-center gap-2">
                     <span className="h-3 w-3 rounded-full shrink-0" style={{ background: pendingSeat.sector.color }} />
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-slate-900 text-sm truncate">{pendingSeat.sector.name}</p>
-                      <p className="text-xs text-slate-500">
-                        Fila {pendingSeat.seat.row || '—'} · Nº {pendingSeat.seat.number || '—'}
-                      </p>
+                      {pendingSeat.seat ? (
+                        <p className="text-xs text-slate-500">
+                          Fila {pendingSeat.seat.row || '—'} · Nº {pendingSeat.seat.number || '—'}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-500">Setor sem lugar marcado</p>
+                      )}
                     </div>
                   </div>
+
 
                   {/* Tipo do ingresso */}
                   <div>
